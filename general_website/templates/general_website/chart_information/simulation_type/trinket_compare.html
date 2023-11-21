@@ -1,0 +1,29 @@
+{% load i18n %}
+<h5>Trinkets</h5>
+<p>
+    This chart shows how much power a single trinket adds to a profile.
+</p>
+<p>
+    It uses the "tier appropriate"
+    <a href="https://github.com/simulationcraft/simc/tree/dragonflight/profiles">SimulationCraft profile</a>.
+    If the fight style is neither <code>patchwerk</code> nor <code>castingpatchwerk</code> a "tier appropriate"
+    <a href="https://github.com/Bloodmallet/bloodytools/tree/dev/fallback_profiles">fallback profile</a> is used to
+    improve the data quality. In a custom chart if the creator provided a profile, it replaces the formerly mentioned
+    profiles.
+</p>
+<p>
+    Both trinkets are removed from the profile. Instead one trinket with the appropriate primary stat and a static
+    Versatility amount is equipped. This profile is the base profile. For each trinket and trinket itemlevel you see
+    above a new profile is created.
+</p>
+<p>
+    Warning about Idols:<br />
+    In case your profile does not have any gems, or uses the same gem in all available slots Idols won't simulate
+    properly. They require different gems to proc their different stats.
+</p>
+
+<pre>
+# SimulatonCraft example override
+## Unbound Changeling [Crit], itemlevel: 242
+trinket1=,id=178708,ilevel=242,bonus_id=6916
+</pre>

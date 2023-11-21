@@ -15,11 +15,52 @@ from general_website.models.simulation import QueueState
 import json
 import logging
 
+# TODO: remove once db connection established for trinket_compare
+import requests
+
 logger = logging.getLogger(__name__)
 
 # support
 
 # views
+
+# Constants
+URL_FORMAT = "https://bloodmallet.com/chart/get/trinkets/{}/{}/{}"
+FIGHT_STYLES = ["castingpatchwerk", "castingpatchwerk3", "castingpatchwerk5"]
+SPECS = [
+    ("death_knight", "blood"),
+    ("death_knight", "frost"),
+    ("death_knight", "unholy"),
+    ("demon_hunter", "havoc"),
+    ("demon_hunter", "vengeance"),
+    ("druid", "balance"),
+    ("druid", "feral"),
+    ("druid", "guardian"),
+    ("evoker", "devastation"),
+    # ("evoker", "preservation"),
+    ("hunter", "beast_mastery"),
+    ("hunter", "marksmanship"),
+    ("hunter", "survival"),
+    ("mage", "arcane"),
+    ("mage", "fire"),
+    ("mage", "frost"),
+    ("monk", "brewmaster"),
+    ("monk", "windwalker"),
+    ("paladin", "protection"),
+    ("paladin", "retribution"),
+    ("priest", "shadow"),
+    ("rogue", "assassination"),
+    ("rogue", "outlaw"),
+    ("rogue", "subtlety"),
+    ("shaman", "elemental"),
+    ("shaman", "enhancement"),
+    ("warlock", "affliction"),
+    ("warlock", "demonology"),
+    ("warlock", "destruction"),
+    ("warrior", "arms"),
+    ("warrior", "fury"),
+    ("warrior", "protection"),
+]
 
 
 def index(request):
@@ -566,6 +607,133 @@ def chart_power_infusion(request):
         context["chart"] = simulation
 
     return render(request, "general_website/chart.html", context=context)
+
+
+def chart_trinket(
+    request,
+    item_name="accelerating_sandglass",
+    item_level="447",
+    fight_style="castingpatchwerk",
+):
+    """Shows the trinket chart"""
+    logger.debug("called")
+
+    context = {
+        "trinket_compare": True,
+        "simulation_type": "trinkets",
+        "item_name": item_name,
+        "item_level": item_level,
+        "fight_style": fight_style,
+    }
+
+    try:
+        simulation: Simulation = Simulation.objects.select_related(
+            "result",
+            "simulation_type",
+            "fight_style",
+        ).get(
+            fight_style__tokenized_name="castingpatchwerk",
+            simulation_type__command="trinkets",
+            result__general_result__isnull=False,
+        )
+    except Simulation.DoesNotExist:
+        simulation = None
+
+    logger.info(simulation)
+
+    context["chart"] = {}
+    if simulation:
+        context["chart_id"] = simulation.id
+        context["chart"] = simulation
+
+    logger.info(context)
+
+    return render(request, "general_website/chart.html", context=context)
+
+
+def get_trinket_data(
+    request,
+    item_name="accelerating_sandglass",
+    item_level="447",
+    fight_style="castingpatchwerk",
+) -> JsonResponse:
+    logger.debug("called")
+    data = {}
+
+    # local workaround since unable to select directly.
+    with requests.Session() as session:
+        for wow_class, wow_spec in SPECS:
+            try:
+                # e.g. outlaw_rogue --> Outlaw Rogue
+                key = f"{wow_spec.replace('_', ' ').title()} {wow_class.replace('_', ' ').title()}"
+                data[key] = fetch_data(session, fight_style, wow_class, wow_spec)
+            except requests.HTTPError as e:
+                print(f"Failed to fetch data for {key}: {e}")
+
+    processed_data = process_data(data)
+    sorted_data = sort_data(processed_data)
+    # TODO: remove magic numbers
+    baseline = {**sorted_data["baseline"]["411"], **sorted_data["baseline"]["447"]}
+    # TODO: replace hardcoded metadata
+    response = {
+        "data": {
+            **sorted_data[item_name][item_level],
+            "baseline": baseline,
+        },
+        "data_type": "trinket_compare",
+        "metadata": {
+            "SimulationCraft": "4bd36b04a684c57c56e42d4594152086a5299196",
+            "bloodytools": "4997ef2cdc551cc4299f6af5277db804f0732be9",
+            "timestamp": "2023-11-18 06:50:11.096297",
+        },
+        "simc_settings": {
+            "fight_style": fight_style,
+            "iterations": "60000",
+            "ptr": "0",
+            "simc_hash": "4bd36b04a684c57c56e42d4594152086a5299196",
+            "target_error": "0.1",
+            "tier": "31",
+        },
+        "subtitle": 'UTC 2023-11-18 06:50 | SimC build: <a href="https://github.com/simulationcraft/simc/commit/4bd36b04a684c57c56e42d4594152086a5299196" target="blank">4bd36b0</a>',
+        "timestamp": "2023-11-18 06:50",
+        "title": item_name.replace("_", " ").title() + " | Castingpatchwerk",
+        "translations": {},
+    }
+    return JsonResponse(data=response)
+
+
+# TODO: rm once db connection established
+def fetch_data(session, fight_style, wow_class, wow_spec):
+    url = URL_FORMAT.format(fight_style, wow_class, wow_spec)
+    response = session.get(url)
+    response.raise_for_status()
+    return response.json()
+
+
+# TODO: Server side processing.
+def process_data(data):
+    processed_data = {}
+    for key, items in data.items():
+        # Splitting only on the first underscore to separate fight_style from the rest
+        parts = key.split("_", 1)
+        fight_style = parts[0]
+        for item_name, item_levels in items["data"].items():
+            for item_level, dps in item_levels.items():
+                processed_data.setdefault(
+                    item_name.lower().replace(" ", "_"), {}
+                ).setdefault(item_level, {})[key] = dps
+    return processed_data
+
+
+# TODO: Server side sorting.
+def sort_data(data):
+    for item_name in data:
+        for item_level in data[item_name]:
+            sorted_specs = sorted(
+                data[item_name][item_level].items(), key=lambda x: x[1], reverse=True
+            )
+            data[item_name][item_level] = dict(sorted_specs)
+    return data
 
 
 def standard_chart(
