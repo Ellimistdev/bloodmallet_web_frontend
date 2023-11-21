@@ -247,7 +247,7 @@
 {% include 'general_website/chart_information/class_and_spec_information_importer.html' %}
 
 <!-- <div align="center"> -->
-    <div id="chart" class="bloodmallet_chart mt-3" {% if general_result or windfury or power_infusion or trinket_compare %}
+<div id="chart" class="bloodmallet_chart mt-3" {% if general_result or windfury or power_infusion or trinket_compare %}
     data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}"
     data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %}
     data-language="{{ LANGUAGE_CODE }}" data-show-top="-1"
