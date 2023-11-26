@@ -222,12 +222,32 @@ a:hover .svg-icon {
 .dropdown-menu {
     background-color: $darkest-color;
     padding: 0rem;
+    min-width: 1rem;
 }
 
 .dropdown-item:hover,
 .dropdown-item:focus {
     background-color: $darkest-color;
 }
+
+.dropdown-menu::-webkit-scrollbar-track
+{
+	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+	background-color: $darkest-color;
+}
+
+.dropdown-menu::-webkit-scrollbar
+{
+	width: 10px;
+	background-color: $darkest-color;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb
+{
+	background-color: $class-color-priest;
+	border: 2px solid $darkest-color
+}
+
 
 // create necessary class specific css for nav and tables
 @each $class,
@@ -394,7 +414,7 @@ $color-value in $class-colors {
 
 // we're a straight line style
 // if anyone sees this: feel free to restyle radio buttons to squares instead of circles too
-ul {
+ul {    
     list-style-type: square;
 }
 
