@@ -44,11 +44,6 @@ urlpatterns = [
         name="get_trinket_data",
     ),
     path(
-        "chart/get/trinkets/<str:item_name>/<str:fight_style>",
-        views.get_trinket_data,
-        name="get_trinket_data",
-    ),
-    path(
         "chart/get/trinkets/<str:item_name>",
         views.get_trinket_data,
         name="get_trinket_data",
@@ -56,11 +51,6 @@ urlpatterns = [
     # Trinket Chart
     path(
         "chart/trinkets/<str:item_name>/<str:item_level>/<str:fight_style>",
-        views.chart_trinket,
-        name="chart_trinket",
-    ),
-    path(
-        "chart/trinkets/<str:item_name>/<str:fight_style>",
         views.chart_trinket,
         name="chart_trinket",
     ),
