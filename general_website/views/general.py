@@ -61,7 +61,100 @@ SPECS = [
     ("warrior", "fury"),
     ("warrior", "protection"),
 ]
-
+ITEM_IDS = {
+    "Accelerating Sandglass": 207566,
+    "Alacritous Alchemist Stone": 202116,
+    "Algeth'ar Puzzle Box": 193701,
+    "Ashes of the Embersoul": 207167,
+    "Augury of the Primal Flame": 208614,
+    "Balefire Branch": 159630,
+    "Beacon to the Beyond": 203963,
+    "Branch of the Tormented Ancient": 207169,
+    "Caged Horror": 136716,
+    "Cataclysmic Signet Brand": 207166,
+    "Coiled Serpent Idol": 207175,
+    "Corrupted Starlight": 137301,
+    "Darkmoon Deck Box: Dance": 198478,
+    "Darkmoon Deck Box: Dance [Azurescale]": 198478,
+    "Darkmoon Deck Box: Dance [Bronzescale]": 198478,
+    "Darkmoon Deck Box: Dance [Emberscale]": 198478,
+    "Darkmoon Deck Box: Dance [Jetscale]": 198478,
+    "Darkmoon Deck Box: Dance [None]": 198478,
+    "Darkmoon Deck Box: Dance [Sagescale]": 198478,
+    "Darkmoon Deck Box: Inferno": 194872,
+    "Darkmoon Deck Box: Inferno [Azurescale]": 194872,
+    "Darkmoon Deck Box: Inferno [Bronzescale]": 194872,
+    "Darkmoon Deck Box: Inferno [Emberscale]": 194872,
+    "Darkmoon Deck Box: Inferno [Jetscale]": 194872,
+    "Darkmoon Deck Box: Inferno [None]": 194872,
+    "Darkmoon Deck Box: Inferno [Sagescale]": 194872,
+    "Darkmoon Deck Box: Rime": 198477,
+    "Darkmoon Deck Box: Rime [Azurescale]": 198477,
+    "Darkmoon Deck Box: Rime [Bronzescale]": 198477,
+    "Darkmoon Deck Box: Rime [Emberscale]": 198477,
+    "Darkmoon Deck Box: Rime [Jetscale]": 198477,
+    "Darkmoon Deck Box: Rime [None]": 198477,
+    "Darkmoon Deck Box: Rime [Sagescale]": 198477,
+    "Darkmoon Deck Box: Watcher": 198481,
+    "Elementium Pocket Anvil": 202617,
+    "Ember of Nullification": 136978,
+    "Enduring Dreadplate": 202616,
+    "Frenzying Signoll Flare": 193672,
+    "Fyrakk's Tainted Rageheart": 207174,
+    "Gift of Ursine Vengeance": 207173,
+    "Gore-Crusted Butcher's Block": 159616,
+    "Heart of Thunder": 133246,
+    "Homeland Raid Horn": 193815,
+    "Idol of the Dreamer": 193005,
+    "Idol of the Earth-Warder": 193006,
+    "Idol of the Life-Binder": 193003,
+    "Idol of the Spell-Weaver": 193004,
+    "Irideus Fragment": 193743,
+    "Lingering Sporepods": 159626,
+    "Mark of Dargrul": 137357,
+    "Might of the Ocean": 133197,
+    "Mirror of Fractured Tomorrows": 207581,
+    "Mutated Magmammoth Scale": 193786,
+    "Naraxas' Spiked Tongue": 137349,
+    "Neltharion's Call to Suffering": 204211,
+    "Nightmare Egg Shell": 137312,
+    "Obsidian Gladiator's Badge of Ferocity": 205708,
+    "Obsidian Gladiator's Emblem": 205710,
+    "Obsidian Gladiator's Insignia of Alacrity": 205709,
+    "Obsidian Gladiator's Medallion": 205711,
+    "Obsidian Gladiator's Sigil of Adaptation": 205712,
+    "Ominous Chromatic Essence": 203729,
+    "Ominous Chromatic Essence [Azure+All]": 203729,
+    "Ominous Chromatic Essence [Azure]": 203729,
+    "Ominous Chromatic Essence [Bronze+All]": 203729,
+    "Ominous Chromatic Essence [Bronze]": 203729,
+    "Ominous Chromatic Essence [Emerald+All]": 203729,
+    "Ominous Chromatic Essence [Emerald]": 203729,
+    "Ominous Chromatic Essence [Obsidian+All]": 203729,
+    "Ominous Chromatic Essence [Obsidian]": 203729,
+    "Ominous Chromatic Essence [Ruby+All]": 203729,
+    "Ominous Chromatic Essence [Ruby]": 203729,
+    "Paracausal Fragment of Azzinoth": 206972,
+    "Paracausal Fragment of Doomhammer": 206964,
+    "Paracausal Fragment of Frostmourne": 206983,
+    "Paracausal Fragment of Shalamayne": 207024,
+    "Paracausal Fragment of Sulfuras": 206956,
+    "Paracausal Fragment of Thunderfin, Humid Blade of the Tideseeker": 207005,
+    "Pip's Emerald Friendship Badge": 207168,
+    "Porcelain Crab": 133192,
+    "Prophetic Stonescales": 207528,
+    "Rezan's Gleaming Eye": 158712,
+    "Screaming Black Dragonscale": 202612,
+    "Shard of Rokmora": 137338,
+    "Spiked Counterweight": 136715,
+    "Spores of Alacrity": 110014,
+    "Sustaining Alchemist Stone": 191491,
+    "Time-Breaching Talon": 193791,
+    "Treemouth's Festering Splinter": 193652,
+    "Vial of Animated Blood": 159625,
+    "Ward of Faceless Ire": 203714,
+    "Zaqali Chaos Grapnel": 202613
+  }
 
 def index(request):
     """View to either see the spec selection table or get a chart directly.
@@ -671,32 +764,23 @@ def get_trinket_data(
                 print(f"Failed to fetch data for {key}: {e}")
 
     processed_data = process_data(data)
-    sorted_data = sort_data(processed_data)
-    # TODO: remove magic numbers
-    baseline = {**sorted_data["baseline"]["411"], **sorted_data["baseline"]["447"]}
+    processed_data["data"] = sort_data(processed_data)
+
+    baseline = {k: v for d in processed_data["data"]["baseline"].values() for k, v in d.items()}
+
     # TODO: replace hardcoded metadata
     response = {
         "data": {
-            **sorted_data[item_name][item_level],
+            **processed_data["data"][item_name][item_level],
             "baseline": baseline,
+            "item_levels": list(processed_data["data"][item_name].keys()),
         },
         "data_type": "trinket_compare",
-        "metadata": {
-            "SimulationCraft": "4bd36b04a684c57c56e42d4594152086a5299196",
-            "bloodytools": "4997ef2cdc551cc4299f6af5277db804f0732be9",
-            "timestamp": "2023-11-18 06:50:11.096297",
-        },
-        "simc_settings": {
-            "fight_style": fight_style,
-            "iterations": "60000",
-            "ptr": "0",
-            "simc_hash": "4bd36b04a684c57c56e42d4594152086a5299196",
-            "target_error": "0.1",
-            "tier": "31",
-        },
-        "subtitle": 'UTC 2023-11-18 06:50 | SimC build: <a href="https://github.com/simulationcraft/simc/commit/4bd36b04a684c57c56e42d4594152086a5299196" target="blank">4bd36b0</a>',
-        "timestamp": "2023-11-18 06:50",
-        "title": item_name.replace("_", " ").title() + " | Castingpatchwerk",
+        "metadata": processed_data["metadata"],
+        "simc_settings": processed_data["simc_settings"],
+        "subtitle": processed_data["subtitle"], 
+        "timestamp": processed_data["timestamp"], 
+        # "title": processed_data["title"], 
         "translations": {},
     }
     return JsonResponse(data=response)
@@ -712,28 +796,36 @@ def fetch_data(session, fight_style, wow_class, wow_spec):
 
 # TODO: Server side processing.
 def process_data(data):
-    processed_data = {}
+    processed_data = {"items": {}}
+
     for key, items in data.items():
-        # Splitting only on the first underscore to separate fight_style from the rest
-        parts = key.split("_", 1)
-        fight_style = parts[0]
         for item_name, item_levels in items["data"].items():
+            # item_name -> item_id, item_levels [] -> key
             for item_level, dps in item_levels.items():
-                processed_data.setdefault(
+                processed_data["items"].setdefault(
                     item_name.lower().replace(" ", "_"), {}
                 ).setdefault(item_level, {})[key] = dps
+
+        # Assuming the last item's metadata is representative if they differ
+        processed_data["metadata"] = items["metadata"]
+        processed_data["simc_settings"] = items["simc_settings"]
+        processed_data["subtitle"] = items["subtitle"]
+        processed_data["timestamp"] = items["timestamp"]
+
     return processed_data
 
 
 # TODO: Server side sorting.
 def sort_data(data):
-    for item_name in data:
-        for item_level in data[item_name]:
+    sorted_data = {}
+    for item_name in data["items"]:
+        sorted_data[item_name] = {} 
+        for item_level in data["items"][item_name]:
             sorted_specs = sorted(
-                data[item_name][item_level].items(), key=lambda x: x[1], reverse=True
+                data["items"][item_name][item_level].items(), key=lambda x: x[1], reverse=True
             )
-            data[item_name][item_level] = dict(sorted_specs)
-    return data
+            sorted_data[item_name][item_level] = dict(sorted_specs)
+    return sorted_data
 
 
 def standard_chart(
