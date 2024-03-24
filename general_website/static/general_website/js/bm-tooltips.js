@@ -32,7 +32,7 @@ function bm_add_css(id, url) {
     styles.id = id;
     styles.rel = "stylesheet";
     styles.type = "text/css";
-    styles.href = url;
+    styles.href = url + "?now=" + Date.now();
     styles.media = "all";
     document.getElementsByTagName('head')[0].appendChild(styles);
 }
@@ -247,6 +247,10 @@ function bm_register_tooltip(element) {
     // });
 }
 
+/**
+ * Ensures environment is prepared for bm-tooltips then registers all 
+ * discovered tooltip targets.
+ */
 function bm_register_tooltips() {
     bm_add_css(BmTooltipStyleId, BmTooltipStyleUrl);
 
