@@ -14,7 +14,7 @@
 
 <div id="radar_chart"></div>
 <br />
-<div id="chart_target"></div>
+<div id="chart_target" data-value-calculation="relative"></div>
 
 {% endblock %}
 
@@ -37,6 +37,13 @@
             if (request.status === 200) {
                 let data = JSON.parse(request.responseText);
 
+                let el = document.getElementById("chart_target");
+                el.dataset.loadedData = request.responseText;
+                let data_element = new BmChartData(el);
+                console.log(el);
+                console.log(data);
+                console.log(data_element);
+
                 // Trinkets
                 let title = data["data_type"];
                 // "Fire Mage | Castingpatchwerk | UTC 2022-08-08 13:28"
@@ -47,16 +54,17 @@
                 let base_data = data["data"]["baseline"];
                 let item_id_dict = data["item_ids"];
 
-                new BmBarChart({
-                    element_id: "chart_target",
-                    title: title,
-                    subtitle: subtitle,
-                    legend_title: "Itemlevels",
-                    data: sim_data,
-                    base_values: base_data,
-                    value_calculation: "relative",
-                    item_id_dict: item_id_dict
-                });
+                // new BmBarChart({
+                //     element_id: "chart_target",
+                //     title: title,
+                //     subtitle: subtitle,
+                //     legend_title: "Itemlevels",
+                //     data: sim_data,
+                //     base_values: base_data,
+                //     value_calculation: "relative",
+                //     item_id_dict: item_id_dict
+                // });
+                new BmBarChart(data_element);
             } else {
                 console.error(request.statusText);
             }
@@ -76,8 +84,14 @@
         if (request2.readyState === 4) {
             if (request2.status === 200) {
                 let data = JSON.parse(request2.responseText);
-
+                let el = document.getElementById("radar_chart");
+                el.dataset.loadedData = request2.responseText;
+                let data_element = new BmChartData(el);
+                console.log(el);
                 console.log(data);
+                console.log(data_element);
+
+                // console.log(data);
 
                 // Trinkets
                 let title = data["data_type"];
@@ -93,20 +107,21 @@
                 let wow_class = data["profile"]["character"]["class"];
                 let wow_spec = data["profile"]["character"]["spec"];
 
-                new BmRadarChart({
-                    element_id: "radar_chart",
-                    title: title,
-                    subtitle: subtitle,
-                    legend_title: "Itemlevels",
-                    data: sim_data,
-                    base_values: base_data,
-                    value_calculation: "relative",
-                    item_id_dict: item_id_dict,
-                    sorted_data_data_keys: sorted_data_data_keys,
-                    secondary_sum: secondary_sum,
-                    wow_class: wow_class,
-                    wow_spec: wow_spec
-                });
+                // new BmRadarChart({
+                //     element_id: "radar_chart",
+                //     title: title,
+                //     subtitle: subtitle,
+                //     legend_title: "Itemlevels",
+                //     data: sim_data,
+                //     base_values: base_data,
+                //     value_calculation: "relative",
+                //     item_id_dict: item_id_dict,
+                //     sorted_data_data_keys: sorted_data_data_keys,
+                //     secondary_sum: secondary_sum,
+                //     wow_class: wow_class,
+                //     wow_spec: wow_spec
+                // });
+                new BmRadarChart(data_element);
             } else {
                 console.error(request2.statusText);
             }
