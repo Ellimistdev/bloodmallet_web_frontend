@@ -48,7 +48,8 @@
         background-color: var(--bm-tooltip-internal-background-color);
         border: var(--bm-tooltip-internal-border-width) var(--bm-tooltip-internal-border-style) var(--bm-tooltip-internal-border-color);
         border-radius: var(--bm-tooltip-internal-border-radius);
-        box-shadow: 0px 0px 3px 0px var(--bm-tooltip-internal-background-color);
+        /* Would be similar to how bar chart bars are highlighted on hover */
+        /* box-shadow: 0px 0px 5px 1px var(--bm-tooltip-internal-border-color); */
     }
 
     &.bm-tooltip-top {
