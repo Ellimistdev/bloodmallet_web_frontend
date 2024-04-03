@@ -87,6 +87,10 @@ class BmChartData {
      */
     subtitle = "";
     /**
+     * SimulationCraft hash, e.g. 567hj0
+     */
+    simc_hash = "";
+    /**
      * e.g. Itemlevels
      */
     legend_title = "";
@@ -174,6 +178,11 @@ class BmChartData {
     wow_class = "";
     secondary_sum = -1;
 
+    enable_title = true;
+    enable_subtitle = true;
+    enable_simc_subtitle = true;
+    enable_tooltips = true;
+
     /**
      * Extract the value from `key_chain` of `loaded_data` and stores it in class as `property`.
      * @param {String} property name of the property to be set on this class
@@ -199,10 +208,11 @@ class BmChartData {
      * Extract the value of `key` of the root html element dataset and stores it in class as `property`.
      * @param {String} property name of the proeprty to be set on this class
      * @param {String} key name of the dataset key containing the wanted value
+     * @param {CallableFunction} converter converter({String}): String 
      */
-    _extract_setting_from_root_element(property, key) {
+    _extract_setting_from_root_element(property, key, converter = (v) => { return v }) {
         if (this.root_element.dataset.hasOwnProperty(key)) {
-            this[property] = this.root_element.dataset[key];
+            this[property] = converter(this.root_element.dataset[key]);
         }
     }
 
@@ -213,6 +223,57 @@ class BmChartData {
 
         this.subtitle = subtitle;
     }
+
+    /**
+     * Add title to `element`
+     * @param {HTMLElement} element root element
+     */
+    add_title(element) {
+        if (!this.enable_title) {
+            return;
+        }
+        let title = document.createElement("div");
+        title.classList.add("bm-title");
+        title.appendChild(document.createTextNode(this.title));
+        element.appendChild(title);
+    }
+
+    /**
+     * Add subtitle to `element`
+     * @param {HTMLElement} element root element
+     */
+    add_subtitle(element) {
+        if (!this.enable_subtitle) {
+            return;
+        }
+        let subtitle = document.createElement("div");
+        subtitle.classList.add("bm-subtitle");
+        subtitle.appendChild(document.createTextNode(this.subtitle));
+        element.appendChild(subtitle);
+    }
+
+    /**
+     * Add simc subtitle to `element`
+     * @param {HTMLElement} element root element
+     */
+    add_simc_subtitle(element) {
+        if (!this.enable_simc_subtitle) {
+            return;
+        }
+        let simc_subtitle = document.createElement("div");
+        simc_subtitle.classList.add("bm-subtitle");
+
+        let prefix = document.createTextNode("SimulationCraft hash: ");
+        simc_subtitle.appendChild(prefix);
+
+        let link = document.createElement("a");
+        link.href = "https://github.com/simulationcraft/simc/commit/" + this.simc_hash;
+        link.text = "#" + this.simc_hash;
+        simc_subtitle.appendChild(link);
+
+        element.appendChild(simc_subtitle);
+    }
+
 
     constructor(root_element = new HTMLElement()) {
         /**
@@ -229,6 +290,7 @@ class BmChartData {
         this._extract_data_from_loaded_data("element_id", ["element_id"]);
         this._extract_data_from_loaded_data("title", ["data_type"]);
         this._set_subtitle();
+        this._extract_data_from_loaded_data("simc_hash", ["metadata", "SimulationCraft"]);
         this.legend_title = "Itemlevels";
         this._extract_data_from_loaded_data("legend_title", ["legend_title"]);
         this._extract_data_from_loaded_data("data", ["data"]);
@@ -277,14 +339,14 @@ class BmChartData {
                 this.base_values[series] = 0;
             }
         } else if (Object.keys(this.base_values).length === 1 && this.series_names.length > 1) {
-            console.log("1 base_values found but multiple series_names");
+            // console.log("1 base_values found but multiple series_names");
             let tmp_value = Object.values(this.base_values)[0];
             for (let series of this.series_names) {
                 // we assume 0 dps to be the baseline
                 this.base_values[series] = tmp_value;
             }
         } else if (Object.keys(this.base_values).length == this.series_names.length) {
-            console.log("as many base_values found as series_names");
+            // console.log("as many base_values found as series_names");
             // do nothing
         } else {
             throw "base_value must be an empty object, have only one key, or the same length and keys as series_names.";
@@ -295,6 +357,10 @@ class BmChartData {
         this._extract_data_from_loaded_data("item_id_dict", ["item_ids"]);
         this._extract_data_from_loaded_data("spell_id_dict", ["spell_ids"]);
         this._extract_data_from_loaded_data("language", ["language"]);
+        this._extract_setting_from_root_element("enable_title", "enableTitle", this._convert_to_bool);
+        this._extract_setting_from_root_element("enable_subtitle", "enableSubtitle", this._convert_to_bool);
+        this._extract_setting_from_root_element("enable_simc_subtitle", "enableSimcSubtitle", this._convert_to_bool);
+        this._extract_setting_from_root_element("enable_tooltips", "enableTooltips", this._convert_to_bool);
 
         this.global_max_value = Math.max(...Object.values(this.data).map(element => Math.max(...Object.values(element))));
         // delete this.data.baseline;
@@ -314,12 +380,15 @@ class BmChartData {
         // bm_add_css(BmChartStyleId, BmChartStyleUrl);
     }
 
+    _convert_to_bool(input) {
+        return input.toLowerCase() === 'true'
+    }
 
     /**
      * Convert `value` to a local string with a mantissa of `mantissa`.
      * E.g. 123.567 becomes 123,56 Germany with a set mantissa of 2.
      * @param {Number} value 
-     * @param {Number} mantissa 
+     * @param {Number} [mantissa=2]
      * @returns {String}
      */
     convert_number_to_local(value, mantissa = 2) {
@@ -391,6 +460,21 @@ class BmChartData {
             return this.get_relative_gain(this.data[key][series], this.base_values[series]);
         }
     }
+
+    /**
+     * 
+     * @param {HTMLElement} element element gets a tooltip
+     * @param {String} tooltip tooltip string, can contain html as string
+     * @param {String} position options: left, right, top, bottom
+     */
+    add_tooltip(element, tooltip, position = "right") {
+        if (!this.enable_tooltips) {
+            return;
+        }
+        element.setAttribute("data-type", "bm-tooltip");
+        element.setAttribute("data-bm-tooltip-text", tooltip);
+        element.setAttribute("data-bm-tooltip-placement", position);
+    }
 }
 
 /**
@@ -430,17 +514,9 @@ class BmBarChart {
         let root = this.bm_chart_data.root_element;
         root.classList.add("bm-bar-chart");
 
-        // title
-        let title = document.createElement("div");
-        title.classList.add("bm-title");
-        title.appendChild(document.createTextNode(this.bm_chart_data.title));
-        root.appendChild(title);
-
-        // subtitle
-        let subtitle = document.createElement("div");
-        subtitle.classList.add("bm-subtitle");
-        subtitle.appendChild(document.createTextNode(this.bm_chart_data.subtitle));
-        root.appendChild(subtitle);
+        this.bm_chart_data.add_title(root);
+        this.bm_chart_data.add_subtitle(root);
+        this.bm_chart_data.add_simc_subtitle(root);
 
         // axis titles
         let axis_titles = document.createElement("div");
@@ -546,9 +622,7 @@ class BmBarChart {
             // bar.dataset.html = "true";
             // bar.title = this.create_tooltip(key);
             // bm-tooltips
-            bar.setAttribute("data-bm-tooltip-text", this.create_tooltip(key));
-            bar.setAttribute("data-bm-tooltip-placement", "left");
-            bar.setAttribute("data-type", "bm-tooltip");
+            this.bm_chart_data.add_tooltip(bar, this.create_tooltip(key), "left");
 
             row.appendChild(bar);
             root.appendChild(row);
@@ -693,31 +767,6 @@ class BmRadarChart {
      */
     bm_chart_data;
 
-    element_id = undefined;
-    title = "";
-    subtitle = "";
-    legend_title = ""; // e.g. Itemlevels
-    data = {} // e.g. "My Trinket": {260: 12000, 270: 12500, 280: 13200}
-    language_dict = {} // e.g. "My Trinket": {"cn_CN": "心能力场发生器",}
-    spell_id_dict = {} // e.g. "My Talent": 123456
-    item_id_dict = {} // e.g. "My trinket": 123456
-    language = "en_US" // options: "cn_CN", "de_DE", "en_US", "es_ES", "fr_FR", "it_IT", "ko_KR", "pt_BR", "ru_RU"
-
-    x_axis_title = ""; // e.g. % damage per second
-    y_axis_title = ""; // e.g. Trinket - not visible anywhere
-    sorted_data_keys = [] // e.g. ["Talent Tree 1", "Talent Tree 2"]
-    sorted_data_data_keys = {} // e.g. {"Talent Tree 1": ["10_10_10_70", ...], ...}
-    value_calculation = "total"; // either total, relative, or absolute
-
-    root_element = undefined;
-    global_max_value = -1;
-    unit = { "total": "", "relative": "%", "absolute": "" };
-    x_axis_texts = { "total": "damage per second", "relative": "% damage per second", "absolute": " damage per second" };
-
-    secondary_sum = -1;   // e.g. 10000
-    wow_spec = undefined; // e.g. "elemental"
-    wow_class = undefined // e.g. "shaman"
-
     constructor(chart_data = new BmChartData()) {
         this.bm_chart_data = chart_data;
 
@@ -749,8 +798,7 @@ class BmRadarChart {
         let root = this.bm_chart_data.root_element;
         root.classList.add("bm-radar-root");
 
-        let title = document.createElement("div");
-        root.appendChild(title);
+        root.appendChild(this.create_top());
 
         let table = document.createElement("div");
         table.classList.add("bm-radar-center");
@@ -770,6 +818,22 @@ class BmRadarChart {
         table.appendChild(stacked_overview_table);
     }
 
+    /**
+     * Create the top section of the radar chart
+     * @returns {HTMLElement}
+     */
+    create_top() {
+
+        let top = document.createElement("div");
+        top.classList.add("bm-radar-top");
+
+        this.bm_chart_data.add_title(top);
+        this.bm_chart_data.add_subtitle(top);
+        this.bm_chart_data.add_simc_subtitle(top);
+
+        return top;
+    }
+
     create_distribution_table(crit, haste, mastery, vers, dps) {
         let table = document.createElement("div");
         table.classList.add("bm-stat-table");
@@ -779,23 +843,23 @@ class BmRadarChart {
         header.classList.add("bm-stat-header");
         table.appendChild(header);
 
-        let stat = document.createElement("div");
-        stat.classList.add("bm-stat-cell");
-        stat.appendChild(document.createTextNode("Best Distribution"));
-        let distribution = document.createElement("div");
-        distribution.classList.add("bm-stat-cell");
-        distribution.appendChild(document.createTextNode("Ratio"));
-        let rating = document.createElement("div");
-        rating.classList.add("bm-stat-cell");
-        rating.appendChild(document.createTextNode("Best Ratio: " + dps));
-        rating.appendChild(create_unit_textnode("dps"));
-        let ingame_value = document.createElement("div");
-        ingame_value.classList.add("bm-stat-cell");
-        ingame_value.appendChild(document.createTextNode("Ingame"));
+        // let stat = document.createElement("div");
+        // stat.classList.add("bm-stat-cell");
+        // stat.appendChild(document.createTextNode("Best Distribution"));
+        // let distribution = document.createElement("div");
+        // distribution.classList.add("bm-stat-cell");
+        // distribution.appendChild(document.createTextNode("Ratio"));
+        let best_ratio = document.createElement("div");
+        best_ratio.classList.add("bm-stat-cell");
+        best_ratio.appendChild(document.createTextNode("Best Ratio: " + this.bm_chart_data.convert_number_to_local(dps, 0)));
+        best_ratio.appendChild(create_unit_textnode("dps"));
+        // let ingame_value = document.createElement("div");
+        // ingame_value.classList.add("bm-stat-cell");
+        // ingame_value.appendChild(document.createTextNode("Ingame"));
 
         // header.appendChild(stat);
         // header.appendChild(distribution);
-        header.appendChild(rating);
+        header.appendChild(best_ratio);
         // header.appendChild(ingame_value);
 
         function add_row(description, ratio, rating, ingame) {
