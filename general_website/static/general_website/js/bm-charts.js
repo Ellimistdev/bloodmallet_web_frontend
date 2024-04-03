@@ -402,7 +402,13 @@ class BmBarChart {
      */
     bm_chart_data;
 
+    /**
+     * @type {HTMLElement}
+     */
+    vertical_line;
+
     constructor(chart_data = new BmChartData()) {
+        this.vertical_line = undefined;
         this.bm_chart_data = chart_data;
 
         this.create_chart();
@@ -526,6 +532,10 @@ class BmBarChart {
                 // bar_part.dataset.key = key;
                 // bar_part.dataset.series = series;
                 // bar_part.dataset.value = this.data[key][series];
+
+                bar_part.addEventListener("click", (ev) => {
+                    this.create_vertical_line(ev);
+                });
             }
             // add grid template
             bar.style.gridTemplateColumns = [...steps, "auto"].join("% ");
@@ -632,6 +642,49 @@ class BmBarChart {
         return container.outerHTML;
     }
 
+
+    remove_vertical_line() {
+        if (this.vertical_line !== undefined) {
+            this.vertical_line.remove();
+            this.vertical_line = undefined;
+        }
+    }
+
+    /**
+     * Creates a vertical line to more easily compare values. 
+     * In case a line exists, the old line is removed. 
+     * In case the same element was clicked for the second time, the old line is removed.
+     * @param {Event} event click event
+     */
+    create_vertical_line(event) {
+        let vertical_line_box = undefined;
+        if (this.vertical_line !== undefined) {
+            vertical_line_box = this.vertical_line.getBoundingClientRect();
+            this.remove_vertical_line();
+        }
+
+        let root = this.bm_chart_data.root_element;
+
+        let parent_box = root.getBoundingClientRect();
+        let box = event.target.getBoundingClientRect();
+        // the additional 14-15 px might be left padding of one of the parents? but this is only guess-work
+        let left = box.left + window.scrollX + box.width - parent_box.left + 14;
+
+        let line = document.createElement("div");
+        line.style.position = "absolute";
+        line.style.width = "0px";
+        line.style.border = "1px solid white";
+        line.style.height = parent_box.height + "px";
+        line.style.left = left + "px";
+        root.appendChild(line);
+        this.vertical_line = line;
+
+        // in case the user clicked on the same element twice, the line shall get removed
+        let line_box = line.getBoundingClientRect();
+        if (vertical_line_box !== undefined && vertical_line_box.x == line_box.x) {
+            this.remove_vertical_line();
+        }
+    }
 }
 
 class BmRadarChart {
