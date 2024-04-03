@@ -28,7 +28,7 @@
 .bm-subtitle {
     color: var(--bm-bar-chart-internal-dimmed-color);
     text-align: center;
-    margin-bottom: var(--bm-bar-chart-internal-standard-size);
+    /* margin-bottom: var(--bm-bar-chart-internal-standard-size); */
     margin-top: calc(-1 * var(--bm-bar-chart-internal-standard-size));
     font-size: 90%;
 }
@@ -58,7 +58,7 @@
     margin-bottom: 5px;
     display: inline-block;
     border: 1px solid #fff;
-    text-shadow: 1px 0 1px #000, 0 1px 1px #000;
+    text-shadow: 2px 0px 1px #000, 0px 2px 1px #000, -1px 0px 0px #000, 0px -1px 0px #000;
 }
 
 
@@ -333,7 +333,7 @@
     margin-bottom: 5px;
     display: inline-block;
     border: 1px solid #fff;
-    text-shadow: 1px 0 1px #000, 0 1px 1px #000;
+    text-shadow: 2px 0px 1px #000, 0px 2px 1px #000, -1px 0px 0px #000, 0px -1px 0px #000;
 }
 
 .bm-tooltip-width-marker-bottom {
@@ -429,12 +429,21 @@
     justify-content: center;
 }
 
+.bm-radar-top {
+    display: grid;
+    grid-template-columns: auto;
+    row-gap: var(--bm-bar-chart-internal-standard-size);
+}
+
 .bm-radar-center {
     display: flex;
     flex-direction: row;
     column-gap: 1.1rem;
+    justify-content: center;
+    /* align-items: center;
+    align-self: center;
+    align-content: center; */
 }
-
 
 .bm-radar-background {
     fill: none;
