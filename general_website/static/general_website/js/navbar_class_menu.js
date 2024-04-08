@@ -138,7 +138,7 @@ function update_navbarClassMenu(state) {
             // "druid_restoration",
             "evoker_devastation",
             // "evoker_preservation",
-            // "evoker_augmentation",
+            "evoker_augmentation",
             "hunter_beast_mastery",
             "hunter_marksmanship",
             "hunter_survival",

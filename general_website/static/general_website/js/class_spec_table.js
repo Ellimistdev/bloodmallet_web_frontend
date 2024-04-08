@@ -59,6 +59,7 @@ function build_table() {
                 "druid_guardian",
                 "evoker_devastation",
                 // "evoker_preservation",
+                "evoker_augmentation",
                 "hunter_beast_mastery",
                 "hunter_marksmanship",
                 "hunter_survival",
@@ -89,11 +90,7 @@ function build_table() {
                 a_spec_btn.href = '';
                 a_spec_btn.dataset.toggle = "tooltip";
                 a_spec_btn.dataset.placement = "top";
-                if (snake_case === "evoker_augmentation") {
-                    a_spec_btn.dataset.title = "This spec is not supported for now.";
-                } else {
-                    a_spec_btn.dataset.title = "Missing SimulationCraft profile or lack of dps support for the spec.";
-                }
+                a_spec_btn.dataset.title = "Missing SimulationCraft profile or lack of dps support for the spec.";
             }
 
             a_spec_btn.innerHTML = capitalize_first_letters(wow_spec).replace("_", " ");
