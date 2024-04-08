@@ -17,7 +17,7 @@ const fight_style_dict = {
 const fight_styles = Object.keys(fight_style_dict).sort();
 
 const item_levels = [
-    "447", 
+    "447",
     "450",
     "454",
     "463",
@@ -162,7 +162,29 @@ function get_state() {
     return { simulation_type, item_name, item_level, fight_style };
 }
 
-function update_navbarTrinketMenu(state) {
+async function updateTrinketChart() {
+    const selectedTrinket = document.getElementById('trinket-select').value;
+    const selectedItemLevel = document.getElementById('item-level-select').value;
+    const selectedFightStyle = document.getElementById('fight-style-select').value;
+
+    await window.updateTrinketChart(selectedTrinket, selectedItemLevel, selectedFightStyle);
+    await update_navbarTrinketMenu({ item_name: selectedTrinket, item_level: selectedItemLevel, fight_style: selectedFightStyle });
+    
+    const trinketSelect = document.getElementById('trinket-select');
+    const itemLevelSelect = document.getElementById('item-level-select');
+    const fightStyleSelect = document.getElementById('fight-style-select');
+
+    if (trinketSelect) trinketSelect.addEventListener('change', updateTrinketChart);
+    else console.error('trinket-select not found');
+
+    if (itemLevelSelect) itemLevelSelect.addEventListener('change', updateTrinketChart);
+    else console.error('item-level-select not found');
+
+    if (fightStyleSelect) fightStyleSelect.addEventListener('change', updateTrinketChart);
+    else console.error('fight-style-select not found');
+}
+
+async function update_navbarTrinketMenu(state) {
     if (debug) {
         console.log("update_navbarTrinketMenu");
     }
@@ -198,10 +220,10 @@ function update_navbarTrinketMenu(state) {
     }
 
     // Add trinket selection (dropdown)
-    createDropdownMenu(formatText(state.item_name, "item_name"), "item_name", trinkets_s3 );
+    createDropdownMenu(formatText(state.item_name, "item_name"), "item_name", trinkets_s3);
 
     // Add item level selection (dropdown)
-    createDropdownMenu(formatText(state.item_level, "item_level"), "item_level", item_levels );
+    createDropdownMenu(formatText(state.item_level, "item_level"), "item_level", item_levels);
 
     // Add fight style selection (dropdown)
     createDropdownMenu(fight_style_dict[state.fight_style], "fight_style", fight_styles);
@@ -211,24 +233,6 @@ function update_navbarTrinketMenu(state) {
         navbarTrinketMenu.removeChild(navbarTrinketMenu.firstChild);
     }
     navbarTrinketMenu.appendChild(ul_nav);
-}
-
-const formatLink = (item, id, state) => {
-    const parts = ["chart", state.simulation_type, state.item_name, state.item_level, state.fight_style];
-    
-    switch (id) {
-        case "item_name":
-            parts[2] = item;
-            break;
-        case "item_level":
-            parts[3] = item;
-            break;
-        case "fight_style":
-            parts[4] = item;
-            break;
-    }
-
-    return "/" + parts.join("/");
 }
 
 const formatText = (item, id) => {
@@ -256,7 +260,6 @@ const createDropdownMenuEntries = (items, id, state) => {
     const dropdownItems = items.map((item) => {
         const a = document.createElement("a");
         a.className = `dropdown-item ${state.wow_class}-button`;
-        a.href = formatLink(item, id, state);
         a.id = `navbar_${item}_selector`;
         a.innerText = formatText(item, id);
         return a;

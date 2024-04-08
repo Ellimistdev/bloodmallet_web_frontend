@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # views
 
 # Constants
-URL_FORMAT = "https://bloodmallet.com/chart/get/trinkets/{}/{}/{}"
+URL_FORMAT = "{}/chart/get/trinkets/{}/{}/{}"
 FIGHT_STYLES = ["castingpatchwerk", "castingpatchwerk3", "castingpatchwerk5"]
 SPECS = [
     ("death_knight", "blood"),
@@ -702,7 +702,7 @@ def chart_power_infusion(request):
     return render(request, "general_website/chart.html", context=context)
 
 
-def chart_trinket(
+def chart_trinket_compare(
     request,
     item_name="accelerating_sandglass",
     item_level="447",
@@ -710,34 +710,34 @@ def chart_trinket(
 ):
     """Shows the trinket chart"""
     logger.debug("called")
+    local = True
 
     context = {
         "trinket_compare": True,
-        "simulation_type": "trinkets",
+        "simulation_type": "trinket_compare",
         "item_name": item_name,
         "item_level": item_level,
         "fight_style": fight_style,
     }
+    if local :
+        simulation: Simulation = get_trinket_data(request, item_name, item_level, fight_style)
+    else :
+        try:
+            simulation: Simulation = Simulation.objects.select_related(
+                "result",
+                "simulation_type",
+                "fight_style",
+            ).get(
+                fight_style__tokenized_name="castingpatchwerk",
+                simulation_type__command="trinkets",
+                result__general_result__isnull=False,
+            )
+        except Simulation.DoesNotExist:
+            simulation = None
 
-    try:
-        simulation: Simulation = Simulation.objects.select_related(
-            "result",
-            "simulation_type",
-            "fight_style",
-        ).get(
-            fight_style__tokenized_name="castingpatchwerk",
-            simulation_type__command="trinkets",
-            result__general_result__isnull=False,
-        )
-    except Simulation.DoesNotExist:
-        simulation = None
+    # logger.info(simulation)
 
-    logger.info(simulation)
-
-    context["chart"] = {}
-    if simulation:
-        context["chart_id"] = simulation.id
-        context["chart"] = simulation
+    context["chart"] = simulation
 
     logger.info(context)
 
@@ -752,6 +752,7 @@ def get_trinket_data(
 ) -> JsonResponse:
     logger.debug("called")
     data = {}
+    local = True
 
     # local workaround since unable to select directly.
     with requests.Session() as session:
@@ -759,7 +760,10 @@ def get_trinket_data(
             try:
                 # e.g. outlaw_rogue --> Outlaw Rogue
                 key = f"{wow_spec.replace('_', ' ').title()} {wow_class.replace('_', ' ').title()}"
-                data[key] = fetch_data(session, fight_style, wow_class, wow_spec)
+                if local:
+                    data[key] = fetch_data(session, fight_style, wow_class, wow_spec)
+                else: 
+                    data[key] = get_chart_data(request, None, "trinkets", fight_style, wow_class, wow_spec) 
             except requests.HTTPError as e:
                 print(f"Failed to fetch data for {key}: {e}")
 
@@ -768,7 +772,6 @@ def get_trinket_data(
 
     baseline = {k: v for d in processed_data["data"]["baseline"].values() for k, v in d.items()}
 
-    # TODO: replace hardcoded metadata
     response = {
         "data": {
             **processed_data["data"][item_name][item_level],
@@ -786,21 +789,19 @@ def get_trinket_data(
     return JsonResponse(data=response)
 
 
-# TODO: rm once db connection established
 def fetch_data(session, fight_style, wow_class, wow_spec):
-    url = URL_FORMAT.format(fight_style, wow_class, wow_spec)
+    host = "https://bloodmallet.com";
+    url = URL_FORMAT.format(host, fight_style, wow_class, wow_spec)
     response = session.get(url)
     response.raise_for_status()
     return response.json()
 
 
-# TODO: Server side processing.
 def process_data(data):
     processed_data = {"items": {}}
 
     for key, items in data.items():
         for item_name, item_levels in items["data"].items():
-            # item_name -> item_id, item_levels [] -> key
             for item_level, dps in item_levels.items():
                 processed_data["items"].setdefault(
                     item_name.lower().replace(" ", "_"), {}
@@ -814,8 +815,6 @@ def process_data(data):
 
     return processed_data
 
-
-# TODO: Server side sorting.
 def sort_data(data):
     sorted_data = {}
     for item_name in data["items"]:
@@ -833,6 +832,11 @@ def standard_chart(
 ):
     """Shows a standard chart"""
     logger.debug("called")
+    logger.debug(request)
+    logger.debug(simulation_type)
+    logger.debug(fight_style)
+    logger.debug(wow_class)
+    logger.debug(wow_spec)
 
     context = {
         "general_result": True,
