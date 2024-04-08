@@ -37,25 +37,9 @@ urlpatterns = [
     path(
         "chart/power_infusion", views.chart_power_infusion, name="chart_power_infusion"
     ),
-    # Trinket Get
     path(
-        "chart/get/trinkets/<str:item_name>/<str:item_level>/<str:fight_style>",
-        views.get_trinket_data,
-        name="get_trinket_data",
+        "chart/trinket_compare", views.chart_trinket_compare, name="chart_trinket_compare"
     ),
-    path(
-        "chart/get/trinkets/<str:item_name>",
-        views.get_trinket_data,
-        name="get_trinket_data",
-    ),
-    # Trinket Chart
-    path(
-        "chart/trinkets/<str:item_name>/<str:item_level>/<str:fight_style>",
-        views.chart_trinket,
-        name="chart_trinket",
-    ),
-    path("chart/trinkets/<str:item_name>", views.chart_trinket, name="chart_trinket"),
-    path("chart/trinkets", views.chart_trinket, name="chart_trinket"),
     path("chart/<uuid:chart_id>", views.chart, name="chart"),
     path(
         "chart/<str:wow_class>/<str:wow_spec>/<str:simulation_type>/<str:fight_style>",
