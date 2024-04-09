@@ -69,8 +69,8 @@ function bloodmallet_chart_import() {
     ["druid", "balance", "Balance Druid"],
     ["druid", "feral", "Feral Druid"],
     ["druid", "guardian", "Guardian Druid"],
+    // ["evoker", "augmentation", "Augmentation Evoker"],
     ["evoker", "devastation", "Devastation Evoker"],
-    // ["evoker", "preservation", "Preservation Evoker"],
     ["hunter", "beast_mastery", "Beast Mastery Hunter"],
     ["hunter", "marksmanship", "Marksmanship Hunter"],
     ["hunter", "survival", "Survival Hunter"],
@@ -987,7 +987,7 @@ function bloodmallet_chart_import() {
       let dps_array = [];
       let sortedKeys = [];
 
-      let melee_spec_color_map = {
+      let spec_color_map = {
         "Blood Death Knight": "#c41f3b",
         "Frost Death Knight": "#c41f3b",
         "Unholy Death Knight": "#c41f3b",
@@ -1031,7 +1031,7 @@ function bloodmallet_chart_import() {
           let dps_key_values = data["data"][dps_key] - tmp_baseline_dps;
           comparative_dps[dps_key] = {
             "y": get_styled_value(state, dps_key_values, tmp_baseline_dps),
-            "color": melee_spec_color_map[dps_key]
+            "color": spec_color_map[dps_key]
           };
         }
 
@@ -1049,7 +1049,7 @@ function bloodmallet_chart_import() {
         for (let dps_key of dps_ordered_keys) {
           let tmp_baseline_dps = data["data"]["{" + dps_key + "}"];
           let dps_key_values = data["data"][dps_key] - tmp_baseline_dps;
-          dps_array.push({ "y": get_styled_value(state, dps_key_values, tmp_baseline_dps), "color": melee_spec_color_map[dps_key] });
+          dps_array.push({ "y": get_styled_value(state, dps_key_values, tmp_baseline_dps), "color": spec_color_map[dps_key] });
         }
       }
 

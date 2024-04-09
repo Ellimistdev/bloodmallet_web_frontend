@@ -223,20 +223,20 @@ a:hover .svg-icon {
 
 .dropdown-menu::-webkit-scrollbar-track
 {
-	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
-	background-color: $darkest-color;
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+    background-color: $darkest-color;
 }
 
 .dropdown-menu::-webkit-scrollbar
 {
-	width: 10px;
-	background-color: $darkest-color;
+    width: 10px;
+    background-color: $darkest-color;
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb
 {
-	background-color: $class-color-priest;
-	border: 2px solid $darkest-color
+    background-color: $class-color-priest;
+    border: 2px solid $darkest-color
 }
 
 
@@ -405,7 +405,7 @@ $color-value in $class-colors {
 
 // we're a straight line style
 // if anyone sees this: feel free to restyle radio buttons to squares instead of circles too
-ul {    
+ul {
     list-style-type: square;
 }
 
@@ -417,6 +417,7 @@ select {
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
+    appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
 
