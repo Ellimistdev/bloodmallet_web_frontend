@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 # views
 
+
 def index(request):
     """View to either see the spec selection table or get a chart directly.
 
