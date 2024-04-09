@@ -15,146 +15,11 @@ from general_website.models.simulation import QueueState
 import json
 import logging
 
-# TODO: remove once db connection established for trinket_compare
-import requests
-
 logger = logging.getLogger(__name__)
 
 # support
 
 # views
-
-# Constants
-URL_FORMAT = "{}/chart/get/trinkets/{}/{}/{}"
-FIGHT_STYLES = ["castingpatchwerk", "castingpatchwerk3", "castingpatchwerk5"]
-SPECS = [
-    ("death_knight", "blood"),
-    ("death_knight", "frost"),
-    ("death_knight", "unholy"),
-    ("demon_hunter", "havoc"),
-    ("demon_hunter", "vengeance"),
-    ("druid", "balance"),
-    ("druid", "feral"),
-    ("druid", "guardian"),
-    ("evoker", "devastation"),
-    # ("evoker", "preservation"),
-    ("hunter", "beast_mastery"),
-    ("hunter", "marksmanship"),
-    ("hunter", "survival"),
-    ("mage", "arcane"),
-    ("mage", "fire"),
-    ("mage", "frost"),
-    ("monk", "brewmaster"),
-    ("monk", "windwalker"),
-    ("paladin", "protection"),
-    ("paladin", "retribution"),
-    ("priest", "shadow"),
-    ("rogue", "assassination"),
-    ("rogue", "outlaw"),
-    ("rogue", "subtlety"),
-    ("shaman", "elemental"),
-    ("shaman", "enhancement"),
-    ("warlock", "affliction"),
-    ("warlock", "demonology"),
-    ("warlock", "destruction"),
-    ("warrior", "arms"),
-    ("warrior", "fury"),
-    ("warrior", "protection"),
-]
-ITEM_IDS = {
-    "Accelerating Sandglass": 207566,
-    "Alacritous Alchemist Stone": 202116,
-    "Algeth'ar Puzzle Box": 193701,
-    "Ashes of the Embersoul": 207167,
-    "Augury of the Primal Flame": 208614,
-    "Balefire Branch": 159630,
-    "Beacon to the Beyond": 203963,
-    "Branch of the Tormented Ancient": 207169,
-    "Caged Horror": 136716,
-    "Cataclysmic Signet Brand": 207166,
-    "Coiled Serpent Idol": 207175,
-    "Corrupted Starlight": 137301,
-    "Darkmoon Deck Box: Dance": 198478,
-    "Darkmoon Deck Box: Dance [Azurescale]": 198478,
-    "Darkmoon Deck Box: Dance [Bronzescale]": 198478,
-    "Darkmoon Deck Box: Dance [Emberscale]": 198478,
-    "Darkmoon Deck Box: Dance [Jetscale]": 198478,
-    "Darkmoon Deck Box: Dance [None]": 198478,
-    "Darkmoon Deck Box: Dance [Sagescale]": 198478,
-    "Darkmoon Deck Box: Inferno": 194872,
-    "Darkmoon Deck Box: Inferno [Azurescale]": 194872,
-    "Darkmoon Deck Box: Inferno [Bronzescale]": 194872,
-    "Darkmoon Deck Box: Inferno [Emberscale]": 194872,
-    "Darkmoon Deck Box: Inferno [Jetscale]": 194872,
-    "Darkmoon Deck Box: Inferno [None]": 194872,
-    "Darkmoon Deck Box: Inferno [Sagescale]": 194872,
-    "Darkmoon Deck Box: Rime": 198477,
-    "Darkmoon Deck Box: Rime [Azurescale]": 198477,
-    "Darkmoon Deck Box: Rime [Bronzescale]": 198477,
-    "Darkmoon Deck Box: Rime [Emberscale]": 198477,
-    "Darkmoon Deck Box: Rime [Jetscale]": 198477,
-    "Darkmoon Deck Box: Rime [None]": 198477,
-    "Darkmoon Deck Box: Rime [Sagescale]": 198477,
-    "Darkmoon Deck Box: Watcher": 198481,
-    "Elementium Pocket Anvil": 202617,
-    "Ember of Nullification": 136978,
-    "Enduring Dreadplate": 202616,
-    "Frenzying Signoll Flare": 193672,
-    "Fyrakk's Tainted Rageheart": 207174,
-    "Gift of Ursine Vengeance": 207173,
-    "Gore-Crusted Butcher's Block": 159616,
-    "Heart of Thunder": 133246,
-    "Homeland Raid Horn": 193815,
-    "Idol of the Dreamer": 193005,
-    "Idol of the Earth-Warder": 193006,
-    "Idol of the Life-Binder": 193003,
-    "Idol of the Spell-Weaver": 193004,
-    "Irideus Fragment": 193743,
-    "Lingering Sporepods": 159626,
-    "Mark of Dargrul": 137357,
-    "Might of the Ocean": 133197,
-    "Mirror of Fractured Tomorrows": 207581,
-    "Mutated Magmammoth Scale": 193786,
-    "Naraxas' Spiked Tongue": 137349,
-    "Neltharion's Call to Suffering": 204211,
-    "Nightmare Egg Shell": 137312,
-    "Obsidian Gladiator's Badge of Ferocity": 205708,
-    "Obsidian Gladiator's Emblem": 205710,
-    "Obsidian Gladiator's Insignia of Alacrity": 205709,
-    "Obsidian Gladiator's Medallion": 205711,
-    "Obsidian Gladiator's Sigil of Adaptation": 205712,
-    "Ominous Chromatic Essence": 203729,
-    "Ominous Chromatic Essence [Azure+All]": 203729,
-    "Ominous Chromatic Essence [Azure]": 203729,
-    "Ominous Chromatic Essence [Bronze+All]": 203729,
-    "Ominous Chromatic Essence [Bronze]": 203729,
-    "Ominous Chromatic Essence [Emerald+All]": 203729,
-    "Ominous Chromatic Essence [Emerald]": 203729,
-    "Ominous Chromatic Essence [Obsidian+All]": 203729,
-    "Ominous Chromatic Essence [Obsidian]": 203729,
-    "Ominous Chromatic Essence [Ruby+All]": 203729,
-    "Ominous Chromatic Essence [Ruby]": 203729,
-    "Paracausal Fragment of Azzinoth": 206972,
-    "Paracausal Fragment of Doomhammer": 206964,
-    "Paracausal Fragment of Frostmourne": 206983,
-    "Paracausal Fragment of Shalamayne": 207024,
-    "Paracausal Fragment of Sulfuras": 206956,
-    "Paracausal Fragment of Thunderfin, Humid Blade of the Tideseeker": 207005,
-    "Pip's Emerald Friendship Badge": 207168,
-    "Porcelain Crab": 133192,
-    "Prophetic Stonescales": 207528,
-    "Rezan's Gleaming Eye": 158712,
-    "Screaming Black Dragonscale": 202612,
-    "Shard of Rokmora": 137338,
-    "Spiked Counterweight": 136715,
-    "Spores of Alacrity": 110014,
-    "Sustaining Alchemist Stone": 191491,
-    "Time-Breaching Talon": 193791,
-    "Treemouth's Festering Splinter": 193652,
-    "Vial of Animated Blood": 159625,
-    "Ward of Faceless Ire": 203714,
-    "Zaqali Chaos Grapnel": 202613
-  }
 
 def index(request):
     """View to either see the spec selection table or get a chart directly.
@@ -728,11 +593,6 @@ def standard_chart(
 ):
     """Shows a standard chart"""
     logger.debug("called")
-    logger.debug(request)
-    logger.debug(simulation_type)
-    logger.debug(fight_style)
-    logger.debug(wow_class)
-    logger.debug(wow_spec)
 
     context = {
         "general_result": True,
@@ -767,6 +627,7 @@ def standard_chart(
         context["chart"] = simulation
 
     return render(request, "general_website/chart.html", context=context)
+
 
 def get_chart_state(request, chart_id=None) -> JsonResponse:
     try:
@@ -805,6 +666,7 @@ def get_chart_state(request, chart_id=None) -> JsonResponse:
     }
 
     return JsonResponse(data=response)
+
 
 def get_chart_data(
     request,
@@ -900,6 +762,7 @@ def get_chart_data(
                 ),
             }
         )
+
 
 def delete_chart(request) -> JsonResponse:
     """Enables the chart owner and superuser to delete charts."""
