@@ -1881,8 +1881,8 @@ function bloodmallet_chart_import() {
       let link = "https://bloodmallet.com/";
       if (state.chart_id !== undefined) {
         link += "chart/" + state.chart_id;
-      } else if (state.wow_class !== undefined && state.wow_spec !== undefined && state.data_type !== undefined) {
-        link += "chart/" + state.wow_class + "/" + state.wow_spec + "/" + state.data_type;
+      } else if (state.wow_class !== undefined && state.wow_spec !== undefined && state.data_type !== undefined && state.fight_style) {
+        link += "chart/" + state.wow_class + "/" + state.wow_spec + "/" + state.data_type + "/" + state.fight_style;
       }
 
       if (state.data_type === "secondary_distributions") {

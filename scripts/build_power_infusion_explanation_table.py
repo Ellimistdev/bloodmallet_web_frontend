@@ -11,8 +11,9 @@ except ImportError:
 
 
 PATH_SIMC = "D:/repositories/simc"
-TIER = "Tier30"
-T = "T30"
+T_NUMBER = 31
+TIER = f"Tier{T_NUMBER}"
+T = f"T{T_NUMBER}"
 GENERATED_START = "<!-- auto generated power infusion section start -->"
 GENERATED_END = "<!-- auto generated power infusion section end -->"
 TARGET_FILE = "D:/repositories/website/general_website/templates/general_website/chart_information/simulation_type/power_infusion.html"
