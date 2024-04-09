@@ -210,73 +210,6 @@ function bloodmallet_chart_import() {
    * Functions
    *
    */
-  const load_data = async (state) => {
-    if (debug) {
-      console.log("load_data");
-    }
-
-    let chart_id = state.chart_id;
-    let data_type = state.data_type;
-    let fight_style = state.fight_style;
-    let item_name = state.item_name;
-    let item_level = state.item_level;
-    let wow_class = state.wow_class;
-    let wow_spec = state.wow_spec;
-
-    // early exit if the data is already present
-    try {
-      if (get_data_from_state(state)) {
-        return;
-      }
-    } catch (error) {
-      if (debug) {
-        console.log("Data needs to be loaded.");
-        console.log(error);
-      }
-    }
-    const data_group = (data_type === 'trinket_compare') ? 'trinkets' : data_type;
-    const data_name = [item_name, item_level, fight_style, wow_class, wow_spec]
-      .filter(Boolean)
-      .join('/');
-
-    // local dev differentiation since no local db
-    // can likely be removed in prod
-    const base_url = (wow_class && wow_spec) ? host : localhost;
-
-    const url = `${base_url}${path_to_data}${chart_id || data_group}${data_name ? `/${data_name}` : ''}`.replace(/\/+$/, '');
-
-    if (data_type === 'trinket_compare') {
-      const response = await getTrinketDataAsync(item_name, item_level, fight_style);
-      state.html_element.dataset.loadedData = JSON.stringify(response);
-    } else {
-
-      let request = new XMLHttpRequest();
-      if (debug) {
-        console.log("Fetching data from: " + url);
-      }
-      request.open("GET", url, true); // async request
-
-      request.onload = function (e) {
-        if (request.readyState === 4) {
-          if (request.status === 200) {
-            let json = JSON.parse(request.responseText);
-            state.html_element.dataset.loadedData = request.responseText;
-
-            if (debug) {
-              console.log(json);
-              console.log("Load and save finished.");
-            }
-          } else {
-            console.error(request.statusText);
-          }
-        }
-      };
-      request.onerror = function (e) {
-        console.error('Fetching data from bloodmallet.com encountered an error, ', e);
-      };
-      request.send(null);
-    }
-  }
 
   const fetchDataAsync = async (fightStyle, wowClass, wowSpec) => {
     const url = url_format.replace('{fight_style}', fightStyle)
@@ -606,6 +539,77 @@ function bloodmallet_chart_import() {
 
         setTimeout(update_chart, 1, state, html_element, new_chart, 0);
       }
+    }
+  }
+
+  /**
+   *
+   */
+  async function load_data(state) {
+    if (debug) {
+      console.log("load_data");
+    }
+
+    let chart_id = state.chart_id;
+    let data_type = state.data_type;
+    let fight_style = state.fight_style;
+    let item_name = state.item_name;
+    let item_level = state.item_level;
+    let wow_class = state.wow_class;
+    let wow_spec = state.wow_spec;
+
+    // early exit if the data is already present
+    try {
+      if (get_data_from_state(state)) {
+        return;
+      }
+    } catch (error) {
+      if (debug) {
+        console.log("Data needs to be loaded.");
+        console.log(error);
+      }
+    }
+    const data_group = (data_type === 'trinket_compare') ? 'trinkets' : data_type;
+    const data_name = [item_name, item_level, fight_style, wow_class, wow_spec]
+      .filter(Boolean)
+      .join('/');
+
+    // local dev differentiation since no local db
+    // can likely be removed in prod
+    const base_url = (wow_class && wow_spec) ? host : localhost;
+
+    const url = `${base_url}${path_to_data}${chart_id || data_group}${data_name ? `/${data_name}` : ''}`.replace(/\/+$/, '');
+
+    if (data_type === 'trinket_compare') {
+      const response = await getTrinketDataAsync(item_name, item_level, fight_style);
+      state.html_element.dataset.loadedData = JSON.stringify(response);
+    } else {
+
+      let request = new XMLHttpRequest();
+      if (debug) {
+        console.log("Fetching data from: " + url);
+      }
+      request.open("GET", url, true); // async request
+
+      request.onload = function (e) {
+        if (request.readyState === 4) {
+          if (request.status === 200) {
+            let json = JSON.parse(request.responseText);
+            state.html_element.dataset.loadedData = request.responseText;
+
+            if (debug) {
+              console.log(json);
+              console.log("Load and save finished.");
+            }
+          } else {
+            console.error(request.statusText);
+          }
+        }
+      };
+      request.onerror = function (e) {
+        console.error('Fetching data from bloodmallet.com encountered an error, ', e);
+      };
+      request.send(null);
     }
   }
 
