@@ -710,7 +710,6 @@ def chart_trinket_compare(
 ):
     """Shows the trinket chart"""
     logger.debug("called")
-    local = True
 
     context = {
         "trinket_compare": True,
@@ -719,113 +718,10 @@ def chart_trinket_compare(
         "item_level": item_level,
         "fight_style": fight_style,
     }
-    if local :
-        simulation: Simulation = get_trinket_data(request, item_name, item_level, fight_style)
-    else :
-        try:
-            simulation: Simulation = Simulation.objects.select_related(
-                "result",
-                "simulation_type",
-                "fight_style",
-            ).get(
-                fight_style__tokenized_name="castingpatchwerk",
-                simulation_type__command="trinkets",
-                result__general_result__isnull=False,
-            )
-        except Simulation.DoesNotExist:
-            simulation = None
-
-    # logger.info(simulation)
-
-    context["chart"] = simulation
 
     logger.info(context)
 
     return render(request, "general_website/chart.html", context=context)
-
-
-def get_trinket_data(
-    request,
-    item_name="accelerating_sandglass",
-    item_level="447",
-    fight_style="castingpatchwerk",
-) -> JsonResponse:
-    logger.debug("called")
-    data = {}
-    local = True
-
-    # local workaround since unable to select directly.
-    with requests.Session() as session:
-        for wow_class, wow_spec in SPECS:
-            try:
-                # e.g. outlaw_rogue --> Outlaw Rogue
-                key = f"{wow_spec.replace('_', ' ').title()} {wow_class.replace('_', ' ').title()}"
-                if local:
-                    data[key] = fetch_data(session, fight_style, wow_class, wow_spec)
-                else: 
-                    data[key] = get_chart_data(request, None, "trinkets", fight_style, wow_class, wow_spec) 
-            except requests.HTTPError as e:
-                print(f"Failed to fetch data for {key}: {e}")
-
-    processed_data = process_data(data)
-    processed_data["data"] = sort_data(processed_data)
-
-    baseline = {k: v for d in processed_data["data"]["baseline"].values() for k, v in d.items()}
-
-    response = {
-        "data": {
-            **processed_data["data"][item_name][item_level],
-            "baseline": baseline,
-            "item_levels": list(processed_data["data"][item_name].keys()),
-        },
-        "data_type": "trinket_compare",
-        "metadata": processed_data["metadata"],
-        "simc_settings": processed_data["simc_settings"],
-        "subtitle": processed_data["subtitle"], 
-        "timestamp": processed_data["timestamp"], 
-        # "title": processed_data["title"], 
-        "translations": {},
-    }
-    return JsonResponse(data=response)
-
-
-def fetch_data(session, fight_style, wow_class, wow_spec):
-    host = "https://bloodmallet.com";
-    url = URL_FORMAT.format(host, fight_style, wow_class, wow_spec)
-    response = session.get(url)
-    response.raise_for_status()
-    return response.json()
-
-
-def process_data(data):
-    processed_data = {"items": {}}
-
-    for key, items in data.items():
-        for item_name, item_levels in items["data"].items():
-            for item_level, dps in item_levels.items():
-                processed_data["items"].setdefault(
-                    item_name.lower().replace(" ", "_"), {}
-                ).setdefault(item_level, {})[key] = dps
-
-        # Assuming the last item's metadata is representative if they differ
-        processed_data["metadata"] = items["metadata"]
-        processed_data["simc_settings"] = items["simc_settings"]
-        processed_data["subtitle"] = items["subtitle"]
-        processed_data["timestamp"] = items["timestamp"]
-
-    return processed_data
-
-def sort_data(data):
-    sorted_data = {}
-    for item_name in data["items"]:
-        sorted_data[item_name] = {} 
-        for item_level in data["items"][item_name]:
-            sorted_specs = sorted(
-                data["items"][item_name][item_level].items(), key=lambda x: x[1], reverse=True
-            )
-            sorted_data[item_name][item_level] = dict(sorted_specs)
-    return sorted_data
-
 
 def standard_chart(
     request, simulation_type: str, fight_style: str, wow_class: str, wow_spec: str
@@ -872,7 +768,6 @@ def standard_chart(
 
     return render(request, "general_website/chart.html", context=context)
 
-
 def get_chart_state(request, chart_id=None) -> JsonResponse:
     try:
         simulation = Simulation.objects.select_related(
@@ -910,7 +805,6 @@ def get_chart_state(request, chart_id=None) -> JsonResponse:
     }
 
     return JsonResponse(data=response)
-
 
 def get_chart_data(
     request,
@@ -1006,7 +900,6 @@ def get_chart_data(
                 ),
             }
         )
-
 
 def delete_chart(request) -> JsonResponse:
     """Enables the chart owner and superuser to delete charts."""
