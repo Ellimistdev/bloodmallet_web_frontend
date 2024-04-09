@@ -103,7 +103,9 @@ function bloodmallet_chart_import() {
 
   /**
    * options:
-   *  patchwerk - default
+   * castingpatchwerk - default
+   * castingpatchwerk3
+   * castingpatchwerk5
    *  hecticaddcleave
    */
   const default_fight_style = "castingpatchwerk";
@@ -208,7 +210,217 @@ function bloodmallet_chart_import() {
    * Functions
    *
    */
+  const load_data = async (state) => {
+    if (debug) {
+      console.log("load_data");
+    }
 
+    let chart_id = state.chart_id;
+    let data_type = state.data_type;
+    let fight_style = state.fight_style;
+    let item_name = state.item_name;
+    let item_level = state.item_level;
+    let wow_class = state.wow_class;
+    let wow_spec = state.wow_spec;
+
+    // early exit if the data is already present
+    try {
+      if (get_data_from_state(state)) {
+        return;
+      }
+    } catch (error) {
+      if (debug) {
+        console.log("Data needs to be loaded.");
+        console.log(error);
+      }
+    }
+    const data_group = (data_type === 'trinket_compare') ? 'trinkets' : data_type;
+    const data_name = [item_name, item_level, fight_style, wow_class, wow_spec]
+      .filter(Boolean)
+      .join('/');
+
+    // local dev differentiation since no local db
+    // can likely be removed in prod
+    const base_url = (wow_class && wow_spec) ? host : localhost;
+
+    const url = `${base_url}${path_to_data}${chart_id || data_group}${data_name ? `/${data_name}` : ''}`.replace(/\/+$/, '');
+
+    if (data_type === 'trinket_compare') {
+      const response = await getTrinketDataAsync(item_name, item_level, fight_style);
+      state.html_element.dataset.loadedData = JSON.stringify(response);
+    } else {
+
+      let request = new XMLHttpRequest();
+      if (debug) {
+        console.log("Fetching data from: " + url);
+      }
+      request.open("GET", url, true); // async request
+
+      request.onload = function (e) {
+        if (request.readyState === 4) {
+          if (request.status === 200) {
+            let json = JSON.parse(request.responseText);
+            state.html_element.dataset.loadedData = request.responseText;
+
+            if (debug) {
+              console.log(json);
+              console.log("Load and save finished.");
+            }
+          } else {
+            console.error(request.statusText);
+          }
+        }
+      };
+      request.onerror = function (e) {
+        console.error('Fetching data from bloodmallet.com encountered an error, ', e);
+      };
+      request.send(null);
+    }
+  }
+
+  const fetchDataAsync = async (fightStyle, wowClass, wowSpec) => {
+    const url = url_format.replace('{fight_style}', fightStyle)
+      .replace('{wow_class}', wowClass)
+      .replace('{wow_spec}', wowSpec);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  const processData = (data) => {
+    const processedData = {
+      items: {},
+      metadata: null,
+      simcSettings: null,
+      subtitle: null,
+      timestamp: null
+    };
+
+    for (const [className, items] of Object.entries(data)) {
+      for (const [itemName, itemLevels] of Object.entries(items.data)) {
+        const itemKey = itemName.toLowerCase().replace(" ", "_");
+        processedData.items[itemKey] = processedData.items[itemKey] || {};
+
+        // Add translations for the item (only once)
+        if (!processedData.items[itemKey].translations) {
+          processedData.items[itemKey].translations = items.translations[itemName];
+        }
+
+        if (!processedData.items[itemKey].baseline) {
+          processedData.items[itemKey].baseline ??= {};
+        }
+
+        processedData.items[itemKey].baseline[className] = items.data.baseline;
+
+        for (const [itemLevel, dps] of Object.entries(itemLevels)) {
+          processedData.items[itemKey] ??= {};
+          processedData.items[itemKey].itemLevels ??= {};
+          processedData.items[itemKey].itemLevels[itemLevel] ??= {};
+          processedData.items[itemKey].itemLevels[itemLevel][className] = dps;
+        }
+      }
+
+      processedData.metadata = items.metadata;
+      processedData.simcSettings = items.simc_settings;
+      processedData.subtitle = items.subtitle;
+      processedData.timestamp = items.timestamp;
+    }
+
+    return processedData;
+  }
+
+  const getTrinketDataAsync = async (itemName, itemLevel, fightStyle) => {
+    const data = await fetchAndProcessDataAsync(fightStyle);
+
+    const itemData = data.items[itemName] || {};
+    const itemLevelData = itemData.itemLevels[itemLevel] || {};
+
+    const response = {
+      data: {
+        ...itemLevelData,
+        baseline: itemData.baseline,
+      },
+      translations: itemData.translations,
+      metadata: data.metadata,
+      simc_settings: data.simcSettings,
+      subtitle: data.subtitle,
+      timestamp: data.timestamp,
+      data_type: "trinket_compare",
+    };
+
+    return response;
+  }
+  
+  const fetchAndProcessDataAsync = async (fightStyle) => {
+    loadTrinketDataCache();
+    const data = {};
+
+    // check cache, if outdated, fetch new data
+    const cacheKey = `${fightStyle}`;
+    if (trinketDataCache[cacheKey]) {
+      return trinketDataCache[cacheKey];
+    };
+
+    const promises = specs.map(async ([wowClass, wowSpec, key]) => {
+      const response = await fetchDataAsync(fightStyle, wowClass, wowSpec);
+      data[key] = response;
+    });
+
+    await Promise.all(promises);
+
+    const processedData = processData(data);
+    const sortedData = sortData(processedData);
+
+    // update cache
+    trinketDataCache[cacheKey] = sortedData;
+    localStorage.setItem(TRINKET_DATA_CACHE_KEY, JSON.stringify(trinketDataCache));
+    localStorage.setItem(TRINKET_DATA_CACHE_KEY + '_timestamp', Date.now());
+
+    return sortedData;
+  }
+
+  const isTrinketDataCacheValid = () => {
+    const timestamp = localStorage.getItem(TRINKET_DATA_CACHE_KEY + '_timestamp');
+    return timestamp && (Date.now() - parseInt(timestamp, 10)) < TRINKET_DATA_CACHE_EXPIRY;
+  }
+
+  const loadTrinketDataCache = () => {
+    if (isTrinketDataCacheValid()) {
+      trinketDataCache = JSON.parse(localStorage.getItem(TRINKET_DATA_CACHE_KEY)) || {};
+    }
+  }
+
+  const sortData = (data) => {
+    const sortedData = {
+      items: {},
+      metadata: data.metadata,
+      simcSettings: data.simcSettings,
+      subtitle: data.subtitle,
+      timestamp: data.timestamp
+    };
+
+    for (const itemName in data.items) {
+      sortedData.items[itemName] ??= {};
+      sortedData.items[itemName].itemLevels ??= {};
+      sortedData.items[itemName].translations ??= data.items[itemName].translations;
+      sortedData.items[itemName].baseline ??= data.items[itemName].baseline;
+      for (const itemLevel in data.items[itemName].itemLevels) {
+        const sortedSpecs = Object.entries(data.items[itemName].itemLevels[itemLevel])
+          .sort((a, b) => b[1] - a[1]);
+        sortedData.items[itemName].itemLevels[itemLevel] = Object.fromEntries(sortedSpecs);
+      }
+    }
+
+    return sortedData;
+  }
+
+  /**
+   *
+   * Initial setup
+   *
+   */
   this.init_charts = new function () {
     if (debug) {
       console.log("init_charts");
@@ -394,222 +606,6 @@ function bloodmallet_chart_import() {
 
         setTimeout(update_chart, 1, state, html_element, new_chart, 0);
       }
-    }
-  }
-
-  /**
-   *
-   */
-
-  async function fetchData(fightStyle, wowClass, wowSpec) {
-    const url = url_format.replace('{fight_style}', fightStyle)
-      .replace('{wow_class}', wowClass)
-      .replace('{wow_spec}', wowSpec);
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  }
-
-  function processData(data) {
-    const processedData = {
-      items: {},
-      metadata: null,
-      simcSettings: null,
-      subtitle: null,
-      timestamp: null
-    };
-
-    for (const [className, items] of Object.entries(data)) {
-      for (const [itemName, itemLevels] of Object.entries(items.data)) {
-        const itemKey = itemName.toLowerCase().replace(" ", "_");
-        processedData.items[itemKey] = processedData.items[itemKey] || {};
-
-        // Add translations for the item (only once)
-        if (!processedData.items[itemKey].translations) {
-          processedData.items[itemKey].translations = items.translations[itemName];
-        }
-
-        if (!processedData.items[itemKey].baseline) {
-          processedData.items[itemKey].baseline ??= {};
-        }
-
-        processedData.items[itemKey].baseline[className] = items.data.baseline;
-
-        for (const [itemLevel, dps] of Object.entries(itemLevels)) {
-          processedData.items[itemKey] ??= {};
-          processedData.items[itemKey].itemLevels ??= {};
-          processedData.items[itemKey].itemLevels[itemLevel] ??= {};
-          processedData.items[itemKey].itemLevels[itemLevel][className] = dps;
-        }
-      }
-
-      processedData.metadata = items.metadata;
-      processedData.simcSettings = items.simc_settings;
-      processedData.subtitle = items.subtitle;
-      processedData.timestamp = items.timestamp;
-    }
-
-    return processedData;
-  }
-
-  async function getTrinketData(itemName, itemLevel, fightStyle) {
-    const data = await fetchAndProcessData(itemName, itemLevel, fightStyle);
-
-    const itemData = data.items[itemName] || {};
-    const itemLevelData = itemData.itemLevels[itemLevel] || {};
-
-    const response = {
-      data: {
-        ...itemLevelData,
-        baseline: itemData.baseline,
-      },
-      translations: itemData.translations,
-      metadata: data.metadata,
-      simc_settings: data.simcSettings,
-      subtitle: data.subtitle,
-      timestamp: data.timestamp,
-      data_type: "trinket_compare",
-    };
-
-    return response;
-  }
-
-  const snakeCaseToTitleCase = str =>
-    str
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-
-  async function fetchAndProcessData(itemName, itemLevel, fightStyle) {
-    loadTrinketDataCache();
-    const data = {};
-
-    // check cache, if outdated, fetch new data
-    const cacheKey = `${fightStyle}`;
-    if (trinketDataCache[cacheKey]) {
-      return trinketDataCache[cacheKey];
-    };
-
-    const promises = specs.map(async ([wowClass, wowSpec, key]) => {
-      const response = await fetchData(fightStyle, wowClass, wowSpec);
-      data[key] = response;
-    });
-
-    await Promise.all(promises);
-
-    const processedData = processData(data);
-    const sortedData = sortData(processedData);
-
-    // update cache
-    trinketDataCache[cacheKey] = sortedData;
-    localStorage.setItem(TRINKET_DATA_CACHE_KEY, JSON.stringify(trinketDataCache));
-    localStorage.setItem(TRINKET_DATA_CACHE_KEY + '_timestamp', Date.now());
-
-    return sortedData;
-  }
-
-  function isTrinketDataCacheValid() {
-    const timestamp = localStorage.getItem(TRINKET_DATA_CACHE_KEY + '_timestamp');
-    return timestamp && (Date.now() - parseInt(timestamp, 10)) < TRINKET_DATA_CACHE_EXPIRY;
-  }
-
-  function loadTrinketDataCache() {
-    if (isTrinketDataCacheValid()) {
-      trinketDataCache = JSON.parse(localStorage.getItem(TRINKET_DATA_CACHE_KEY)) || {};
-    }
-  }
-
-  function sortData(data) {
-    const sortedData = {
-      items: {},
-      metadata: data.metadata,
-      simcSettings: data.simcSettings,
-      subtitle: data.subtitle,
-      timestamp: data.timestamp
-    };
-
-    for (const itemName in data.items) {
-      sortedData.items[itemName] ??= {};
-      sortedData.items[itemName].itemLevels ??= {};
-      sortedData.items[itemName].translations ??= data.items[itemName].translations;
-      sortedData.items[itemName].baseline ??= data.items[itemName].baseline;
-      for (const itemLevel in data.items[itemName].itemLevels) {
-        const sortedSpecs = Object.entries(data.items[itemName].itemLevels[itemLevel])
-          .sort((a, b) => b[1] - a[1]);
-        sortedData.items[itemName].itemLevels[itemLevel] = Object.fromEntries(sortedSpecs);
-      }
-    }
-
-    return sortedData;
-  }
-
-  async function load_data(state) {
-    if (debug) {
-      console.log("load_data");
-    }
-
-    let chart_id = state.chart_id;
-    let data_type = state.data_type;
-    let fight_style = state.fight_style;
-    let item_name = state.item_name;
-    let item_level = state.item_level;
-    let wow_class = state.wow_class;
-    let wow_spec = state.wow_spec;
-
-    // early exit if the data is already present
-    try {
-      if (get_data_from_state(state)) {
-        return;
-      }
-    } catch (error) {
-      if (debug) {
-        console.log("Data needs to be loaded.");
-        console.log(error);
-      }
-    }
-    const data_group = (data_type === 'trinket_compare') ? 'trinkets' : data_type;
-    const data_name = [item_name, item_level, fight_style, wow_class, wow_spec]
-      .filter(Boolean)
-      .join('/');
-
-    // local dev differentiation since no local db
-    // can likely be removed in prod
-    const base_url = (wow_class && wow_spec) ? host : localhost;
-
-    const url = `${base_url}${path_to_data}${chart_id || data_group}${data_name ? `/${data_name}` : ''}`.replace(/\/+$/, '');
-
-    if (data_type === 'trinket_compare') {
-      const response = await getTrinketData(item_name, item_level, fight_style);
-      state.html_element.dataset.loadedData = JSON.stringify(response);
-    } else {
-
-      let request = new XMLHttpRequest();
-      if (debug) {
-        console.log("Fetching data from: " + url);
-      }
-      request.open("GET", url, true); // async request
-
-      request.onload = function (e) {
-        if (request.readyState === 4) {
-          if (request.status === 200) {
-            let json = JSON.parse(request.responseText);
-            state.html_element.dataset.loadedData = request.responseText;
-
-            if (debug) {
-              console.log(json);
-              console.log("Load and save finished.");
-            }
-          } else {
-            console.error(request.statusText);
-          }
-        }
-      };
-      request.onerror = function (e) {
-        console.error('Fetching data from bloodmallet.com encountered an error, ', e);
-      };
-      request.send(null);
     }
   }
 

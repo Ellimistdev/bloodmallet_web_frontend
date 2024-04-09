@@ -169,7 +169,7 @@ async function updateTrinketChart() {
 
     await window.updateTrinketChart(selectedTrinket, selectedItemLevel, selectedFightStyle);
     await update_navbarTrinketMenu({ item_name: selectedTrinket, item_level: selectedItemLevel, fight_style: selectedFightStyle });
-    
+
     const trinketSelect = document.getElementById('trinket-select');
     const itemLevelSelect = document.getElementById('item-level-select');
     const fightStyleSelect = document.getElementById('fight-style-select');
@@ -194,7 +194,6 @@ async function update_navbarTrinketMenu(state) {
     state.item_level ??= item_levels[0];
     state.fight_style ??= fight_styles[0];
     state.wow_class = "priest";
-
 
     const navbarTrinketMenu = document.getElementById("navbarTrinketMenu");
     const ul_nav = document.createElement("ul");
