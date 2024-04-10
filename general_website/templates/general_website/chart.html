@@ -12,7 +12,7 @@
 <meta property="og:url" content="{{ request.build_absolute_uri }}">
 {% if chart %}
 <meta property="og:title"
-    content="{% if not windfury and not power_infusion and not trinket_compare %}{{ chart.wow_spec.name }} {{ chart.wow_class.name }}, {% endif %}{{ chart.simulation_type.name }}, {{ chart.fight_style.name }}">
+    content="{% if not windfury and not power_infusion and not trinket_compare %}{{ chart.wow_spec.name }} {{ chart.wow_class.name }}, {% endif %}{% if trinket_compare %}{{ chart.item_name}}, {{ chart.item_level }}, {% endif %}{{ chart.simulation_type.name }}, {{ chart.fight_style.name }}">
 {% else %}
 <meta property="og:title" content="404 chart not found">
 {% endif %}
@@ -141,6 +141,7 @@
                 </div>
             </div>
         </div>
+        {% if not trinket_compare %}
         <div class="accordion-item">
             <div class="accordion-header bg-dark" id="simulationcraft-settings">
                 <h2 class="mb-0">
@@ -194,6 +195,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
         {% if chart.simulation_type.command == "trinkets" %}
         <div class="accordion-item">
             <div class="accordion-header bg-dark" id="advanced_options-label">
@@ -238,7 +240,7 @@
     </div>
     <div id="selected_data_key-area" hidden></div>
     <div id="value_style_switch" class="form-group form-check float-end" hidden>
-        <input type="checkbox" class="form-check-input" id="absolute_values" {% if windfury or power_infusion %} checked
+        <input type="checkbox" class="form-check-input" id="absolute_values" {% if windfury or power_infusion or trinket_compare %} checked
             {% endif %}>
         <label class="form-check-label" for="absolute_values">{% translate "Use absolute values" %}</label>
     </div>
@@ -275,6 +277,11 @@
 
     
         <!-- WIP/ -->
+
+        <!-- {% if not trinket_compare %} data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" 
+        {% else %} data-item-name="{{ item_name }}" data-item-level="{{ item_level }}" {% endif %}
+         -->
+
         <!-- <div id="chart" class="bloodmallet_chart mt-3" {% if general_result or windfury or power_infusion or trinket_compare %}
         data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}"
         data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %} 
@@ -291,6 +298,17 @@
     data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
     data-language="{{ LANGUAGE_CODE }}" data-show-top="-1"
     data-value-calculation="{% if windfury or power_infusion %}absolute{% else %}relative{% endif %}"></div>
+<!-- WIP
+<div id="chart{{ forloop.counter }}" class="bloodmallet_chart mt-3" {% if not trinket_compare %}
+    data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" {% else %} 
+    data-item-name="{{ item_name }}" data-item-level="{{ item_level}}" {% endif %}
+    data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
+    data-language="{{ LANGUAGE_CODE }}" data-entries="10000" data-background-color="transparent"
+    data-value-style="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}">
+</div>
+WIP -->
+
+
 <div class="d-flex flex-row-reverse">
     <button id="chart{{ forloop.counter }}_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
         data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Copy raw chart data to clipboard">📋</button>&nbsp;
