@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (debug) {
         console.log("DOMContentLoaded");
     }
-    update_navbarTrinketMenu(get_state());
+    update_navbarTrinketMenu();
 });
 
 const fight_style_dict = {
@@ -16,7 +16,7 @@ const fight_style_dict = {
 };
 const fight_styles = Object.keys(fight_style_dict).sort();
 
-const item_levels = [
+const default_item_levels = [
     "447",
     "450",
     "454",
@@ -149,53 +149,38 @@ const trinkets_s3 = [
     "zaqali_chaos_grapnel,"
 ];
 
-/**
- * Checks url pathname for data and returns all provided information or default values.
- */
-function get_state() {
-    if (debug) {
-        console.log("update_state_from_path");
-    }
-
-    const path = window.location.pathname;
-    const [simulation_type, item_name, item_level, fight_style] = path.split("/").slice(2, 6);
-    return { simulation_type, item_name, item_level, fight_style };
+async function updateTrinketChartViaMenu(state) {
+    await window.updateTrinketChartAsync(state);
+    const jsonString = document.getElementById("chart").getAttribute("data-loaded-data");
+    const dataObj = JSON.parse(jsonString);
+    state.item_name = dataObj.item_name;
+    state.item_level = dataObj.item_level;
+    state.item_levels = dataObj.item_levels;
+    state.fight_style = dataObj.simc_settings.fight_style;
+    await update_navbarTrinketMenu(state);
 }
 
-async function updateTrinketChart() {
-    const selectedTrinket = document.getElementById('trinket-select').value;
-    const selectedItemLevel = document.getElementById('item-level-select').value;
-    const selectedFightStyle = document.getElementById('fight-style-select').value;
-
-    await window.updateTrinketChart(selectedTrinket, selectedItemLevel, selectedFightStyle);
-    await update_navbarTrinketMenu({ item_name: selectedTrinket, item_level: selectedItemLevel, fight_style: selectedFightStyle });
-
-    const trinketSelect = document.getElementById('trinket-select');
-    const itemLevelSelect = document.getElementById('item-level-select');
-    const fightStyleSelect = document.getElementById('fight-style-select');
-
-    if (trinketSelect) trinketSelect.addEventListener('change', updateTrinketChart);
-    else console.error('trinket-select not found');
-
-    if (itemLevelSelect) itemLevelSelect.addEventListener('change', updateTrinketChart);
-    else console.error('item-level-select not found');
-
-    if (fightStyleSelect) fightStyleSelect.addEventListener('change', updateTrinketChart);
-    else console.error('fight-style-select not found');
-}
-
-async function update_navbarTrinketMenu(state) {
+async function update_navbarTrinketMenu(state = {}) {
     if (debug) {
         console.log("update_navbarTrinketMenu");
     }
 
     // set defaults
+    const default_item_level = state.item_levels ? state.item_levels[0] : '447';
+    state.data_type ??= 'trinket_compare';
     state.item_name ??= trinkets_s3[0];
-    state.item_level ??= item_levels[0];
-    state.fight_style ??= fight_styles[0];
+    state.item_level ??= default_item_level;
+    state.item_levels ??= default_item_levels;
+    state.fight_style ??= 'castingpatchwerk';
     state.wow_class = "priest";
 
     const navbarTrinketMenu = document.getElementById("navbarTrinketMenu");
+
+    // Remove existing dropdown menus
+    while (navbarTrinketMenu.firstChild) {
+        navbarTrinketMenu.removeChild(navbarTrinketMenu.firstChild);
+    }
+
     const ul_nav = document.createElement("ul");
     ul_nav.className = "navbar-nav";
 
@@ -222,15 +207,11 @@ async function update_navbarTrinketMenu(state) {
     createDropdownMenu(formatText(state.item_name, "item_name"), "item_name", trinkets_s3);
 
     // Add item level selection (dropdown)
-    createDropdownMenu(formatText(state.item_level, "item_level"), "item_level", item_levels);
+    createDropdownMenu(formatText(state.item_level, "item_level"), "item_level", state.item_levels);
 
     // Add fight style selection (dropdown)
-    createDropdownMenu(fight_style_dict[state.fight_style], "fight_style", fight_styles);
+    createDropdownMenu(formatText(state.fight_style, "fight_style"), "fight_style", fight_styles);
 
-    // replace old navigation with new styled one
-    while (navbarTrinketMenu.firstChild) {
-        navbarTrinketMenu.removeChild(navbarTrinketMenu.firstChild);
-    }
     navbarTrinketMenu.appendChild(ul_nav);
 }
 
@@ -261,6 +242,17 @@ const createDropdownMenuEntries = (items, id, state) => {
         a.className = `dropdown-item ${state.wow_class}-button`;
         a.id = `navbar_${item}_selector`;
         a.innerText = formatText(item, id);
+
+        // Add event listener to handle the selection
+        const handleSelection = async (event) => {
+            event.preventDefault();
+            state[id] = item;
+            // bloodmallet_chart_import()
+            await updateTrinketChartViaMenu(state);
+        };
+
+        a.addEventListener("click", handleSelection);
+
         return a;
     });
 

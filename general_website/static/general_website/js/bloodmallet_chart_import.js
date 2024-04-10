@@ -210,7 +210,6 @@ function bloodmallet_chart_import() {
    * Functions
    *
    */
-
   const fetchDataAsync = async (fightStyle, wowClass, wowSpec) => {
     const url = url_format.replace('{fight_style}', fightStyle)
       .replace('{wow_class}', wowClass)
@@ -233,7 +232,7 @@ function bloodmallet_chart_import() {
 
     for (const [className, items] of Object.entries(data)) {
       for (const [itemName, itemLevels] of Object.entries(items.data)) {
-        const itemKey = itemName.toLowerCase().replace(" ", "_");
+        const itemKey = itemName.toLowerCase().replace(/ /g, "_");
         processedData.items[itemKey] = processedData.items[itemKey] || {};
 
         // Add translations for the item (only once)
@@ -267,8 +266,13 @@ function bloodmallet_chart_import() {
   const getTrinketDataAsync = async (itemName, itemLevel, fightStyle) => {
     const data = await fetchAndProcessDataAsync(fightStyle);
 
-    const itemData = data.items[itemName] || {};
-    const itemLevelData = itemData.itemLevels[itemLevel] || {};
+    // Find the first available item name as a fallback
+    const firstItemKey = Object.keys(data.items)[0];
+    const itemData = data.items[itemName] || data.items[firstItemKey];
+
+    // Find the first available item level as a fallback
+    const firstItemLevelKey = Object.keys(itemData.itemLevels)[0];
+    const itemLevelData = itemData.itemLevels[itemLevel] || itemData.itemLevels[firstItemLevelKey];
 
     const response = {
       data: {
@@ -281,11 +285,15 @@ function bloodmallet_chart_import() {
       subtitle: data.subtitle,
       timestamp: data.timestamp,
       data_type: "trinket_compare",
+      // These should reflect the actual item name and level returned
+      item_name: itemName in data.items ? itemName : firstItemKey,
+      item_level: itemLevel in itemData.itemLevels ? itemLevel : firstItemLevelKey,
+      item_levels: Object.keys(itemData.itemLevels),
     };
 
     return response;
   }
-  
+
   const fetchAndProcessDataAsync = async (fightStyle) => {
     loadTrinketDataCache();
     const data = {};
@@ -354,12 +362,108 @@ function bloodmallet_chart_import() {
    * Initial setup
    *
    */
-  this.init_charts = new function () {
-    if (debug) {
-      console.log("init_charts");
+  const applyGeneralSettingsToState = (state) => {
+    try {
+      if (bloodmallet.style.axis_color !== undefined) {
+        state.axis_color = bloodmallet.style.axis_color;
+      }
+      if (bloodmallet.style.background_color !== undefined) {
+        state.background_color = bloodmallet.style.background_color;
+      }
+      if (bloodmallet.style.font_color !== undefined) {
+        state.font_color = bloodmallet.style.font_color;
+      }
+      if (bloodmallet.settings.entries !== undefined) {
+        state.limit = bloodmallet.settings.entries;
+      }
+      if (bloodmallet.settings.chart_engine !== undefined) {
+        state.chart_engine = bloodmallet.settings.chart_engine;
+      }
+      if (bloodmallet.settings.tooltip_engine !== undefined) {
+        state.tooltip_engine = bloodmallet.settings.tooltip_engine;
+      }
+      if (bloodmallet.settings.language !== undefined) {
+        state.language = bloodmallet.settings.language;
+      }
+      if (bloodmallet.settings.value_style !== undefined) {
+        state.value_style = bloodmallet.settings.value_style;
+      }
+    } catch (error) {
+      console.log("Applying page-wide settings failed or no page-wide settings were found.");
     }
+  }
+
+  const applyDataAttributesToState = (state, html_element) => {
+    let fightStyle = html_element.getAttribute("data-fight-style");
+    let itemName = html_element.getAttribute("data-item-name");
+    let itemLevel = html_element.getAttribute("data-item-level");
+
+    if (state.data_type === "trinket_compare") {
+      itemName = state.item_name;
+      itemLevel = state.item_level;
+      fightStyle = state.fight_style;
+    }
+
+    Object.assign(state, {
+      item_name: itemName,
+      item_level: itemLevel,
+      fight_style: fightStyle,
+      chart_id: html_element.getAttribute("data-chart-id"),
+      wow_class: html_element.getAttribute("data-wow-class"),
+      wow_spec: html_element.getAttribute("data-wow-spec"),
+      limit: html_element.getAttribute("data-entries") || state.limit,
+      data_type: html_element.getAttribute("data-type") || state.data_type,
+      covenant: html_element.getAttribute("data-covenant") || state.covenant,
+      background_color: html_element.getAttribute("data-background-color") || state.background_color,
+      font_color: html_element.getAttribute("data-font-color") || state.font_color,
+      axis_color: html_element.getAttribute("data-axis-color") || state.axis_color,
+      chart_engine: html_element.getAttribute("data-chart-engine") || state.chart_engine,
+      tooltip_engine: html_element.getAttribute("data-tooltip-engine") || state.tooltip_engine,
+      language: html_element.getAttribute("data-language") || state.language,
+      value_style: html_element.getAttribute("data-value-style") || state.value_style,
+      talent_target_scaling_min_target_count: parseInt(html_element.getAttribute("data-talent-target-scaling-min-target-count")) || state.talent_target_scaling_min_target_count,
+      talent_target_scaling_max_target_count: parseInt(html_element.getAttribute("data-talent-target-scaling-max-target-count")) || state.talent_target_scaling_max_target_count
+    });
+  }
+
+  const initState = (html_element, state = null) => {
+    let newState = {
+      chart_id: state?.chart_id || undefined,
+      wow_class: state?.wow_class || undefined,
+      wow_spec: state?.wow_spec || undefined,
+      item_name: state?.item_name || undefined,
+      item_level: state?.item_level || undefined,
+      data_type: state?.data_type || default_data_type,
+      fight_style: state?.fight_style || default_fight_style,
+      covenant: state?.covenant || default_covenant,
+      // style
+      axis_color: state?.axis_color || default_axis_color,
+      background_color: state?.background_color || default_background_color,
+      font_color: state?.font_color || default_font_color,
+      // settings
+      limit: state?.limit || default_limit,
+      chart_engine: state?.chart_engine || default_chart_engine,
+      tooltip_engine: state?.tooltip_engine || default_tooltip_engine,
+      language: state?.language || default_language,
+      value_style: state?.value_style || default_value_style,
+      talent_target_scaling_min_target_count: state?.talent_target_scaling_min_target_count || -1,
+      talent_target_scaling_max_target_count: state?.talent_target_scaling_max_target_count || -1,
+      // reminder of the html element
+      html_element: state?.html_element || html_element
+    };
+
+    // Applying general settings from in-page variable (if any)
+    applyGeneralSettingsToState(newState);
+
+    // Applying data attributes as state properties
+    applyDataAttributesToState(newState, html_element);
+
+    return newState;
+  }
+
+  const getCharts = () => {
     // scan for divs / what data is wanted
-    let chart_list = document.querySelectorAll("div.bloodmallet_chart");
+    const chart_list = document.querySelectorAll("div.bloodmallet_chart");
 
     // check for unique IDs
     let tmp_id_list = [];
@@ -372,6 +476,45 @@ function bloodmallet_chart_import() {
         tmp_id_list.push(html_element.id);
       }
     }
+    return chart_list
+  }
+
+  // create new chart without data
+  const createHighchart = (state, html_id) => {
+    let styled_chart = update_chart_style(state);
+    if (state.data_type === "trinket_compare") {
+      styled_chart.plotOptions.series.animation = true;
+    }
+    let new_chart = false;
+
+    if (state.chart_engine == "highcharts") {
+      try {
+        new_chart = Highcharts.chart(html_id, styled_chart);
+      } catch (error) {
+        console.log("When trying to create a highcharts chart the following error occured. Did you include the necessary Highcharts scripts?");
+        console.log(error);
+        return;
+      }
+    } else if (state.chart_engine == "highcharts_old") {
+      try {
+        let tmp_styled_chart = styled_chart;
+        tmp_styled_chart["chart"]["renderTo"] = html_id;
+        new_chart = new Highcharts.Chart(tmp_styled_chart);
+      } catch (error) {
+        console.log("When trying to create a highcharts_old chart the following error occured. Did you include the necessary Highcharts scripts?");
+        console.log(error);
+        return;
+      }
+    }
+    return new_chart;
+  }
+
+  this.init_charts = new function () {
+    if (debug) {
+      console.log("init_charts");
+    }
+
+    let chart_list = getCharts();
 
     // collect data per chart
     for (let i = 0; i < chart_list.length; i++) {
@@ -386,104 +529,7 @@ function bloodmallet_chart_import() {
       const html_element = document.getElementById(chart_list[i].id);
 
       if (html_element) {
-
-        let state = {
-          chart_id: undefined,
-          wow_class: undefined,
-          wow_spec: undefined,
-          item_name: undefined,
-          item_level: undefined,
-          data_type: default_data_type,
-          fight_style: default_fight_style,
-          covenant: default_covenant,
-          // style
-          axis_color: default_axis_color,
-          background_color: default_background_color,
-          font_color: default_font_color,
-          // settings
-          limit: default_limit,
-          chart_engine: default_chart_engine,
-          tooltip_engine: default_tooltip_engine,
-          language: default_language,
-          value_style: default_value_style,
-          talent_target_scaling_min_target_count: -1,
-          talent_target_scaling_max_target_count: -1,
-          // reminder of the html element
-          html_element: html_element
-        };
-
-        // Get general settings from in-page variable
-        try {
-          if (bloodmallet.style.axis_color !== undefined) {
-            state.axis_color = bloodmallet.style.axis_color;
-          }
-          if (bloodmallet.style.background_color !== undefined) {
-            state.background_color = bloodmallet.style.background_color;
-          }
-          if (bloodmallet.style.font_color !== undefined) {
-            state.font_color = bloodmallet.style.font_color;
-          }
-          if (bloodmallet.settings.entries !== undefined) {
-            state.limit = bloodmallet.settings.entries;
-          }
-          if (bloodmallet.settings.chart_engine !== undefined) {
-            state.chart_engine = bloodmallet.settings.chart_engine;
-          }
-          if (bloodmallet.settings.tooltip_engine !== undefined) {
-            state.tooltip_engine = bloodmallet.settings.tooltip_engine;
-          }
-          if (bloodmallet.settings.language !== undefined) {
-            state.language = bloodmallet.settings.language;
-          }
-          if (bloodmallet.settings.value_style !== undefined) {
-            state.value_style = bloodmallet.settings.value_style;
-          }
-        } catch (error) {
-          if (debug) {
-            console.log("Applying page wide settings failed or no page wide settings were found.");
-          }
-        }
-
-        // optional input
-        if (html_element.getAttribute("data-entries")) {
-          state.limit = html_element.getAttribute("data-entries");
-        }
-        if (html_element.getAttribute("data-fight-style")) {
-          state.fight_style = html_element.getAttribute("data-fight-style");
-        }
-        if (html_element.getAttribute("data-type")) {
-          state.data_type = html_element.getAttribute("data-type");
-        }
-        if (html_element.getAttribute("data-covenant")) {
-          state.covenant = html_element.getAttribute("data-covenant");
-        }
-        if (html_element.getAttribute("data-background-color")) {
-          state.background_color = html_element.getAttribute("data-background-color");
-        }
-        if (html_element.getAttribute("data-font-color")) {
-          state.font_color = html_element.getAttribute("data-font-color");
-        }
-        if (html_element.getAttribute("data-axis-color")) {
-          state.axis_color = html_element.getAttribute("data-axis-color");
-        }
-        if (html_element.getAttribute("data-tooltip-engine")) {
-          state.tooltip_engine = html_element.getAttribute("data-tooltip-engine");
-        }
-        if (html_element.getAttribute("data-chart-engine")) {
-          state.chart_engine = html_element.getAttribute("data-chart-engine");
-        }
-        if (html_element.getAttribute("data-language")) {
-          state.language = html_element.getAttribute("data-language");
-        }
-        if (html_element.getAttribute("data-value-style")) {
-          state.value_style = html_element.getAttribute("data-value-style");
-        }
-        if (html_element.getAttribute("data-talent-target-scaling-min-target-count")) {
-          state.talent_target_scaling_min_target_count = parseInt(html_element.getAttribute("data-talent-target-scaling-min-target-count"));
-        }
-        if (html_element.getAttribute("data-talent-target-scaling-max-target-count")) {
-          state.talent_target_scaling_max_target_count = parseInt(html_element.getAttribute("data-talent-target-scaling-max-target-count"));
-        }
+        const state = initState(html_element);
 
         // preparing necessary input to load data
         let requirements = true;
@@ -507,29 +553,7 @@ function bloodmallet_chart_import() {
           state.chart_id = html_element.getAttribute("data-chart-id");
         }
 
-        let styled_chart = update_chart_style(state);
-
-        // create new chart without data
-        let new_chart = false;
-        if (state.chart_engine == "highcharts") {
-          try {
-            new_chart = Highcharts.chart(html_id, styled_chart);
-          } catch (error) {
-            console.log("When trying to create a highcharts chart the following error occured. Did you include the necessary Highcharts scripts?");
-            console.log(error);
-            return;
-          }
-        } else if (state.chart_engine == "highcharts_old") {
-          try {
-            let tmp_styled_chart = styled_chart;
-            tmp_styled_chart["chart"]["renderTo"] = html_id;
-            new_chart = new Highcharts.Chart(tmp_styled_chart);
-          } catch (error) {
-            console.log("When trying to create a highcharts_old chart the following error occured. Did you include the necessary Highcharts scripts?");
-            console.log(error);
-            return;
-          }
-        }
+        let new_chart = createHighchart(state, html_id);
 
         if (requirements) {
           load_data(state);
@@ -538,6 +562,625 @@ function bloodmallet_chart_import() {
         }
 
         setTimeout(update_chart, 1, state, html_element, new_chart, 0);
+      }
+    }
+
+    const clearDataset = (state) => {
+      const element = state.html_element;
+      if (state.item_name !== element.dataset.itemName ||
+        state.item_level !== element.dataset.itemLevel ||
+        state.fight_style !== element.dataset.fightStyle) {
+        for (let key in element.dataset) {
+          delete element.dataset[key];
+        }
+      }
+    }
+
+    if (typeof window.updateTrinketChartAsync !== 'function') {
+      window.updateTrinketChartAsync = async (state) => {
+        const charts = getCharts();
+        const id = charts[0].id;
+        state.html_element = document.getElementById(id);
+        state = initState(state.html_element, state)
+        clearDataset(state);
+        await load_data(state);
+        state.chart = state.chart || createHighchart(state, id);
+
+        update_chart(state, state.html_element, state.chart, 0);
+      }
+    }
+  }
+
+  /**
+   * Update a chart with data from bloodmallet.com
+   */
+  function update_chart(state, html_element, chart, count) {
+    if (debug) {
+      console.log("update_chart");
+    }
+
+    let limit = state.limit;
+    let chart_engine = state.chart_engine;
+
+    let spec_data = false;
+
+    // early exits if data is missing
+    try {
+      spec_data = get_data_from_state(state);
+    } catch (error) {
+      if (count < 30) {
+        setTimeout(update_chart, 200, state, html_element, chart, count + 1);
+      }
+      return;
+    }
+    state.data = spec_data;
+
+    if (chart_engine != "highcharts_old") {
+      chart.update({
+        accessibility: {
+          enable: false
+        }
+      }, false);
+    }
+
+    if (spec_data["error"] === true || spec_data["status"] === "error") {
+      return simulation_error(html_element, spec_data);
+    } else {
+      wow_class = spec_data?.simc_settings?.class;
+      wow_spec = spec_data?.simc_settings?.spec;
+      fight_style = spec_data?.simc_settings?.fight_style;
+    }
+    state.data_type = spec_data["data_type"];
+
+    // determine special charts that are only shown with a predetermined value_style
+    if (state.data_type === "legendaries") {
+      state.value_style = "absolute";
+    } else if (state.data_type === "tier_set") {
+      state.value_style = "absolute";
+    }
+
+    provide_meta_data(state, spec_data);
+
+    // do secondary distribution charts in a different function
+    if (state.data_type === "secondary_distributions") {
+      return update_secondary_distribution_chart(state, html_element, chart);
+    } else if (state.data_type === "talent_target_scaling") {
+      return update_talent_target_scaling_chart(state, html_element, chart);
+    }
+
+    const data = spec_data;
+
+    let dps_ordered_keys;
+    let baseline_dps;
+    let other_baselines = {};
+    if (Object.keys(data).indexOf("sorted_data_keys") > -1 && (["windfury_totem", "power_infusion"].indexOf(state.data_type) > -1) && state.value_style === "absolute") {
+      dps_ordered_keys = data["sorted_data_keys_2"].slice(0, limit);
+    } else if (Object.keys(data).indexOf("sorted_data_keys") > -1) {
+      dps_ordered_keys = data["sorted_data_keys"].slice(0, limit);
+    } else {
+      dps_ordered_keys = Object.keys(data["data"]);
+    }
+    if (["races", "talents", "soulbinds", "tier_set", "windfury_totem", "power_infusion", "trinket_compare"].includes(state.data_type)) {
+      baseline_dps = 0;
+    } else if (["legendaries", "soulbind_nodes", "covenants", "domination_shards"].includes(state.data_type)) {
+      baseline_dps = data["data"]["baseline"];
+    } else {
+      baseline_dps = data["data"]["baseline"][data["simulated_steps"][data["simulated_steps"].length - 1]];
+      if (debug) {
+        console.log("minimal itemlevel", data["simulated_steps"][data["simulated_steps"].length - 1]);
+        console.log("baseline dps dict", data["data"]["baseline"]);
+        console.log("Baseline dps: " + baseline_dps);
+      }
+    }
+    // add other baseline profiles, e.g. covenant profiles for legendaries
+    for (let key of Object.keys(data["data"])) {
+      if (key[0] === "{" && key[key.length - 1] === "}") {
+        other_baselines[key] = data["data"][key];
+      }
+    }
+
+    if (debug) {
+      console.log("dps_ordered_keys", dps_ordered_keys);
+      console.log("Baseline dps: " + baseline_dps);
+      console.log("other baseline dps:", other_baselines);
+    }
+
+    let simulated_steps = [];
+    if (state.data_type === "soulbinds") {
+      simulated_steps = undefined;
+    } else if (state.data_type === "tier_set") {
+      simulated_steps = [
+        "4p",
+        "2p",
+        "no tier",
+      ];
+    } else {
+      simulated_steps = data["simulated_steps"];
+    }
+    if (debug) {
+      console.log("simulated_steps: " + simulated_steps);
+    }
+
+    // filters
+
+    // trinkets
+    if (state.data_type === "trinkets") {
+      // Itemlevels
+      if (state.html_element.dataset.filterItemlevels !== undefined) {
+        const ilevels = state.html_element.dataset.filterItemlevels.split(";");
+        simulated_steps = simulated_steps.filter(element => ilevels.indexOf(element.toString()) === -1);
+      }
+      // filter by availability of simulated_steps
+      if (simulated_steps) {
+        dps_ordered_keys = dps_ordered_keys.filter(element =>
+          simulated_steps.some(step => data["data"][element][step] !== undefined)
+        );
+      }
+      // Active - Passive
+      if (state.html_element.dataset.filterActivePassive !== undefined) {
+        const active_passives = state.html_element.dataset.filterActivePassive.split(";");
+        let filter_active_passive = [];
+        active_passives.map(element => {
+          if (element === "active") {
+            filter_active_passive.push(true);
+          } else if (element === "passive") {
+            filter_active_passive.push(false);
+          }
+        });
+        dps_ordered_keys = dps_ordered_keys.filter(element =>
+          filter_active_passive.indexOf(data["data_active"][element]) === -1
+        );
+      }
+      // Sources
+      if (state.html_element.dataset.filterSources !== undefined) {
+        const sources = state.html_element.dataset.filterSources.split(";");
+        dps_ordered_keys = dps_ordered_keys.filter(element => sources.indexOf(data["data_sources"][element]) === -1);
+      }
+
+      if ("trinket_compare" !== state.data_type) {
+        // resort dps_ordered_keys
+        let tmp_list = [];
+        for (let trinket of dps_ordered_keys) {
+          let dps = undefined;
+          for (let step of simulated_steps) {
+            if (dps === undefined && data["data"][trinket][step] !== undefined) {
+              dps = data["data"][trinket][step];
+            } else if (data["data"][trinket][step] !== undefined && data["data"][trinket][step] > dps) {
+              dps = data["data"][trinket][step];
+            }
+          }
+          tmp_list.push([trinket, dps]);
+        }
+        tmp_list.sort((trinket1, trinket2) => trinket2[1] - trinket1[1]);
+        dps_ordered_keys = tmp_list.map(element => element[0]);
+      }
+    }
+
+    let subtitle = data["subtitle"];
+    if (state.data_type === "power_infusion") {
+      subtitle += "<br/>* Spec APL doesn't support external PI. Fallback for set PI timings was used to generate data.";
+    }
+
+    // set title and subtitle
+    chart.setTitle(
+      {
+        text: data["title"]
+      },
+      {
+        text: subtitle
+      },
+      false
+    );
+
+    // clear initial data
+    while (chart.series[0]) {
+      chart.series[0].remove(false);
+    }
+
+    let category_list = undefined;
+    if (["talents"].indexOf(state.data_type) > -1) {
+      category_list = dps_ordered_keys
+        .map(element => {
+          let links = [];
+          for (let i = 0; i < element.length; i++) {
+            links.push(get_category_name(state, (i + 1).toString() + element[i], data));
+          }
+          return links.join("");
+        });
+    } else if (["tier_set", "talent_target-scaling"].indexOf(state.data_type) > -1) {
+      category_list = dps_ordered_keys
+        .map(element => {
+          return get_category_name(state, element, data);
+        });
+    } else {
+      category_list = dps_ordered_keys
+        .map(element => {
+          // correct names which use a specific different baseline
+          let shortened_name = element.indexOf("} ") > -1 ? element.slice(element.indexOf("} ") + 2, element.length) : element;
+          shortened_name = shortened_name.indexOf(" +") > -1 ? shortened_name.slice(0, shortened_name.indexOf(" +")) : shortened_name;
+          return get_category_name(state, shortened_name, data);
+        });
+    }
+
+    if (state.data_type === "power_infusion") {
+      // mark specs without PI support
+      category_list = category_list.map(element => {
+        if (Object.keys(spec_data).indexOf("profile_without_pi_support") > -1 && spec_data["profile_without_pi_support"].indexOf(element) > -1) {
+          return element + "*";
+        } else {
+          return element;
+        }
+      });
+    }
+
+    if (debug) {
+      console.log(category_list);
+    }
+
+    // rewrite the trinket names
+    if (chart_engine == "highcharts") {
+      chart.update({
+        xAxis: {
+          categories: category_list
+        }
+      }, false);
+    } else if (chart_engine == "highcharts_old") {
+      chart.xAxis[0].setCategories(category_list, false);
+    }
+
+
+    if (simulated_steps) {
+      let tmp_dps_values = {};
+      for (const name in data["data"]) {
+        if (data["data"].hasOwnProperty(name)) {
+          const information = data["data"][name];
+          tmp_dps_values[name] = {};
+
+          let previous_value = baseline_dps;
+          if (state.data_type === "conduits") {
+            previous_value = data["data"]["baseline"][data["covenant_mapping"][name]];
+          }
+
+          for (let i = simulated_steps.length - 1; i >= 0; i--) {
+            const step = simulated_steps[i];
+            let tmp_info = information.hasOwnProperty(state.covenant) ? information[state.covenant] : information;
+            if (Number.isInteger(tmp_info)) {
+              tmp_dps_values[name][step] = Math.max(tmp_info - previous_value, 0);
+              previous_value = tmp_dps_values[name][step] === 0 ? previous_value : tmp_info;
+            } else if (tmp_info.hasOwnProperty(step)) {
+              tmp_dps_values[name][step] = Math.max(tmp_info[step] - previous_value, 0);
+              previous_value = tmp_dps_values[name][step] === 0 ? previous_value : tmp_info[step];
+            } else {
+              tmp_dps_values[name][step] = 0;
+            }
+          }
+        }
+      }
+
+      if (debug) {
+        console.log("simulated_steps", simulated_steps);
+        console.log(tmp_dps_values);
+      }
+
+      for (const simulation_step of simulated_steps) {
+
+        let dps_array = [];
+
+        for (let i = 0; i < dps_ordered_keys.length; i++) {
+          const dps_key = dps_ordered_keys[i];
+          let styled_value = get_styled_value(state, tmp_dps_values[dps_key][simulation_step], baseline_dps);
+          dps_array.push(styled_value);
+        }
+
+        let simulation_step_clean = simulation_step;
+
+        chart.addSeries({
+          data: dps_array,
+          name: simulation_step_clean,
+        }, false);
+
+      }
+    } else if (["soulbind_nodes", "covenants"].includes(state.data_type)) {
+      var dps_array = [];
+
+      for (let i = 0; i < dps_ordered_keys.length; i++) {
+        let dps_key = dps_ordered_keys[i];
+
+        let dps_key_values = data["data"][dps_key] - baseline_dps;
+
+        dps_array.push(get_styled_value(state, dps_key_values, baseline_dps));
+      }
+
+      chart.addSeries({
+        data: dps_array,
+        name: "Data",
+        showInLegend: false
+      }, false);
+
+    } else if (["legendaries"].includes(state.data_type)) {
+      let dps_array = [];
+      let baseline_name = "{" + data["profile"]["character"]["covenant"] + "}";
+      let special_cases = {}
+      for (let special_case of Object.keys(other_baselines)) {
+        special_cases[special_case] = [];
+      }
+      special_cases[baseline_name] = [];
+
+      for (let dps_key of dps_ordered_keys) {
+        let tmp_baseline_dps = baseline_dps;
+
+        // special baseline profile
+        if (dps_key.indexOf("} ") > -1) {
+          let special_case_name = dps_key.slice(0, dps_key.indexOf("} ") + 1);
+          tmp_baseline_dps = other_baselines[special_case_name];
+          special_cases[special_case_name].push(get_styled_value(state, tmp_baseline_dps, baseline_dps));
+          for (let special_case of Object.keys(special_cases)) {
+            if (special_case !== special_case_name) {
+              special_cases[special_case].push(0);
+            }
+          }
+        } else {
+          for (let special_case of Object.keys(special_cases)) {
+            if (special_case !== baseline_name) {
+              special_cases[special_case].push(0);
+            }
+            else {
+              special_cases[special_case].push(get_styled_value(state, tmp_baseline_dps, tmp_baseline_dps));
+            }
+          }
+        }
+
+        let dps_key_values = data["data"][dps_key] - tmp_baseline_dps;
+        dps_array.push(get_styled_value(state, dps_key_values, tmp_baseline_dps));
+      }
+
+      chart.addSeries({
+        data: dps_array,
+        name: "Legendary effect",
+        showInLegend: true,
+        color: "#ff7d0a"
+      }, false);
+      let mapper = {
+        "night_fae": "Night Fae",
+        "necrolord": "Necrolord",
+        "venthyr": "Venthyr",
+        "kyrian": "Kyrian"
+      }
+      for (let special_case of Object.keys(special_cases)) {
+        chart.addSeries({
+          data: special_cases[special_case],
+          name: mapper[special_case.slice(1, special_case.length - 1)],
+          showInLegend: true,
+          color: covenants[mapper[special_case.slice(1, special_case.length - 1)]]["color"]
+        }, false);
+      }
+    } else if (["windfury_totem", "power_infusion", "trinket_compare"].includes(state.data_type)) {
+      let dps_array = [];
+      let sortedKeys = [];
+
+      let spec_color_map = {
+        "Blood Death Knight": "#c41f3b",
+        "Frost Death Knight": "#c41f3b",
+        "Unholy Death Knight": "#c41f3b",
+        "Havoc Demon Hunter": "#a330c9",
+        "Vengeance Demon Hunter": "#a330c9",
+        "Balance Druid": "#ff7d0a",
+        "Feral Druid": "#ff7d0a",
+        "Guardian Druid": "#ff7d0a",
+        "Devastation Evoker": "#33937F",
+        "Beast Mastery Hunter": "#abd473",
+        "Marksmanship Hunter": "#abd473",
+        "Survival Hunter": "#abd473",
+        "Arcane Mage": "#69ccf0",
+        "Fire Mage": "#69ccf0",
+        "Frost Mage": "#69ccf0",
+        "Brewmaster Monk": "#00ff96",
+        "Windwalker Monk": "#00ff96",
+        "Protection Paladin": "#f58cba",
+        "Retribution Paladin": "#f58cba",
+        "Shadow Priest": "#ffffff",
+        "Assassination Rogue": "#fff569",
+        "Outlaw Rogue": "#fff569",
+        "Subtlety Rogue": "#fff569",
+        "Elemental Shaman": "#0070de",
+        "Enhancement Shaman": "#0070de",
+        "Affliction Warlock": "#9482c9",
+        "Demonology Warlock": "#9482c9",
+        "Destruction Warlock": "#9482c9",
+        "Arms Warrior": "#c79c6e",
+        "Fury Warrior": "#c79c6e",
+        "Protection Warrior": "#c79c6e",
+      }
+
+      if (["trinket_compare"].includes(state.data_type)) {
+        let comparative_dps = {};
+        for (let dps_key of dps_ordered_keys) {
+          if (dps_key === "baseline") {
+            continue;
+          }
+          let tmp_baseline_dps = Object.values(data["data"]["baseline"][dps_key])[0];
+          let dps_key_values = data["data"][dps_key] - tmp_baseline_dps;
+          comparative_dps[dps_key] = {
+            "y": get_styled_value(state, dps_key_values, tmp_baseline_dps),
+            "color": spec_color_map[dps_key]
+          };
+
+          if (chart.title?.textStr === undefined) {
+            // set title and subtitle
+            chart.setTitle(
+              {
+                text: `${snake_case_to_title(data.item_name)} | ${snake_case_to_title(data.item_level)} | ${snake_case_to_title(data.simc_settings.fight_style)}`
+              },
+              {
+                text: subtitle
+              },
+              false
+            );
+          }
+
+        }
+
+        // Extract keys and sort them
+        sortedKeys = Object.keys(comparative_dps)
+          .sort((a, b) => comparative_dps[b].y - comparative_dps[a].y);
+
+        // Remove 'baseline' key if it exists
+        sortedKeys = sortedKeys.filter(key => key !== 'baseline');
+
+        for (let key of sortedKeys) {
+          dps_array.push(comparative_dps[key]);
+        }
+      } else {
+        for (let dps_key of dps_ordered_keys) {
+          let tmp_baseline_dps = data["data"]["{" + dps_key + "}"];
+          let dps_key_values = data["data"][dps_key] - tmp_baseline_dps;
+          dps_array.push({ "y": get_styled_value(state, dps_key_values, tmp_baseline_dps), "color": spec_color_map[dps_key] });
+        }
+      }
+
+      chart.addSeries({
+        data: dps_array,
+        name: snake_case_to_title(state.data_type),
+        showInLegend: false,
+      }, false);
+
+      if (["trinket_compare"].includes(state.data_type)) {
+        // Update the x-axis categories
+        if (chart_engine == "highcharts") {
+          chart.update({
+            xAxis: {
+              categories: sortedKeys
+            }
+          }, false);
+        } else if (chart_engine == "highcharts_old") {
+          chart.xAxis[0].setCategories(sortedKeys, false);
+        }
+      }
+    } else if (["domination_shards"].includes(state.data_type)) {
+      for (let shard_type of Object.keys(domination_shard_colours)) {
+
+        let dps_array = [];
+
+        for (let dps_key of dps_ordered_keys) {
+          let shard_name = dps_key;
+          let alternative_dps_baseline = baseline_dps;
+          if (dps_key.indexOf(" +") > -1) {
+            shard_name = dps_key.split(" +")[0];
+            alternative_dps_baseline = data["data"][shard_name];
+          }
+
+          if (data["shard_type"][shard_name] === shard_type) {
+
+            let dps_key_values = data["data"][dps_key] - alternative_dps_baseline;
+
+            dps_array.push(get_styled_value(state, dps_key_values, alternative_dps_baseline));
+          } else {
+            dps_array.push(get_styled_value(state, 0, alternative_dps_baseline));
+          }
+        }
+
+        chart.addSeries({
+          data: dps_array,
+          name: shard_type + (dps_ordered_keys[0].indexOf(" +") > -1 ? " set" : ""),
+          showInLegend: true,
+          color: domination_shard_colours[shard_type]
+        }, false);
+      }
+
+      if (dps_ordered_keys[0].indexOf(" +") > -1) {
+        let set_array = [];
+        for (let name of dps_ordered_keys) {
+          let shard_name = name.split(" +")[0];
+          let dps_key_values = data["data"][shard_name] - baseline_dps;
+
+          set_array.push(get_styled_value(state, dps_key_values, baseline_dps));
+        }
+
+        chart.addSeries({
+          data: set_array,
+          name: "shard",
+          showInLegend: true,
+          color: "#ff7d0a"
+        }, false);
+      }
+
+    } else if (["soulbinds"].includes(state.data_type)) {
+      for (const covenant of Object.keys(covenants).sort().reverse()) {
+        const covenant_id = covenants[covenant]["id"];
+
+        let dps_array = [];
+        for (const dps_key of dps_ordered_keys) {
+          let dps_key_values = 0;
+          if (data["covenant_mapping"][dps_key][0] === covenant_id) {
+            dps_key_values = Math.max(...Object.values(data["data"][dps_key]));
+          }
+
+          dps_array.push(dps_key_values);
+        }
+
+        chart.addSeries({
+          data: dps_array,
+          name: get_translated_name(covenant, data, state),
+          showInLegend: true,
+          color: covenants[covenant]["color"]
+        }, false);
+      }
+      chart.yAxis[0].options.title.text = absolute_damage_per_second;
+      chart.yAxis[1].options.title.text = absolute_damage_per_second;
+
+    } else { // race simulations
+      var dps_array = [];
+
+      for (let i = 0; i < dps_ordered_keys.length; i++) {
+        let dps_key = dps_ordered_keys[i];
+
+        let dps_key_values = data["data"][dps_key];
+
+        dps_array.push(dps_key_values);
+      }
+
+      chart.addSeries({
+        data: dps_array,
+        name: "DPS",
+        showInLegend: false
+      }, false);
+
+    }
+
+    // add new legend title
+    if (["trinkets"].indexOf(state.data_type) > -1) {
+      chart.legend.title.attr({ text: "Itemlevel" });
+    } else if (state.data_type === "races" || state.data_type === "domination_shards") {
+      chart.legend.title.attr({ text: "" });
+    }
+
+    if (chart_engine == "highcharts_old") {
+      chart.reflow();
+    }
+
+    html_element.style.height = 200 + dps_ordered_keys.length * 30 + "px";
+    if (chart_engine == "highcharts") {
+      chart.setSize(undefined, html_element.style.height);
+    }
+
+    if ("trinket_compare" !== state.data_type) {
+      // add wowdb tooltips, they don't check dynamically
+      if (state.tooltip_engine == "wowdb") {
+        setTimeout(() => {
+          readd_wowdb_tooltips(html_element.id);
+          chart.redraw();
+        }, 1);
+      } else if (state.tooltip_engine == "wowhead") {
+        setTimeout(() => {
+          window.$WowheadPower.refreshLinks();
+          setTimeout(() => {
+            chart.redraw();
+          }, 300);
+        }, 1);
+      } else {
+        setTimeout(() => {
+          chart.redraw();
+        }, 1);
       }
     }
   }
@@ -615,587 +1258,6 @@ function bloodmallet_chart_import() {
 
   function get_data_from_state(state) {
     return JSON.parse(state.html_element.dataset.loadedData);
-  }
-
-  /**
-   * Update a chart with data from bloodmallet.com
-   */
-  function update_chart(state, html_element, chart, count) {
-    if (debug) {
-      console.log("update_chart");
-    }
-
-    let data_type = state.data_type;
-    let limit = state.limit;
-    let chart_engine = state.chart_engine;
-
-    let spec_data = false;
-
-    // early exits if data is missing
-    try {
-      spec_data = get_data_from_state(state);
-    } catch (error) {
-      if (count < 100) {
-        setTimeout(update_chart, 200, state, html_element, chart, count + 1);
-      }
-      return;
-    }
-    state.data = spec_data;
-
-    if (chart_engine != "highcharts_old") {
-      chart.update({
-        accessibility: {
-          enable: false
-        }
-      }, false);
-    }
-
-    if (spec_data["error"] === true || spec_data["status"] === "error") {
-      return simulation_error(html_element, spec_data);
-    } else {
-      wow_class = spec_data?.simc_settings?.class;
-      wow_spec = spec_data?.simc_settings?.spec;
-      fight_style = spec_data?.simc_settings?.fight_style;
-    }
-    state.data_type = data_type = spec_data["data_type"];
-
-    // determine special charts that are only shown with a predetermined value_style
-    if (state.data_type === "legendaries") {
-      state.value_style = "absolute";
-    } else if (state.data_type === "tier_set") {
-      state.value_style = "absolute";
-    }
-
-    provide_meta_data(state, spec_data);
-
-    // do secondary distribution charts in a different function
-    if (data_type === "secondary_distributions") {
-      return update_secondary_distribution_chart(state, html_element, chart);
-    } else if (data_type === "talent_target_scaling") {
-      return update_talent_target_scaling_chart(state, html_element, chart);
-    }
-
-    data_type = spec_data['data_type'];
-
-    const data = spec_data;
-
-    let dps_ordered_keys;
-    let baseline_dps;
-    let other_baselines = {};
-    if (Object.keys(data).indexOf("sorted_data_keys") > -1 && (["windfury_totem", "power_infusion"].indexOf(data_type) > -1) && state.value_style === "absolute") {
-      dps_ordered_keys = data["sorted_data_keys_2"].slice(0, limit);
-    } else if (Object.keys(data).indexOf("sorted_data_keys") > -1) {
-      dps_ordered_keys = data["sorted_data_keys"].slice(0, limit);
-    } else {
-      dps_ordered_keys = Object.keys(data["data"]);
-    }
-    if (["races", "talents", "soulbinds", "tier_set", "windfury_totem", "power_infusion", "trinket_compare"].includes(data_type)) {
-      baseline_dps = 0;
-    } else if (["legendaries", "soulbind_nodes", "covenants", "domination_shards"].includes(data_type)) {
-      baseline_dps = data["data"]["baseline"];
-    } else {
-      baseline_dps = data["data"]["baseline"][data["simulated_steps"][data["simulated_steps"].length - 1]];
-      if (debug) {
-        console.log("minimal itemlevel", data["simulated_steps"][data["simulated_steps"].length - 1]);
-        console.log("baseline dps dict", data["data"]["baseline"]);
-        console.log("Baseline dps: " + baseline_dps);
-      }
-    }
-    // add other baseline profiles, e.g. covenant profiles for legendaries
-    for (let key of Object.keys(data["data"])) {
-      if (key[0] === "{" && key[key.length - 1] === "}") {
-        other_baselines[key] = data["data"][key];
-      }
-    }
-
-    if (debug) {
-      console.log("dps_ordered_keys", dps_ordered_keys);
-      console.log("Baseline dps: " + baseline_dps);
-      console.log("other baseline dps:", other_baselines);
-    }
-
-    let simulated_steps = [];
-    if (data_type === "soulbinds") {
-      simulated_steps = undefined;
-    } else if (data_type === "tier_set") {
-      simulated_steps = [
-        "4p",
-        "2p",
-        "no tier",
-      ];
-    } else {
-      simulated_steps = data["simulated_steps"];
-    }
-    if (debug) {
-      console.log("simulated_steps: " + simulated_steps);
-    }
-
-    // filters
-
-    // trinkets
-    if (data_type === "trinkets") {
-      // Itemlevels
-      if (state.html_element.dataset.filterItemlevels !== undefined) {
-        const ilevels = state.html_element.dataset.filterItemlevels.split(";");
-        simulated_steps = simulated_steps.filter(element => ilevels.indexOf(element.toString()) === -1);
-      }
-      // filter by availability of simulated_steps
-      if (simulated_steps) {
-        dps_ordered_keys = dps_ordered_keys.filter(element =>
-          simulated_steps.some(step => data["data"][element][step] !== undefined)
-        );
-      }
-      // Active - Passive
-      if (state.html_element.dataset.filterActivePassive !== undefined) {
-        const active_passives = state.html_element.dataset.filterActivePassive.split(";");
-        let filter_active_passive = [];
-        active_passives.map(element => {
-          if (element === "active") {
-            filter_active_passive.push(true);
-          } else if (element === "passive") {
-            filter_active_passive.push(false);
-          }
-        });
-        dps_ordered_keys = dps_ordered_keys.filter(element =>
-          filter_active_passive.indexOf(data["data_active"][element]) === -1
-        );
-      }
-      // Sources
-      if (state.html_element.dataset.filterSources !== undefined) {
-        const sources = state.html_element.dataset.filterSources.split(";");
-        dps_ordered_keys = dps_ordered_keys.filter(element => sources.indexOf(data["data_sources"][element]) === -1);
-      }
-
-      if ("trinket_compare" !== data_type) {
-        // resort dps_ordered_keys
-        let tmp_list = [];
-        for (let trinket of dps_ordered_keys) {
-          let dps = undefined;
-          for (let step of simulated_steps) {
-            if (dps === undefined && data["data"][trinket][step] !== undefined) {
-              dps = data["data"][trinket][step];
-            } else if (data["data"][trinket][step] !== undefined && data["data"][trinket][step] > dps) {
-              dps = data["data"][trinket][step];
-            }
-          }
-          tmp_list.push([trinket, dps]);
-        }
-        tmp_list.sort((trinket1, trinket2) => trinket2[1] - trinket1[1]);
-        dps_ordered_keys = tmp_list.map(element => element[0]);
-      }
-    }
-
-    let subtitle = data["subtitle"];
-    if (data_type === "power_infusion") {
-      subtitle += "<br/>* Spec APL doesn't support external PI. Fallback for set PI timings was used to generate data.";
-    }
-
-    // set title and subtitle
-    chart.setTitle(
-      {
-        text: data["title"]
-      },
-      {
-        text: subtitle
-      },
-      false
-    );
-
-    // clear initial data
-    while (chart.series[0]) {
-      chart.series[0].remove(false);
-    }
-
-    let category_list = undefined;
-    if (["talents"].indexOf(data_type) > -1) {
-      category_list = dps_ordered_keys
-        .map(element => {
-          let links = [];
-          for (let i = 0; i < element.length; i++) {
-            links.push(get_category_name(state, (i + 1).toString() + element[i], data));
-          }
-          return links.join("");
-        });
-    } else if (["tier_set", "talent_target-scaling"].indexOf(data_type) > -1) {
-      category_list = dps_ordered_keys
-        .map(element => {
-          return get_category_name(state, element, data);
-        });
-    } else {
-      category_list = dps_ordered_keys
-        .map(element => {
-          // correct names which use a specific different baseline
-          let shortened_name = element.indexOf("} ") > -1 ? element.slice(element.indexOf("} ") + 2, element.length) : element;
-          shortened_name = shortened_name.indexOf(" +") > -1 ? shortened_name.slice(0, shortened_name.indexOf(" +")) : shortened_name;
-          return get_category_name(state, shortened_name, data);
-        });
-    }
-
-    if (data_type === "power_infusion") {
-      // mark specs without PI support
-      category_list = category_list.map(element => {
-        if (Object.keys(spec_data).indexOf("profile_without_pi_support") > -1 && spec_data["profile_without_pi_support"].indexOf(element) > -1) {
-          return element + "*";
-        } else {
-          return element;
-        }
-      });
-    }
-
-    if (debug) {
-      console.log(category_list);
-    }
-
-    // rewrite the trinket names
-    if (chart_engine == "highcharts") {
-      chart.update({
-        xAxis: {
-          categories: category_list
-        }
-      }, false);
-    } else if (chart_engine == "highcharts_old") {
-      chart.xAxis[0].setCategories(category_list, false);
-    }
-
-
-    if (simulated_steps) {
-      let tmp_dps_values = {};
-      for (const name in data["data"]) {
-        if (data["data"].hasOwnProperty(name)) {
-          const information = data["data"][name];
-          tmp_dps_values[name] = {};
-
-          let previous_value = baseline_dps;
-          if (data_type === "conduits") {
-            previous_value = data["data"]["baseline"][data["covenant_mapping"][name]];
-          }
-
-          for (let i = simulated_steps.length - 1; i >= 0; i--) {
-            const step = simulated_steps[i];
-            let tmp_info = information.hasOwnProperty(state.covenant) ? information[state.covenant] : information;
-            if (Number.isInteger(tmp_info)) {
-              tmp_dps_values[name][step] = Math.max(tmp_info - previous_value, 0);
-              previous_value = tmp_dps_values[name][step] === 0 ? previous_value : tmp_info;
-            } else if (tmp_info.hasOwnProperty(step)) {
-              tmp_dps_values[name][step] = Math.max(tmp_info[step] - previous_value, 0);
-              previous_value = tmp_dps_values[name][step] === 0 ? previous_value : tmp_info[step];
-            } else {
-              tmp_dps_values[name][step] = 0;
-            }
-          }
-        }
-      }
-
-      if (debug) {
-        console.log("simulated_steps", simulated_steps);
-        console.log(tmp_dps_values);
-      }
-
-      for (const simulation_step of simulated_steps) {
-
-        let dps_array = [];
-
-        for (let i = 0; i < dps_ordered_keys.length; i++) {
-          const dps_key = dps_ordered_keys[i];
-          let styled_value = get_styled_value(state, tmp_dps_values[dps_key][simulation_step], baseline_dps);
-          dps_array.push(styled_value);
-        }
-
-        let simulation_step_clean = simulation_step;
-
-        chart.addSeries({
-          data: dps_array,
-          name: simulation_step_clean,
-        }, false);
-
-      }
-    } else if (["soulbind_nodes", "covenants"].includes(data_type)) {
-      var dps_array = [];
-
-      for (let i = 0; i < dps_ordered_keys.length; i++) {
-        let dps_key = dps_ordered_keys[i];
-
-        let dps_key_values = data["data"][dps_key] - baseline_dps;
-
-        dps_array.push(get_styled_value(state, dps_key_values, baseline_dps));
-      }
-
-      chart.addSeries({
-        data: dps_array,
-        name: "Data",
-        showInLegend: false
-      }, false);
-
-    } else if (["legendaries"].includes(data_type)) {
-      let dps_array = [];
-      let baseline_name = "{" + data["profile"]["character"]["covenant"] + "}";
-      let special_cases = {}
-      for (let special_case of Object.keys(other_baselines)) {
-        special_cases[special_case] = [];
-      }
-      special_cases[baseline_name] = [];
-
-      for (let dps_key of dps_ordered_keys) {
-        let tmp_baseline_dps = baseline_dps;
-
-        // special baseline profile
-        if (dps_key.indexOf("} ") > -1) {
-          let special_case_name = dps_key.slice(0, dps_key.indexOf("} ") + 1);
-          tmp_baseline_dps = other_baselines[special_case_name];
-          special_cases[special_case_name].push(get_styled_value(state, tmp_baseline_dps, baseline_dps));
-          for (let special_case of Object.keys(special_cases)) {
-            if (special_case !== special_case_name) {
-              special_cases[special_case].push(0);
-            }
-          }
-        } else {
-          for (let special_case of Object.keys(special_cases)) {
-            if (special_case !== baseline_name) {
-              special_cases[special_case].push(0);
-            }
-            else {
-              special_cases[special_case].push(get_styled_value(state, tmp_baseline_dps, tmp_baseline_dps));
-            }
-          }
-        }
-
-        let dps_key_values = data["data"][dps_key] - tmp_baseline_dps;
-        dps_array.push(get_styled_value(state, dps_key_values, tmp_baseline_dps));
-      }
-
-      chart.addSeries({
-        data: dps_array,
-        name: "Legendary effect",
-        showInLegend: true,
-        color: "#ff7d0a"
-      }, false);
-      let mapper = {
-        "night_fae": "Night Fae",
-        "necrolord": "Necrolord",
-        "venthyr": "Venthyr",
-        "kyrian": "Kyrian"
-      }
-      for (let special_case of Object.keys(special_cases)) {
-        chart.addSeries({
-          data: special_cases[special_case],
-          name: mapper[special_case.slice(1, special_case.length - 1)],
-          showInLegend: true,
-          color: covenants[mapper[special_case.slice(1, special_case.length - 1)]]["color"]
-        }, false);
-      }
-    } else if (["windfury_totem", "power_infusion", "trinket_compare"].includes(data_type)) {
-      let dps_array = [];
-      let sortedKeys = [];
-
-      let spec_color_map = {
-        "Blood Death Knight": "#c41f3b",
-        "Frost Death Knight": "#c41f3b",
-        "Unholy Death Knight": "#c41f3b",
-        "Havoc Demon Hunter": "#a330c9",
-        "Vengeance Demon Hunter": "#a330c9",
-        "Balance Druid": "#ff7d0a",
-        "Feral Druid": "#ff7d0a",
-        "Guardian Druid": "#ff7d0a",
-        "Devastation Evoker": "#33937F",
-        "Beast Mastery Hunter": "#abd473",
-        "Marksmanship Hunter": "#abd473",
-        "Survival Hunter": "#abd473",
-        "Arcane Mage": "#69ccf0",
-        "Fire Mage": "#69ccf0",
-        "Frost Mage": "#69ccf0",
-        "Brewmaster Monk": "#00ff96",
-        "Windwalker Monk": "#00ff96",
-        "Protection Paladin": "#f58cba",
-        "Retribution Paladin": "#f58cba",
-        "Shadow Priest": "#ffffff",
-        "Assassination Rogue": "#fff569",
-        "Outlaw Rogue": "#fff569",
-        "Subtlety Rogue": "#fff569",
-        "Elemental Shaman": "#0070de",
-        "Enhancement Shaman": "#0070de",
-        "Affliction Warlock": "#9482c9",
-        "Demonology Warlock": "#9482c9",
-        "Destruction Warlock": "#9482c9",
-        "Arms Warrior": "#c79c6e",
-        "Fury Warrior": "#c79c6e",
-        "Protection Warrior": "#c79c6e",
-      }
-
-      if (["trinket_compare"].includes(data_type)) {
-        let comparative_dps = {};
-        for (let dps_key of dps_ordered_keys) {
-          if (dps_key === "baseline") {
-            continue;
-          }
-          let tmp_baseline_dps = Object.values(data["data"]["baseline"][dps_key])[0];
-          let dps_key_values = data["data"][dps_key] - tmp_baseline_dps;
-          comparative_dps[dps_key] = {
-            "y": get_styled_value(state, dps_key_values, tmp_baseline_dps),
-            "color": spec_color_map[dps_key]
-          };
-        }
-
-        // Extract keys and sort them
-        sortedKeys = Object.keys(comparative_dps)
-          .sort((a, b) => comparative_dps[b].y - comparative_dps[a].y);
-
-        // Remove 'baseline' key if it exists
-        sortedKeys = sortedKeys.filter(key => key !== 'baseline');
-
-        for (let key of sortedKeys) {
-          dps_array.push(comparative_dps[key]);
-        }
-      } else {
-        for (let dps_key of dps_ordered_keys) {
-          let tmp_baseline_dps = data["data"]["{" + dps_key + "}"];
-          let dps_key_values = data["data"][dps_key] - tmp_baseline_dps;
-          dps_array.push({ "y": get_styled_value(state, dps_key_values, tmp_baseline_dps), "color": spec_color_map[dps_key] });
-        }
-      }
-
-      chart.addSeries({
-        data: dps_array,
-        name: snake_case_to_title(data_type),
-        showInLegend: false,
-      }, false);
-
-      if (["trinket_compare"].includes(data_type)) {
-        // Update the x-axis categories
-        if (chart_engine == "highcharts") {
-          chart.update({
-            xAxis: {
-              categories: sortedKeys
-            }
-          }, false);
-        } else if (chart_engine == "highcharts_old") {
-          chart.xAxis[0].setCategories(sortedKeys, false);
-        }
-      }
-    } else if (["domination_shards"].includes(data_type)) {
-      for (let shard_type of Object.keys(domination_shard_colours)) {
-
-        let dps_array = [];
-
-        for (let dps_key of dps_ordered_keys) {
-          let shard_name = dps_key;
-          let alternative_dps_baseline = baseline_dps;
-          if (dps_key.indexOf(" +") > -1) {
-            shard_name = dps_key.split(" +")[0];
-            alternative_dps_baseline = data["data"][shard_name];
-          }
-
-          if (data["shard_type"][shard_name] === shard_type) {
-
-            let dps_key_values = data["data"][dps_key] - alternative_dps_baseline;
-
-            dps_array.push(get_styled_value(state, dps_key_values, alternative_dps_baseline));
-          } else {
-            dps_array.push(get_styled_value(state, 0, alternative_dps_baseline));
-          }
-        }
-
-        chart.addSeries({
-          data: dps_array,
-          name: shard_type + (dps_ordered_keys[0].indexOf(" +") > -1 ? " set" : ""),
-          showInLegend: true,
-          color: domination_shard_colours[shard_type]
-        }, false);
-      }
-
-      if (dps_ordered_keys[0].indexOf(" +") > -1) {
-        let set_array = [];
-        for (let name of dps_ordered_keys) {
-          let shard_name = name.split(" +")[0];
-          let dps_key_values = data["data"][shard_name] - baseline_dps;
-
-          set_array.push(get_styled_value(state, dps_key_values, baseline_dps));
-        }
-
-        chart.addSeries({
-          data: set_array,
-          name: "shard",
-          showInLegend: true,
-          color: "#ff7d0a"
-        }, false);
-      }
-
-    } else if (["soulbinds"].includes(data_type)) {
-      for (const covenant of Object.keys(covenants).sort().reverse()) {
-        const covenant_id = covenants[covenant]["id"];
-
-        let dps_array = [];
-        for (const dps_key of dps_ordered_keys) {
-          let dps_key_values = 0;
-          if (data["covenant_mapping"][dps_key][0] === covenant_id) {
-            dps_key_values = Math.max(...Object.values(data["data"][dps_key]));
-          }
-
-          dps_array.push(dps_key_values);
-        }
-
-        chart.addSeries({
-          data: dps_array,
-          name: get_translated_name(covenant, data, state),
-          showInLegend: true,
-          color: covenants[covenant]["color"]
-        }, false);
-      }
-      chart.yAxis[0].options.title.text = absolute_damage_per_second;
-      chart.yAxis[1].options.title.text = absolute_damage_per_second;
-
-    } else { // race simulations
-      var dps_array = [];
-
-      for (let i = 0; i < dps_ordered_keys.length; i++) {
-        let dps_key = dps_ordered_keys[i];
-
-        let dps_key_values = data["data"][dps_key];
-
-        dps_array.push(dps_key_values);
-      }
-
-      chart.addSeries({
-        data: dps_array,
-        name: "DPS",
-        showInLegend: false
-      }, false);
-
-    }
-
-    // add new legend title
-    if (["trinkets"].indexOf(data_type) > -1) {
-      chart.legend.title.attr({ text: "Itemlevel" });
-    } else if (data_type === "races" || data_type === "domination_shards") {
-      chart.legend.title.attr({ text: "" });
-    }
-
-    if (chart_engine == "highcharts_old") {
-      chart.reflow();
-    }
-
-    html_element.style.height = 200 + dps_ordered_keys.length * 30 + "px";
-    if (chart_engine == "highcharts") {
-      chart.setSize(undefined, html_element.style.height);
-    }
-
-    // add wowdb tooltips, they don't check dynamically
-    if (state.tooltip_engine == "wowdb") {
-      setTimeout(() => {
-        readd_wowdb_tooltips(html_element.id);
-        chart.redraw();
-      }, 1);
-    } else if (state.tooltip_engine == "wowhead") {
-      setTimeout(() => {
-        window.$WowheadPower.refreshLinks();
-        setTimeout(() => {
-          chart.redraw();
-        }, 300);
-      }, 1);
-    } else {
-      setTimeout(() => {
-        chart.redraw();
-      }, 1);
-    }
   }
 
   function get_covenant_from_soulbind(soulbind, data) {
@@ -2958,18 +3020,6 @@ function bloodmallet_chart_import() {
     return name;
   }
 }
-
-async function updateTrinketChart(itemName, itemLevel, fightStyle) {
-
-  const cacheKey = `${fightStyle}-${itemName}-${itemLevel}`;
-  const chartData = trinketDataCache[cacheKey];
-
-  // Sort and filter the data as needed
-  // Pass the data to the chart rendering function
-  update_chart(state, html_element, chart, count);
-}
-
-window.updateTrinketChart = updateTrinketChart;
 
 // Load data on document load
 document.addEventListener("DOMContentLoaded", function () {
