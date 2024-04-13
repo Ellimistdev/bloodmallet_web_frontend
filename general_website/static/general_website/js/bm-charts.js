@@ -102,7 +102,8 @@ class BmChartData {
      */
     data = {};
     /**
-     * Name of the super-key to filter data to the relevant set for multi-char simulations
+     * Name of the super-key to filter data to the relevant set for multi-char simulations.
+     * Could also be called "profile".
      * e.g. "profile-name": {"My Trinket": {260: 12000, 270: 12500, 280: 13200}}
      *       ^^^^^^^^^^^^
      */
@@ -169,19 +170,58 @@ class BmChartData {
         "absolute": ""
     };
     x_axis_texts = {
-        "total": "damage per second",
+        "total": "total damage per second (character)",
         "relative": "% damage per second",
-        "absolute": "damage per second"
+        "absolute": "absolute damage per second"
     };
 
+    /**
+     * e.g. trinkets, secondary_distributions, races,...
+     */
+    data_type = "";
     wow_spec = "";
     wow_class = "";
     secondary_sum = -1;
+
+    data_type_defaults = {
+        "trinkets": {
+            "value_calculation": "relative"
+        }
+    };
+
+    /**
+     * list elements remove matching data
+     * e.g. "trinkets": {"itemlevels": [284]} will remove all itemlevel 284 
+     * trinket data from charts visualization
+     */
+    /**
+     * Remove listed itemlevels from trinket chart
+     * @type {Array<Number>}
+     */
+    filter_trinket_itemlevels = [];
+    /**
+     * Remove listed sources from trinket chart
+     * @type {Array<String>}
+     */
+    filter_trinket_sources = [];
+    /**
+     * Remove active trinkets if list contains "active". Remove passive 
+     * trinkets if list contains "passive". If both words are in the list no 
+     * trinkets will be shown.
+     * @type {Array<String>}
+     */
+    filter_trinket_active_passive = [];
+
+    /**
+     * Limits the chart to show only the top X elements
+     */
+    show_top = 5;
 
     enable_title = true;
     enable_subtitle = true;
     enable_simc_subtitle = true;
     enable_tooltips = true;
+    enable_end_of_bar_values = false;
 
     /**
      * Extract the value from `key_chain` of `loaded_data` and stores it in class as `property`.
@@ -213,6 +253,16 @@ class BmChartData {
     _extract_setting_from_root_element(property, key, converter = (v) => { return v }) {
         if (this.root_element.dataset.hasOwnProperty(key)) {
             this[property] = converter(this.root_element.dataset[key]);
+        }
+    }
+
+    /**
+     * Set `property` of BmChartData to to a data_type appropriate default, if present.
+     * @param {String} property a BmChartData property that might or might not be part of data_type_defaults
+     */
+    _set_default_from_data_type(property) {
+        if (this.data_type_defaults.hasOwnProperty(this.data_type) && this.data_type_defaults[this.data_type].hasOwnProperty(property)) {
+            this[property] = this.data_type_defaults[this.data_type][property];
         }
     }
 
@@ -287,6 +337,7 @@ class BmChartData {
 
         this.loaded_data = JSON.parse(this.root_element.dataset.loadedData);
 
+        this._extract_data_from_loaded_data("data_type", ["data_type"]);
         this._extract_data_from_loaded_data("element_id", ["element_id"]);
         this._extract_data_from_loaded_data("title", ["data_type"]);
         this._set_subtitle();
@@ -294,6 +345,7 @@ class BmChartData {
         this.legend_title = "Itemlevels";
         this._extract_data_from_loaded_data("legend_title", ["legend_title"]);
         this._extract_data_from_loaded_data("data", ["data"]);
+        this._set_default_from_data_type("value_calculation");
         this._extract_setting_from_root_element("value_calculation", "valueCalculation");
         this._extract_setting_from_root_element("selected_data_key", "selectedDataKey");
 
@@ -305,7 +357,6 @@ class BmChartData {
         this._extract_data_from_loaded_data("secondary_sum", ["secondary_sum"]);
 
         // optional
-        // TODO: Continue here to transform data extraction to use extract_data_from_loaded_data and extract_setting_from_root_element if appropriate
         this._extract_data_from_loaded_data("series_names", ["simulated_steps"]);
         if (this.series_names.length === 0) {
             for (let key_value_object of Object.values(this.data)) {
@@ -317,6 +368,7 @@ class BmChartData {
             }
         }
         this.series_names.sort();
+
         // optional
         this._extract_data_from_loaded_data("sorted_data_keys", ["sorted_data_keys"])
         if (this.sorted_data_keys.length === 0) {
@@ -352,11 +404,15 @@ class BmChartData {
             throw "base_value must be an empty object, have only one key, or the same length and keys as series_names.";
         }
 
-        // optional: language_dict
+        // optional
         this._extract_data_from_loaded_data("language_dict", ["translations"]);
         this._extract_data_from_loaded_data("item_id_dict", ["item_ids"]);
         this._extract_data_from_loaded_data("spell_id_dict", ["spell_ids"]);
         this._extract_data_from_loaded_data("language", ["language"]);
+        this._extract_setting_from_root_element("show_top", "showTop", this._convert_to_number);
+        this._extract_setting_from_root_element("filter_trinket_itemlevels", "filterTrinketItemlevels", this._convert_to_number_list);
+        this._extract_setting_from_root_element("filter_trinket_sources", "filterTrinketSources", this._convert_to_string_list);
+        this._extract_setting_from_root_element("filter_trinket_active_passive", "filterTrinketActivePassive", this._convert_to_string_list);
         this._extract_setting_from_root_element("enable_title", "enableTitle", this._convert_to_bool);
         this._extract_setting_from_root_element("enable_subtitle", "enableSubtitle", this._convert_to_bool);
         this._extract_setting_from_root_element("enable_simc_subtitle", "enableSimcSubtitle", this._convert_to_bool);
@@ -364,24 +420,32 @@ class BmChartData {
 
         this.global_max_value = Math.max(...Object.values(this.data).map(element => Math.max(...Object.values(element))));
         // delete this.data.baseline;
-
-        // this.create_chart();
-
-        // $(function () {
-        //     $('[data-toggle="tooltip"]').tooltip()
-        // })
-        // try {
-        //     $WowheadPower.refreshLinks();
-        // } catch (error) {
-        //     console.error("Error occured while trying to refresh WowheadPower links.");
-        //     console.error(error);
-        // }
-        // add_bm_tooltips_to_dom();
-        // bm_add_css(BmChartStyleId, BmChartStyleUrl);
     }
 
     _convert_to_bool(input) {
         return input.toLowerCase() === 'true'
+    }
+
+    /**
+     * 
+     * @param {String} input 
+     * @returns {Array<String>}
+     */
+    _convert_to_string_list(input) {
+        return input.split(";");
+    }
+
+    /**
+     * 
+     * @param {String} input 
+     * @returns {Array<Number>}
+     */
+    _convert_to_number_list(input) {
+        return input.split(";").map((value) => { return Number.parseInt(value); });
+    }
+
+    _convert_to_number(input) {
+        return Number.parseInt(input);
     }
 
     /**
@@ -402,7 +466,7 @@ class BmChartData {
 
     /**
      * Returns the relative gain of `changed_number` compared to `base_value`.
-     * E.g. changed_value=80, base_value=100 => -20
+     * E.g. changed_value=80, base_value=100 => -20 (%)
      * @param {Number} changed_value 
      * @param {Number} base_value 
      * @returns {Number}
@@ -412,11 +476,23 @@ class BmChartData {
         return relative_gain - 100.0;
     }
 
+    /**
+     * Calculate the absolute gain of `changed_value` compared to `base_value`.
+     * E.g. changed_value = 7 , base_value = 5 , result = 2
+     * @param {Number} changed_value 
+     * @param {Number} base_value 
+     * @returns {Number}
+     */
     get_absolute_gain(changed_value, base_value) {
         let value = changed_value - base_value;
         return value > 0 ? value : 0;
     }
 
+    /**
+     * Translate `key` using already loaded data.
+     * @param {String} key to be translated `key`
+     * @returns {String}
+     */
     get_translated_name(key) {
         if (key in this.language_dict && this.language in this.language_dict[key]) {
             return this.language_dict[key][this.language];
@@ -439,6 +515,11 @@ class BmChartData {
         return base;
     }
 
+    /**
+     * Get a wowhead link for `key`
+     * @param {String} key base (english) name
+     * @returns {HTMLElement} translated link with tooltip-information
+     */
     get_wowhead_link(key) {
         let translated_name = document.createTextNode(this.get_translated_name(key));
         let url = this._get_wowhead_url(key);
@@ -451,6 +532,13 @@ class BmChartData {
         return link;
     }
 
+    /**
+     * Get the dps value of `key` & `series` using `value_calculation`.
+     * @param {String} key key to find the data (dps) object
+     * @param {String} series key to find the actual dps value of the object
+     * @param {String} value_calculation enum like string to determine how the value should get calculated
+     * @returns {Number} dps value
+     */
     get_value(key, series, value_calculation) {
         if (value_calculation === "total") {
             return this.data[key][series];
@@ -462,7 +550,7 @@ class BmChartData {
     }
 
     /**
-     * 
+     * Add a bm-tooltip to `element` showing `tooltip` in `position`.
      * @param {HTMLElement} element element gets a tooltip
      * @param {String} tooltip tooltip string, can contain html as string
      * @param {String} position options: left, right, top, bottom
@@ -566,8 +654,64 @@ class BmBarChart {
         axis_titles.appendChild(bar_title);
         root.appendChild(axis_titles);
 
+        // filter out unwanted data
+        let effective_series_index_names = Array.from(this.bm_chart_data.series_names.entries()).filter(([index, series]) => {
+            // filter by itemlevels
+            return !this.bm_chart_data.filter_trinket_itemlevels.includes(series);
+        })
+
+        let effective_sorted_data_keys = this.bm_chart_data.sorted_data_keys.slice().filter((key) => {
+            // filter by data_source
+            return !this.bm_chart_data.filter_trinket_sources.includes(this.bm_chart_data.loaded_data["data_sources"][key]);
+        }).filter((value) => {
+            // filter by active part of active_passive
+            if (this.bm_chart_data.filter_trinket_active_passive.includes("active") || this.bm_chart_data.filter_trinket_active_passive.includes("Active")) {
+                return this.bm_chart_data.loaded_data["data_active"][value] === false;
+            }
+            return true;
+        }).filter((value) => {
+            // filter by passive part of active_passive
+            if (this.bm_chart_data.filter_trinket_active_passive.includes("passive") || this.bm_chart_data.filter_trinket_active_passive.includes("Passive")) {
+                return this.bm_chart_data.loaded_data["data_active"][value] === true;
+            }
+            return true;
+        }).filter((key) => {
+            // filter by no-remaining series
+            for (const tmp_series of Object.keys(this.bm_chart_data.data[key])) {
+                if (!this.bm_chart_data.filter_trinket_itemlevels.includes(
+                    Number.parseInt(tmp_series)
+                )) {
+                    return true;
+                }
+            }
+            return false;
+        }).sort((a, b) => {
+            let a_dps_object = structuredClone(this.bm_chart_data.data[a]);
+            for (let key of Object.keys(a_dps_object)) {
+                if (this.bm_chart_data.filter_trinket_itemlevels.includes(
+                    Number.parseInt(key)
+                )) {
+                    delete a_dps_object[Number.parseInt(key)];
+                }
+            }
+            let b_dps_object = structuredClone(this.bm_chart_data.data[b]);
+            for (let key of Object.keys(b_dps_object)) {
+                if (this.bm_chart_data.filter_trinket_itemlevels.includes(
+                    Number.parseInt(key)
+                )) {
+                    delete b_dps_object[Number.parseInt(key)];
+                }
+            };
+            let a_dps = Math.max(...Object.values(a_dps_object));
+            let b_dps = Math.max(...Object.values(b_dps_object));
+            return b_dps - a_dps;
+        });
+        if (this.bm_chart_data.show_top > 0) {
+            effective_sorted_data_keys = effective_sorted_data_keys.slice(0, this.bm_chart_data.show_top);
+        }
+
         // actual data / bars
-        for (let key of this.bm_chart_data.sorted_data_keys) {
+        for (let key of effective_sorted_data_keys) {
             let row = document.createElement("div");
             row.classList.add("bm-row");
             let key_div = document.createElement("div");
@@ -579,7 +723,7 @@ class BmBarChart {
             // add bar elements
             let steps = [];
             let previous_value = 0;
-            for (let [index, series] of this.bm_chart_data.series_names.entries()) {
+            for (let [index, series] of effective_series_index_names) {
                 if (!this.bm_chart_data.data[key].hasOwnProperty(series)) {
                     // data doesn't have series element, skipping
                     continue;
@@ -594,13 +738,36 @@ class BmBarChart {
                 }
                 let bar_part = document.createElement("div");
                 bar_part.classList.add("bm-bar-element", "bm-bar-group-" + (index + 1));
+
                 // add final stack value as readable text
-                if (index === this.bm_chart_data.series_names.length - 1) {
-                    let final_stack_value = document.createElement("span");
-                    final_stack_value.classList.add("bm-bar-final-value");
-                    final_stack_value.appendChild(document.createTextNode(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation)));
-                    bar_part.appendChild(final_stack_value);
+                if (this.bm_chart_data.enable_end_of_bar_values) {
+                    let key_available_series = Object.keys(this.bm_chart_data.data[key]);
+                    let filtered_available_series = key_available_series.filter((value) => {
+                        return !this.bm_chart_data.filter_trinket_itemlevels.includes(value);
+                    }).map((value) => {
+                        return Number.parseInt(value);
+                    });
+                    let highest_available_series_of_key = Math.max(...filtered_available_series);
+                    console.log(key_available_series, filtered_available_series, highest_available_series_of_key, series);
+                    if (series === highest_available_series_of_key) {
+                        let final_stack_value = document.createElement("span");
+                        final_stack_value.classList.add("bm-bar-final-value");
+                        final_stack_value.appendChild(
+                            document.createTextNode(
+                                this.bm_chart_data.convert_number_to_local(
+                                    this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation)
+                                )
+                            )
+                        );
+                        if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                            final_stack_value.appendChild(
+                                create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation])
+                            );
+                        }
+                        bar_part.appendChild(final_stack_value);
+                    }
                 }
+
                 bar.appendChild(bar_part);
                 // add more information for debugging
                 // bar_part.dataset.end = previous_value;
@@ -622,7 +789,7 @@ class BmBarChart {
             // bar.dataset.html = "true";
             // bar.title = this.create_tooltip(key);
             // bm-tooltips
-            this.bm_chart_data.add_tooltip(bar, this.create_tooltip(key), "left");
+            this.bm_chart_data.add_tooltip(bar, this.create_tooltip(key, effective_series_index_names), "left");
 
             row.appendChild(bar);
             root.appendChild(row);
@@ -637,7 +804,7 @@ class BmBarChart {
         legend.appendChild(legend_title);
         let legend_items = document.createElement("div");
         legend_items.classList.add("bm-legend-items");
-        for (let [index, series] of this.bm_chart_data.series_names.entries()) {
+        for (let [index, series] of effective_series_index_names) {
             let legend_series = document.createElement("div");
             legend_series.classList.add("bm-legend-item", "bm-bar-group-" + (index + 1));
             legend_series.appendChild(document.createTextNode(series));
@@ -649,7 +816,15 @@ class BmBarChart {
         root.appendChild(legend)
     }
 
-    create_tooltip(key) {
+    /**
+     * Create the string representation of a html structured tooltip.
+     * @param {String} key 
+     * @param {Array<[Number, String]>} index_series
+     * @returns {String}
+     */
+    create_tooltip(key, indexed_series) {
+        // use own local copy
+        indexed_series = indexed_series.slice();
         let container = document.createElement("div");
         container.classList.add("bm-tooltip-container");
 
@@ -659,20 +834,8 @@ class BmBarChart {
         title.appendChild(document.createTextNode(translated_name));
         container.appendChild(title);
 
-        let series_names = this.bm_chart_data.series_names.slice();
-        let bm_bar_group_classes = [];
-        for (let i = 1; i <= series_names.length; i++) {
-            bm_bar_group_classes.push("bm-bar-group-" + i);
-        }
-
-        let reverse = true;
-        if (reverse) {
-            series_names = series_names.reverse();
-            bm_bar_group_classes = bm_bar_group_classes.reverse();
-        }
-
         // inverse sort to have the table start with the highest value
-        for (let [index, series] of series_names.entries()) {
+        for (let [index, series] of indexed_series.reverse()) {
             if (!this.bm_chart_data.data[key].hasOwnProperty(series)) {
                 // data doesn't have series element, skipping
                 continue;
@@ -681,8 +844,7 @@ class BmBarChart {
             row.classList.add("bm-tooltip-row");
 
             let key_div = document.createElement("div");
-            // TODO: Index for colour is wrong because the series was inverted
-            key_div.classList.add("bm-tooltip-key", bm_bar_group_classes[index]);
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-" + (index + 1));
             key_div.appendChild(document.createTextNode(series));
             row.appendChild(key_div);
 
@@ -1088,4 +1250,14 @@ class BmRadarChart {
 
         return svg;
     }
+}
+
+function import_charts() {
+    // find bloodmallet_chart class elements
+    // if chart_id -> load id
+    // elif class & spec [& chart type] [& fight style] -> load general data
+    // store loaded data in html element
+    // create BmChartData from element
+    // get chart type from loaded data
+    // create Chart based on chart type 
 }
