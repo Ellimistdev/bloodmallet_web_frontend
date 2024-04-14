@@ -384,8 +384,13 @@ class BmChartData {
         if (this.series_names.length === 0) {
             for (let key_value_object of Object.values(this.data)) {
                 for (let series of Object.keys(key_value_object)) {
-                    if (this.series_names.indexOf(Number.parseInt(series)) === -1) {
-                        this.series_names.push(Number.parseInt(series));
+                    let parsed_int = Number.parseInt(series);
+                    if (this.series_names.indexOf(parsed_int) === -1 && parsed_int.toString() === series) {
+                        // series are numbers, e.g. itemlevels or ranks
+                        this.series_names.push(parsed_int);
+                    } else if (this.series_names.indexOf(series) === -1 && parsed_int.toString() !== series) {
+                        // series are words, e.g. like 10_10_10_70 from secondary distribution charts
+                        this.series_names.push(series);
                     }
                 }
             }
