@@ -186,6 +186,18 @@ class BmChartData {
     data_type_defaults = {
         "trinkets": {
             "value_calculation": "relative"
+        },
+        "phials": {
+            "value_calculation": "relative"
+        },
+        "potions": {
+            "value_calculation": "relative"
+        },
+        // "talent_target_scaling": {
+        //     "value_calculation": "total"
+        // }
+        "weapon_enchantments": {
+            "value_calculation": "relative"
         }
     };
 
@@ -343,7 +355,17 @@ class BmChartData {
         this._extract_data_from_loaded_data("title", ["data_type"]);
         this._set_subtitle();
         this._extract_data_from_loaded_data("simc_hash", ["metadata", "SimulationCraft"]);
-        this.legend_title = "Itemlevels";
+        if (this.data_type === "races") {
+            this.legend_title = "Race";
+        } else if (this.data_type === "trinkets") {
+            this.legend_title = "Itemlevels";
+        } else if (["phials", "potions", "weapon_enchantments"].includes(this.data_type)) {
+            this.legend_title = "Ranks";
+        } else if (this.data_type === "talent_target_scaling") {
+            this.legend_title = "Targets";
+        } else {
+            this.legend_title = "legend_title not set";
+        }
         this._extract_data_from_loaded_data("legend_title", ["legend_title"]);
         this._extract_data_from_loaded_data("data", ["data"]);
         this._set_default_from_data_type("value_calculation");
@@ -362,13 +384,13 @@ class BmChartData {
         if (this.series_names.length === 0) {
             for (let key_value_object of Object.values(this.data)) {
                 for (let series of Object.keys(key_value_object)) {
-                    if (this.series_names.indexOf(series) === -1) {
-                        this.series_names.push(series);
+                    if (this.series_names.indexOf(Number.parseInt(series)) === -1) {
+                        this.series_names.push(Number.parseInt(series));
                     }
                 }
             }
         }
-        this.series_names.sort();
+        this.series_names.sort((a, b) => a - b);
 
         // optional
         this._extract_data_from_loaded_data("sorted_data_keys", ["sorted_data_keys"])
@@ -386,7 +408,7 @@ class BmChartData {
         // extend if number of keys === 1 and number of series_names > 1
         this._extract_data_from_loaded_data("base_values", ["data", "baseline"]);
         if (Object.keys(this.base_values).length === 0) {
-            console.log("No base_values found");
+            // console.log("No base_values found");
             for (let series of this.series_names) {
                 // we assume 0 dps to be the baseline
                 this.base_values[series] = 0;
@@ -402,7 +424,7 @@ class BmChartData {
             // console.log("as many base_values found as series_names");
             // do nothing
         } else {
-            throw "base_value must be an empty object, have only one key, or the same length and keys as series_names.";
+            throw "base_value must be an empty object, have only one key, or the same length and keys as series_names." + this.data_type;
         }
 
         // optional
@@ -420,7 +442,11 @@ class BmChartData {
         this._extract_setting_from_root_element("enable_tooltips", "enableTooltips", this._convert_to_bool);
         this._extract_setting_from_root_element("enable_legend", "enableLegend", this._convert_to_bool);
 
-        this.global_max_value = Math.max(...Object.values(this.data).map(element => Math.max(...Object.values(element))));
+        if (this.data_type === "races") {
+            this.global_max_value = Math.max(...Object.values(this.data));
+        } else {
+            this.global_max_value = Math.max(...Object.values(this.data).map(element => Math.max(...Object.values(element))));
+        }
         // delete this.data.baseline;
     }
 
@@ -660,30 +686,40 @@ class BmBarChart {
         })
 
         let effective_sorted_data_keys = this.bm_chart_data.sorted_data_keys.slice().filter((key) => {
+            // remove "baseline"
+            return key !== "baseline";
+        }).filter((key) => {
             // filter by data_source
-            return !this.bm_chart_data.filter_trinket_sources.includes(this.bm_chart_data.loaded_data["data_sources"][key]);
+            if (this.bm_chart_data.loaded_data.hasOwnProperty("data_sources")) {
+                return !this.bm_chart_data.filter_trinket_sources.includes(this.bm_chart_data.loaded_data["data_sources"][key])
+            }
+            return true;
         }).filter((value) => {
             // filter by active part of active_passive
-            if (this.bm_chart_data.filter_trinket_active_passive.includes("active") || this.bm_chart_data.filter_trinket_active_passive.includes("Active")) {
+            if (this.bm_chart_data.data_type === "races" && (this.bm_chart_data.filter_trinket_active_passive.includes("active") || this.bm_chart_data.filter_trinket_active_passive.includes("Active"))) {
                 return this.bm_chart_data.loaded_data["data_active"][value] === false;
             }
             return true;
         }).filter((value) => {
             // filter by passive part of active_passive
-            if (this.bm_chart_data.filter_trinket_active_passive.includes("passive") || this.bm_chart_data.filter_trinket_active_passive.includes("Passive")) {
+            if (this.bm_chart_data.data_type === "races" && (this.bm_chart_data.filter_trinket_active_passive.includes("passive") || this.bm_chart_data.filter_trinket_active_passive.includes("Passive"))) {
                 return this.bm_chart_data.loaded_data["data_active"][value] === true;
             }
             return true;
         }).filter((key) => {
             // filter by no-remaining series
-            for (const tmp_series of Object.keys(this.bm_chart_data.data[key])) {
-                if (!this.bm_chart_data.filter_trinket_itemlevels.includes(
-                    Number.parseInt(tmp_series)
-                )) {
-                    return true;
+            if (this.bm_chart_data.data_type === "trinkets") {
+                for (const tmp_series of Object.keys(this.bm_chart_data.data[key])) {
+                    if (!this.bm_chart_data.filter_trinket_itemlevels.includes(
+                        Number.parseInt(tmp_series)
+                    )) {
+                        return true;
+                    }
                 }
+                return false;
+            } else {
+                return true;
             }
-            return false;
         }).sort((a, b) => {
             let a_dps_object = structuredClone(this.bm_chart_data.data[a]);
             for (let key of Object.keys(a_dps_object)) {
@@ -789,6 +825,23 @@ class BmBarChart {
             // add bar elements
             let steps = [];
             let previous_value = 0;
+            // chart types without multiple series
+            if (this.bm_chart_data.data_type === "races") {
+                // absolute calc
+                let relative_value = (this.bm_chart_data.data[key]) * 100 / (this.bm_chart_data.global_max_value);
+                if (relative_value - previous_value >= 0.0) {
+                    steps.push(relative_value - previous_value);
+                    previous_value = relative_value;
+                } else {
+                    steps.push(0);
+                }
+                let bar_part = document.createElement("div");
+                bar_part.classList.add("bm-bar-element", "bm-bar-group-1");
+                bar.appendChild(bar_part);
+                bar_part.addEventListener("click", (ev) => {
+                    this.create_vertical_line(ev);
+                });
+            }
             for (let [index, series] of effective_series_index_names) {
                 if (!this.bm_chart_data.data[key].hasOwnProperty(series)) {
                     // data doesn't have series element, skipping
@@ -906,6 +959,29 @@ class BmBarChart {
 
             container.appendChild(row);
         }
+        // chart types without multiple series
+        if (this.bm_chart_data.data_type === "races") {
+            let row = document.createElement("div");
+            row.classList.add("bm-tooltip-row");
+
+            let key_div = document.createElement("div");
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
+            key_div.appendChild(document.createTextNode(key));
+            row.appendChild(key_div);
+
+            let value_div = document.createElement("div");
+            value_div.classList.add("bm-tooltip-value");
+            let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.data[key]);
+            // let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
+            value_div.appendChild(document.createTextNode(value));
+            if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+            }
+            row.appendChild(value_div);
+
+            container.appendChild(row);
+        }
+
 
         let legend = document.createElement("div");
         legend.classList.add("bm-tooltip-row");
