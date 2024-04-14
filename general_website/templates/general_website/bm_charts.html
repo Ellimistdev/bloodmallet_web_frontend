@@ -6,19 +6,53 @@
 {% block content %}
 
 <h1>Work in Progress</h1>
-<p>Missing information radar charts:</p>
+<p>Missing in general:</p>
 <ul>
-    <li>let me know</li>
+    <li>a replacement for "talent targets scaling", see <a
+            href="https://bloodmallet.com/chart/shaman/elemental/talent_target_scaling/castingpatchwerk">elemental
+            shaman</a></li>
+    <li>importing data</li>
+    <li>determining chart type based on loaded data</li>
+    <li>generating the appropriate chart</li>
+    <li>wowhead alternative tooltips</li>
 </ul>
 
-<div id="radar_chart"></div>
+<p>TODOs radar charts:</p>
+<ul>
+    <li>data (profile) selection</li>
+    <li>enlargen central diagram</li>
+    <li>maxima tooltips should include ratio</li>
+</ul>
+
+<!-- <div id="radar_chart"></div> -->
 <br />
 <hr />
-<p>Missing information bar charts:</p>
+<p>TODOs bar charts:</p>
 <ul>
-    <li>let me know</li>
+    <li>augmentation evoker baseline dps switch</li>
+    <li>bar-color review (gray is bad)</li>
+    <li>legend on top</li>
+    <li>long name abbreviations</li>
 </ul>
-<div id="chart_target"></div>
+<!-- <div id="chart_target" data-filter-trinket-itemlevels="" data-filter-trinket-sources=""
+    data-filter-trinket-active-passive="" data-show-top="-1"></div> -->
+
+<div style="height: 40vh;"></div>
+
+<p>chart id</p>
+<div class="bloodmallet_chart" data-chart-id="???">Loading...</div>
+
+<p>minimal ele</p>
+<div class="bloodmallet_chart" data-wow-class="shaman" data-wow-spec="elemental">Loading...</div>
+
+<p>maximum ele</p>
+<div class="bloodmallet_chart" data-wow-class="shaman" data-wow-spec="elemental" data-type="trinkets"
+    data-fight-style="castingpatchwerk" data-talent-target-scaling-min-target-count="1"
+    data-talent-target-scaling-max-target-count="15" data-show-top="7" data-value-calculation="absolute"
+    data-language="en_US" data-filter-trinket-itemlevels="" data-filter-trinket-sources=""
+    data-filter-trinket-active-passive="">Loading...
+</div>
+<!-- data-tooltip-engine="wowhead" -->
 
 {% endblock %}
 
@@ -32,109 +66,7 @@
 <script src="{% static 'general_website/js/bm-charts.js' %}"></script>
 
 <script>
-    let url = "https://bloodmallet.com/chart/get/trinkets/castingpatchwerk/shaman/elemental";
-    let request = new XMLHttpRequest();
-    request.open("GET", url, true); // async request
-
-    request.onload = function (e) {
-        if (request.readyState === 4) {
-            if (request.status === 200) {
-                let data = JSON.parse(request.responseText);
-
-                let el = document.getElementById("chart_target");
-                el.dataset.loadedData = request.responseText;
-                let data_element = new BmChartData(el);
-                console.log(el);
-                console.log(data);
-                console.log(data_element);
-
-                // Trinkets
-                // let title = data["data_type"];
-                // // "Fire Mage | Castingpatchwerk | UTC 2022-08-08 13:28"
-                // let subtitle = data["profile"]["character"]["spec"] + " " + data["profile"]["character"]["class"];
-                // subtitle += " | " + data["simc_settings"]["fight_style"];
-                // subtitle += " | UTC " + data["metadata"]["timestamp"];
-                // let { baseline: _, ...sim_data } = data["data"];
-                // let base_data = data["data"]["baseline"];
-                // let item_id_dict = data["item_ids"];
-
-                // new BmBarChart({
-                //     element_id: "chart_target",
-                //     title: title,
-                //     subtitle: subtitle,
-                //     legend_title: "Itemlevels",
-                //     data: sim_data,
-                //     base_values: base_data,
-                //     value_calculation: "relative",
-                //     item_id_dict: item_id_dict
-                // });
-                new BmBarChart(data_element);
-            } else {
-                console.error(request.statusText);
-            }
-        }
-    };
-    request.onerror = function (e) {
-        console.error('Fetching data from bloodmallet.com encountered an error, ', e);
-    };
-    request.send(null);
-
-
-    url = "https://bloodmallet.com/chart/get/secondary_distributions/castingpatchwerk/shaman/elemental";
-    let request2 = new XMLHttpRequest();
-    request2.open("GET", url, true); // async request
-
-    request2.onload = function (e) {
-        if (request2.readyState === 4) {
-            if (request2.status === 200) {
-                let data = JSON.parse(request2.responseText);
-                let el = document.getElementById("radar_chart");
-                el.dataset.loadedData = request2.responseText;
-                let data_element = new BmChartData(el);
-                // console.log(el);
-                // console.log(data);
-                // console.log(data_element);
-
-                // console.log(data);
-
-                // Trinkets
-                // let title = data["data_type"];
-                // // "Fire Mage | Castingpatchwerk | UTC 2022-08-08 13:28"
-                // let subtitle = data["profile"]["character"]["spec"] + " " + data["profile"]["character"]["class"];
-                // subtitle += " | " + data["simc_settings"]["fight_style"];
-                // subtitle += " | UTC " + data["metadata"]["timestamp"];
-                // let { baseline: _, ...sim_data } = data["data"];
-                // let base_data = data["data"]["baseline"];
-                // let item_id_dict = data["item_ids"];
-                // let sorted_data_data_keys = data["sorted_data_keys"];
-                // let secondary_sum = data["secondary_sum"];
-                // let wow_class = data["profile"]["character"]["class"];
-                // let wow_spec = data["profile"]["character"]["spec"];
-
-                // new BmRadarChart({
-                //     element_id: "radar_chart",
-                //     title: title,
-                //     subtitle: subtitle,
-                //     legend_title: "Itemlevels",
-                //     data: sim_data,
-                //     base_values: base_data,
-                //     value_calculation: "relative",
-                //     item_id_dict: item_id_dict,
-                //     sorted_data_data_keys: sorted_data_data_keys,
-                //     secondary_sum: secondary_sum,
-                //     wow_class: wow_class,
-                //     wow_spec: wow_spec
-                // });
-                new BmRadarChart(data_element);
-            } else {
-                console.error(request2.statusText);
-            }
-        }
-    };
-    request2.onerror = function (e) {
-        console.error('Fetching data from bloodmallet.com encountered an error, ', e);
-    };
-    request2.send(null);
+    bm_import_charts();
 </script>
 
 {% endblock %}
