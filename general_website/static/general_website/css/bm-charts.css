@@ -165,7 +165,7 @@
 .bm-bar-element {
     border: 1px solid #fff;
     border-left-width: 0px;
-    overflow: hidden;
+    /* overflow: hidden; */
     white-space: nowrap;
     text-overflow: ellipsis;
     height: 70%;
