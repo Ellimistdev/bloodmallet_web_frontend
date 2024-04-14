@@ -547,7 +547,18 @@ class BmChartData {
         } else if (value_calculation === "absolute") {
             return this.get_absolute_gain(this.data[key][series], this.base_values[series]);
         } else if (value_calculation === "relative") {
-            return this.get_relative_gain(this.data[key][series], this.base_values[series]);
+            // special case for augmentatione vokers to compare the gain to 
+            // their own base dps without the group dps
+            let relative_gain = -1;
+            if (this.wow_class === "evoker" && this.wow_spec === "augmentation") {
+                let aug_base_value = this.loaded_data["profile"]["metadata"]["base_dps"];
+                let raw_gain = this.get_absolute_gain(this.data[key][series], this.base_values[series]);
+                // console.log("augmentation had a raw gain of", raw_gain, "dps compared to its own max dps of", aug_base_value);
+                relative_gain = this.get_relative_gain(aug_base_value + raw_gain, aug_base_value);
+            } else {
+                relative_gain = this.get_relative_gain(this.data[key][series], this.base_values[series]);
+            }
+            return relative_gain;
         }
     }
 
@@ -713,9 +724,10 @@ class BmBarChart {
         key_title.classList.add("bm-key-title");
         // key_title.appendChild(document.createTextNode(this.y_axis_title));
         axis_titles.appendChild(key_title);
+        // axis title
         let bar_title = document.createElement("div");
         bar_title.classList.add("bm-bar-title");
-        // bar start
+        // min value
         if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
             let min = document.createElement("span");
             min.classList.add("bm-bar-min")
@@ -733,7 +745,7 @@ class BmBarChart {
             bar_title.appendChild(min);
         }
         bar_title.appendChild(document.createTextNode(this.bm_chart_data.x_axis_title));
-        // bar end
+        // max value
         if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
             let max = document.createElement("span");
             max.classList.add("bm-bar-max")
@@ -745,7 +757,17 @@ class BmBarChart {
                 max.appendChild(unit);
                 max.appendChild(document.createTextNode(this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value)));
             } else if (this.bm_chart_data.value_calculation === "relative") {
-                max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_relative_gain(this.bm_chart_data.global_max_value, base_value))));
+                let relative_gain = -1;
+                if (this.bm_chart_data.wow_class === "evoker" && this.bm_chart_data.wow_spec === "augmentation") {
+                    let aug_base_value = this.bm_chart_data.loaded_data["profile"]["metadata"]["base_dps"];
+                    let raw_gain = this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value);
+                    // console.log("augmentation had a raw gain of", raw_gain, "dps compared to its own max dps of", aug_base_value);
+                    relative_gain = this.bm_chart_data.get_relative_gain(aug_base_value + raw_gain, aug_base_value);
+                } else {
+                    relative_gain = this.bm_chart_data.get_relative_gain(this.bm_chart_data.global_max_value, base_value);
+                }
+
+                max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(relative_gain)));
                 max.appendChild(unit);
             }
 
@@ -1314,13 +1336,17 @@ function bm_import_charts() {
             // console.log(e);
             if (request.readyState === 4) {
                 if (request.status === 200) {
+                    // store loaded data in html element
                     chart_anchor.dataset.loadedData = request.responseText;
                     // console.log("Added data to ", chart_anchor, "from request", request_endpoint);
 
+                    // create BmChartData from element
                     let bm_data = new BmChartData(chart_anchor);
                     // console.log(bm_data.data_type);
+                    // get chart type from loaded data
                     let chart = BmBarChart;
                     if (bm_data.data_type === "secondary_distributions") {
+                        // create Chart based on chart type 
                         chart = BmRadarChart;
                     }
 
@@ -1339,8 +1365,4 @@ function bm_import_charts() {
         };
         request.send(null);
     }
-    // store loaded data in html element
-    // create BmChartData from element
-    // get chart type from loaded data
-    // create Chart based on chart type 
 }
