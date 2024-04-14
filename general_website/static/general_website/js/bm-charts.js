@@ -167,7 +167,7 @@ class BmChartData {
     unit = {
         "total": "",
         "relative": "%",
-        "absolute": ""
+        "absolute": "Δ"
     };
     x_axis_texts = {
         "total": "total damage per second (character)",
@@ -769,10 +769,9 @@ class BmBarChart {
         let bar_title = document.createElement("div");
         bar_title.classList.add("bm-bar-title");
         // min value
+        let min = document.createElement("span");
+        min.classList.add("bm-bar-min")
         if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
-            let min = document.createElement("span");
-            min.classList.add("bm-bar-min")
-
             let unit = create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
 
             if (this.bm_chart_data.value_calculation === "absolute") {
@@ -782,21 +781,21 @@ class BmBarChart {
                 min.appendChild(document.createTextNode(0));
                 min.appendChild(unit);
             }
-
-            bar_title.appendChild(min);
+        } else {
+            min.appendChild(document.createTextNode(0));
         }
+        bar_title.appendChild(min);
         bar_title.appendChild(document.createTextNode(this.bm_chart_data.x_axis_title));
         // max value
+        let max = document.createElement("span");
+        max.classList.add("bm-bar-max")
         if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
-            let max = document.createElement("span");
-            max.classList.add("bm-bar-max")
-
             let unit = create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
 
             let base_value = this.bm_chart_data.base_values[this.bm_chart_data.series_names[this.bm_chart_data.series_names.length - 1]];
             if (this.bm_chart_data.value_calculation === "absolute") {
                 max.appendChild(unit);
-                max.appendChild(document.createTextNode(this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value)));
+                max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value))));
             } else if (this.bm_chart_data.value_calculation === "relative") {
                 let relative_gain = -1;
                 if (this.bm_chart_data.wow_class === "evoker" && this.bm_chart_data.wow_spec === "augmentation") {
@@ -811,9 +810,10 @@ class BmBarChart {
                 max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(relative_gain)));
                 max.appendChild(unit);
             }
-
-            bar_title.appendChild(max);
+        } else {
+            max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.global_max_value, 0)));
         }
+        bar_title.appendChild(max);
         axis_titles.appendChild(bar_title);
         root.appendChild(axis_titles);
 
@@ -956,8 +956,11 @@ class BmBarChart {
             let value_div = document.createElement("div");
             value_div.classList.add("bm-tooltip-value");
             let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
+            if (this.bm_chart_data.value_calculation === "absolute" && this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+            }
             value_div.appendChild(document.createTextNode(value));
-            if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+            if (this.bm_chart_data.value_calculation === "relative" && this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
                 value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
             }
             row.appendChild(value_div);
