@@ -549,19 +549,59 @@ class BmChartData {
     }
 
     /**
+     * Shorten name but keeping special name addition.
+     * @param {String} name 
+     * @returns {String}
+     */
+    _shorten_name(name) {
+        if (name.length < 20) {
+            return name;
+        }
+        // might need to remove this
+        if (!name.includes("[")) {
+            return name;
+        }
+        let to_be_shortened = name.split("[")[0];
+        to_be_shortened = to_be_shortened.trim();
+        let specifier = name.split("[")[1];
+        specifier = specifier.split("]")[0];
+        let name_sections = to_be_shortened.split(":");
+        let name_section_parts = [];
+        for (const name_section of name_sections) {
+            name_section_parts.push(name_section.trim().split(" ").map((part) => part[0]));
+        }
+
+        let new_name = "";
+        // console.log(name_section_parts);
+        for (const characters of name_section_parts) {
+            // console.log(characters);
+            if (new_name !== "") {
+                new_name += ":";
+            }
+            new_name += characters.join("");
+        }
+        new_name += " [" + specifier + "]";
+
+        return new_name
+    }
+
+    /**
      * Get a wowhead link for `key`
      * @param {String} key base (english) name
      * @returns {HTMLElement} translated link with tooltip-information
      */
     get_wowhead_link(key) {
-        let translated_name = document.createTextNode(this.get_translated_name(key));
+        let translated_name = this.get_translated_name(key);
+        translated_name = this._shorten_name(translated_name);
+
+        let translated_name_node = document.createTextNode(translated_name);
         let url = this._get_wowhead_url(key);
         if (url === undefined) {
-            return translated_name;
+            return translated_name_node;
         }
         let link = document.createElement("a");
         link.href = url;
-        link.appendChild(translated_name);
+        link.appendChild(translated_name_node);
         return link;
     }
 
@@ -936,6 +976,7 @@ class BmBarChart {
         let title = document.createElement("div");
         title.classList.add("bm-tooltip-title");
         let translated_name = this.bm_chart_data.get_translated_name(key);
+        // translated_name = this._shorten_name(translated_name);
         title.appendChild(document.createTextNode(translated_name));
         container.appendChild(title);
 
