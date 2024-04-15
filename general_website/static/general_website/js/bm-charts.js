@@ -436,7 +436,7 @@ class BmChartData {
         this._extract_data_from_loaded_data("language_dict", ["translations"]);
         this._extract_data_from_loaded_data("item_id_dict", ["item_ids"]);
         this._extract_data_from_loaded_data("spell_id_dict", ["spell_ids"]);
-        this._extract_data_from_loaded_data("language", ["language"]);
+        this._extract_setting_from_root_element("language", "language");
         this._extract_setting_from_root_element("show_top", "showTop", this._convert_to_number);
         this._extract_setting_from_root_element("filter_trinket_itemlevels", "filterTrinketItemlevels", this._convert_to_number_list);
         this._extract_setting_from_root_element("filter_trinket_sources", "filterTrinketSources", this._convert_to_string_list);
@@ -535,7 +535,18 @@ class BmChartData {
     }
 
     _get_wowhead_url(key) {
-        let base = "https://www.wowhead.com/";
+        const subdomain = {
+            "en_US": "www",
+            "cn_CN": "cn",
+            "de_DE": "de",
+            "es_ES": "es",
+            "fr_FR": "fr",
+            "it_IT": "it",
+            "ko_KR": "ko",
+            "pt_BR": "pt",
+            "ru_RU": "ru"
+        };
+        let base = "https://" + subdomain[this.language] + ".wowhead.com/";
         if (key in this.spell_id_dict) {
             base += "spell=";
             base += this.spell_id_dict[key];
