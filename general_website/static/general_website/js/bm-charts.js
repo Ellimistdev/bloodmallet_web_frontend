@@ -1363,6 +1363,7 @@ class BmRadarChart {
         svg.style.minWidth = "45px";
         // svg.style.maxWidth = "100px";
         svg.style.maxWidth = "365px";
+        svg.style.margin = "auto";
         svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
 
         // background
