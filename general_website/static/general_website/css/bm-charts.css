@@ -15,7 +15,7 @@
 .bm-bar-chart {
     display: grid;
     grid-template-columns: auto;
-    row-gap: var(--bm-bar-chart-internal-standard-size);
+    /* row-gap: var(--bm-bar-chart-internal-standard-size); */
 }
 
 .bm-title {
@@ -23,6 +23,7 @@
     font-weight: 500;
     line-height: 1.2;
     text-align: center;
+    margin-bottom: var(--bm-bar-chart-internal-standard-size);
 }
 
 .bm-subtitle {
@@ -31,6 +32,11 @@
     /* margin-bottom: var(--bm-bar-chart-internal-standard-size); */
     margin-top: calc(-1 * var(--bm-bar-chart-internal-standard-size));
     font-size: 90%;
+    margin-bottom: var(--bm-bar-chart-internal-standard-size);
+}
+
+.bm-axis {
+    margin-bottom: var(--bm-bar-chart-internal-standard-size) !important;
 }
 
 .bm-row,
@@ -39,6 +45,7 @@
     grid-template-columns: minmax(200px, 30%) auto;
     grid-template-areas: "name bar";
     column-gap: var(--bm-bar-chart-internal-column-gap);
+    margin-bottom: calc(var(--bm-bar-chart-internal-standard-size) / 2);
 }
 
 .bm-legend {
@@ -168,7 +175,7 @@
     /* overflow: hidden; */
     white-space: nowrap;
     text-overflow: ellipsis;
-    height: 70%;
+    height: 60%;
     max-height: 20px;
     position: relative;
     top: 50%;

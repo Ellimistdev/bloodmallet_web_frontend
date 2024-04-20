@@ -344,7 +344,7 @@ class BmChartData {
          */
         this.root_element = root_element;
 
-        if (!this.root_element.dataset.hasOwnProperty("loadedData")) {
+        if (!this.root_element.dataset.hasOwnProperty("loadedData") || (this.root_element.dataset.hasOwnProperty("loadedData") && this.root_element.dataset.loadedData === "")) {
             throw new Error("Data musst be loaded in Element before attempting to create the associated chart.");
         }
 
@@ -811,7 +811,7 @@ class BmBarChart {
 
         // axis titles
         let axis_titles = document.createElement("div");
-        axis_titles.classList.add("bm-row");
+        axis_titles.classList.add("bm-axis", "bm-row");
         let key_title = document.createElement("div");
         key_title.classList.add("bm-key-title");
         // key_title.appendChild(document.createTextNode(this.y_axis_title));
@@ -1481,7 +1481,7 @@ function bm_import_charts() {
             // console.log("Identified chart_import for standard", chart_type, "chart of fight_style", fight_style, "for", wow_spec, wow_class);
             request_endpoint = [endpoint, chart_type, fight_style, wow_class, wow_spec].join("/");
         }
-        // console.log(request_endpoint);
+        // console.log("bloodmallet.com: loading chart from", request_endpoint);
 
         let request = new XMLHttpRequest();
         request.open("GET", request_endpoint, true); // async request
@@ -1514,8 +1514,13 @@ function bm_import_charts() {
             }
         };
         request.onerror = function (e) {
-            console.error("Fetching data from bloodmallet.com encountered an error:", e);
+            console.error("Fetching data from '" + request_endpoint + "' encountered an error:", e);
         };
         request.send(null);
     }
 }
+
+// Load data on document load
+document.addEventListener("DOMContentLoaded", function () {
+    bm_import_charts();
+});
