@@ -1152,10 +1152,10 @@ class BmRadarChart {
 
         table.appendChild(this.create_distribution_table(v_crit, v_haste, v_mastery, v_vers, dps));
 
-        table.appendChild(this.create_radar_chart(v_crit, v_haste, v_mastery, v_vers, dps, true, false, size));
+        table.appendChild(this.create_main_radar(v_crit, v_haste, v_mastery, v_vers, dps, size));
 
         let stacked_overview_table = document.createElement("div");
-        stacked_overview_table.style.display = "table";
+        // stacked_overview_table.style.display = "table";
         stacked_overview_table.appendChild(this.create_mini_radar_row(v_crit, v_haste, v_mastery, v_vers, dps, size, zoom, 0));
         stacked_overview_table.appendChild(this.create_mini_radar_row(70, 10, 10, 10, dps, size, zoom));
         stacked_overview_table.appendChild(this.create_mini_radar_row(10, 70, 10, 10, dps, size, zoom));
@@ -1184,10 +1184,14 @@ class BmRadarChart {
         let table = document.createElement("div");
         table.classList.add("bm-stat-table");
 
+        let floater = document.createElement("div");
+        floater.classList.add("bm-stat-floater");
+        table.appendChild(floater);
+
         // header
         let header = document.createElement("div");
         header.classList.add("bm-stat-header");
-        table.appendChild(header);
+        floater.appendChild(header);
 
         // let stat = document.createElement("div");
         // stat.classList.add("bm-stat-cell");
@@ -1264,10 +1268,10 @@ class BmRadarChart {
             return value
         }
 
-        table.appendChild(add_row("Critical Strike", crit, get_rating(crit, this.bm_chart_data.secondary_sum), get_ingame(crit, this.bm_chart_data.secondary_sum, "Critical Strike")));
-        table.appendChild(add_row("Haste", haste, get_rating(haste, this.bm_chart_data.secondary_sum), get_ingame(haste, this.bm_chart_data.secondary_sum, "Haste")));
-        table.appendChild(add_row("Mastery", mastery, get_rating(mastery, this.bm_chart_data.secondary_sum), get_ingame(mastery, this.bm_chart_data.secondary_sum, "Mastery")));
-        table.appendChild(add_row("Versatility", vers, get_rating(vers, this.bm_chart_data.secondary_sum), get_ingame(vers, this.bm_chart_data.secondary_sum, "Versatility")));
+        floater.appendChild(add_row("Critical Strike", crit, get_rating(crit, this.bm_chart_data.secondary_sum), get_ingame(crit, this.bm_chart_data.secondary_sum, "Critical Strike")));
+        floater.appendChild(add_row("Haste", haste, get_rating(haste, this.bm_chart_data.secondary_sum), get_ingame(haste, this.bm_chart_data.secondary_sum, "Haste")));
+        floater.appendChild(add_row("Mastery", mastery, get_rating(mastery, this.bm_chart_data.secondary_sum), get_ingame(mastery, this.bm_chart_data.secondary_sum, "Mastery")));
+        floater.appendChild(add_row("Versatility", vers, get_rating(vers, this.bm_chart_data.secondary_sum), get_ingame(vers, this.bm_chart_data.secondary_sum, "Versatility")));
 
         return table;
     }
@@ -1324,6 +1328,16 @@ class BmRadarChart {
         return row;
     }
 
+    create_main_radar(crit, haste, mastery, vers, dps, size) {
+        let floater = document.createElement("div");
+        floater.classList.add("bm-radar-main-radar");
+
+        let radar = this.create_radar_chart(crit, haste, mastery, vers, dps, true, false, size);
+        floater.appendChild(radar);
+
+        return floater;
+    }
+
     /**
      * Create a radar chart.
      * @param {Number} crit 
@@ -1344,8 +1358,11 @@ class BmRadarChart {
         let legend_space = max_value / 10;
 
         let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("height", size * zoom);
-        svg.setAttribute("width", size * zoom);
+        // svg.setAttribute("height", size * zoom);
+        // svg.setAttribute("width", size * zoom);
+        svg.style.minWidth = "45px";
+        // svg.style.maxWidth = "100px";
+        svg.style.maxWidth = "365px";
         svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
 
         // background

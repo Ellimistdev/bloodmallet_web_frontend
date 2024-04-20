@@ -386,8 +386,14 @@
 /* Stat table */
 /* ---------- */
 .bm-stat-table {
-    display: table;
+    /* display: table; */
+    /* I expected 45px but for some reason 2 additional pixels appear... */
+    line-height: 43px;
     text-align: left;
+}
+
+.bm-stat-floater {
+    float: right;
 }
 
 .bm-stat-header {
@@ -436,13 +442,31 @@
 }
 
 .bm-radar-center {
-    display: flex;
-    flex-direction: row;
-    column-gap: 1.1rem;
+    /* might ned to be a grid to enable mobile devices */
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto;
+    grid-template-areas: "a b c";
+    gap: 1.1rem;
     justify-content: center;
     /* align-items: center;
     align-self: center;
     align-content: center; */
+}
+
+@media (width <=850px) {
+    .bm-radar-center {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto;
+        grid-template-areas:
+            "a b"
+            "c c";
+    }
+}
+
+.bm-radar-main-radar {
+    display: flex;
+    align-items: center;
 }
 
 .bm-radar-background {
