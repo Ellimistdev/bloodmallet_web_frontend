@@ -463,7 +463,7 @@
 
 @media (width <=850px) {
     .bm-radar-center {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 2fr 3fr;
         grid-template-rows: auto;
         grid-template-areas:
             "a b"
