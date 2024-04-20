@@ -232,7 +232,7 @@
 <div id="chart" class="bloodmallet_chart mt-3" {% if general_result or windfury or power_infusion %}
     data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}"
     data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %}
-    data-language="{{ LANGUAGE_CODE }}" data-entries="10000" data-background-color="transparent"
+    data-language="{{ LANGUAGE_CODE }}" data-show-top="-1" data-background-color="transparent"
     data-value-style="{% if windfury or power_infusion %}absolute{% else %}relative{% endif %}" data-loaded-data="">
 </div>
 
@@ -291,7 +291,8 @@
             }
         }
 
-        bloodmallet_chart_import();
+        // bloodmallet_chart_import();
+        bm_import_charts();
     }
     {% if chart.simulation_type.command == "trinkets" %}
     function set_active_passive(value, checked) {
@@ -325,14 +326,16 @@
             update_target_count_range(event.target.value, "range-min-target-count-output", "talentTargetScalingMinTargetCount");
         });
         document.getElementById("range-min-target-count").addEventListener("change", event => {
-            bloodmallet_chart_import();
+            // bloodmallet_chart_import();
+            bm_import_charts();
         });
 
         document.getElementById("range-max-target-count").addEventListener("input", event => {
             update_target_count_range(event.target.value, "range-max-target-count-output", "talentTargetScalingMaxTargetCount");
         });
         document.getElementById("range-max-target-count").addEventListener("input", event => {
-            bloodmallet_chart_import();
+            // bloodmallet_chart_import();
+            bm_import_charts();
         });
         {% endif %}
 
@@ -341,10 +344,13 @@
         document.getElementsByName("filter-active-passive").forEach(element => {
             element.addEventListener("change", (element, event) => {
                 set_active_passive(element.target.value, element.target.checked);
-                bloodmallet_chart_import();
+                // bloodmallet_chart_import();
+                bm_import_charts();
             });
         });
         {% endif %}
+
+        bm_import_charts();
     });
 </script>
 <link rel="stylesheet" href="{% static 'general_website/css/restyle-tooltips.css' %}" />
