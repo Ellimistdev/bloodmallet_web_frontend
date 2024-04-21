@@ -144,6 +144,18 @@ class BmChartData {
      * options: "cn_CN", "de_DE", "en_US", "es_ES", "fr_FR", "it_IT", "ko_KR", "pt_BR", "ru_RU"
      */
     language = "en_US";
+    language_short_to_long_form = {
+        "cn": "cn_CN",
+        "en": "en_US",
+        "de": "de_DE",
+        "es": "es_ES",
+        "fr": "fr_FR",
+        "it": "it_IT",
+        "ko": "ko_KR",
+        "pt": "pt_BR",
+        "ru": "ru_RU",
+        "zh-hans": "cn_CN"
+    };
     /**
      * e.g. % damage per second, see `x_axis_texts`
      */
@@ -192,6 +204,12 @@ class BmChartData {
         },
         "potions": {
             "value_calculation": "relative"
+        },
+        "power_infusion": {
+            "value_calculation": "absolute"
+        },
+        "windfury_totem": {
+            "value_calculation": "absolute"
         },
         // "talent_target_scaling": {
         //     "value_calculation": "total"
@@ -280,11 +298,14 @@ class BmChartData {
     }
 
     _set_subtitle() {
-        let subtitle = this.loaded_data["profile"]["character"]["spec"] + " " + this.loaded_data["profile"]["character"]["class"];
-        subtitle += " | " + this.loaded_data["simc_settings"]["fight_style"];
-        subtitle += " | UTC " + this.loaded_data["metadata"]["timestamp"];
+        let subtitle_parts = [];
+        if (this.loaded_data.hasOwnProperty("profile")) {
+            subtitle_parts.push(this.loaded_data["profile"]["character"]["spec"] + " " + this.loaded_data["profile"]["character"]["class"]);
+        }
+        subtitle_parts.push(this.loaded_data["simc_settings"]["fight_style"]);
+        subtitle_parts.push("UTC " + this.loaded_data["metadata"]["timestamp"]);
 
-        this.subtitle = subtitle;
+        this.subtitle = subtitle_parts.join(" | ");
     }
 
     /**
@@ -363,6 +384,10 @@ class BmChartData {
             this.legend_title = "Ranks";
         } else if (this.data_type === "talent_target_scaling") {
             this.legend_title = "Targets";
+        } else if (this.data_type === "windfury_totem") {
+            this.legend_title = "Effect";
+        } else if (this.data_type === "power_infusion") {
+            this.legend_title = "Effect";
         } else {
             this.legend_title = "legend_title not set";
         }
@@ -437,6 +462,9 @@ class BmChartData {
         this._extract_data_from_loaded_data("item_id_dict", ["item_ids"]);
         this._extract_data_from_loaded_data("spell_id_dict", ["spell_ids"]);
         this._extract_setting_from_root_element("language", "language");
+        if (Object.keys(this.language_short_to_long_form).indexOf(this.language) > -1) {
+            this.language = this.language_short_to_long_form[this.language];
+        }
         this._extract_setting_from_root_element("show_top", "showTop", this._convert_to_number);
         this._extract_setting_from_root_element("filter_trinket_itemlevels", "filterTrinketItemlevels", this._convert_to_number_list);
         this._extract_setting_from_root_element("filter_trinket_sources", "filterTrinketSources", this._convert_to_string_list);
@@ -449,6 +477,24 @@ class BmChartData {
 
         if (this.data_type === "races") {
             this.global_max_value = Math.max(...Object.values(this.data));
+        } else if (["power_infusion", "windfury_totem"].indexOf(this.data_type) > -1) {
+            let biggest_diff = 0;
+            if (this.value_calculation === "relative") {
+                for (const spec of this.sorted_data_keys) {
+                    let local_diff = this.get_relative_gain(this.data[spec], this.data["{" + spec + "}"]);
+                    if (biggest_diff < local_diff) {
+                        biggest_diff = local_diff;
+                    }
+                }
+            } else {
+                for (const spec of this.sorted_data_keys) {
+                    let local_diff = this.data[spec] - this.data["{" + spec + "}"];
+                    if (biggest_diff < local_diff) {
+                        biggest_diff = local_diff;
+                    }
+                }
+            }
+            this.global_max_value = biggest_diff;
         } else {
             this.global_max_value = Math.max(...Object.values(this.data).map(element => Math.max(...Object.values(element))));
         }
@@ -689,9 +735,6 @@ class BmBarChart {
 
         this.create_chart();
 
-        // $(function () {
-        //     $('[data-toggle="tooltip"]').tooltip()
-        // })
         try {
             $WowheadPower.refreshLinks();
         } catch (error) {
@@ -795,6 +838,19 @@ class BmBarChart {
             };
             let a_dps = Math.max(...Object.values(a_dps_object));
             let b_dps = Math.max(...Object.values(b_dps_object));
+            if (Number.isInteger(a_dps_object) && Number.isInteger(b_dps_object)) {
+                a_dps = a_dps_object;
+                b_dps = b_dps_object;
+            }
+            // power infusion special way to sort
+            if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+                a_dps = this.bm_chart_data.data[a] - this.bm_chart_data.data["{" + a + "}"];
+                b_dps = this.bm_chart_data.data[b] - this.bm_chart_data.data["{" + b + "}"];
+                if (this.bm_chart_data.value_calculation === "relative") {
+                    a_dps = a_dps / this.bm_chart_data.data[a];
+                    b_dps = b_dps / this.bm_chart_data.data[b];
+                }
+            }
             return b_dps - a_dps;
         });
         if (this.bm_chart_data.show_top > 0) {
@@ -844,9 +900,14 @@ class BmBarChart {
             let unit = create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
 
             let base_value = this.bm_chart_data.base_values[this.bm_chart_data.series_names[this.bm_chart_data.series_names.length - 1]];
+
             if (this.bm_chart_data.value_calculation === "absolute") {
                 max.appendChild(unit);
-                max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value))));
+                if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+                    max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.global_max_value)));
+                } else {
+                    max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value))));
+                }
             } else if (this.bm_chart_data.value_calculation === "relative") {
                 let relative_gain = -1;
                 if (this.bm_chart_data.wow_class === "evoker" && this.bm_chart_data.wow_spec === "augmentation") {
@@ -855,7 +916,11 @@ class BmBarChart {
                     // console.log("augmentation had a raw gain of", raw_gain, "dps compared to its own max dps of", aug_base_value);
                     relative_gain = this.bm_chart_data.get_relative_gain(aug_base_value + raw_gain, aug_base_value);
                 } else {
-                    relative_gain = this.bm_chart_data.get_relative_gain(this.bm_chart_data.global_max_value, base_value);
+                    if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+                        relative_gain = this.bm_chart_data.global_max_value;
+                    } else {
+                        relative_gain = this.bm_chart_data.get_relative_gain(this.bm_chart_data.global_max_value, base_value);
+                    }
                 }
 
                 max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(relative_gain)));
@@ -888,6 +953,27 @@ class BmBarChart {
                 if (relative_value - previous_value >= 0.0) {
                     steps.push(relative_value - previous_value);
                     previous_value = relative_value;
+                } else {
+                    steps.push(0);
+                }
+                let bar_part = document.createElement("div");
+                bar_part.classList.add("bm-bar-element", "bm-bar-group-1");
+                bar.appendChild(bar_part);
+                bar_part.addEventListener("click", (ev) => {
+                    this.create_vertical_line(ev);
+                });
+            } else if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+                let value = 0;
+                if (this.bm_chart_data.value_calculation === "relative") {
+                    //  relative
+                    value = ((this.bm_chart_data.data[key] - this.bm_chart_data.data["{" + key + "}"]) * 100 / this.bm_chart_data.data[key]) * 100 / this.bm_chart_data.global_max_value;
+                } else {
+                    // absolute calc
+                    value = (this.bm_chart_data.data[key] - this.bm_chart_data.data["{" + key + "}"]) * 100 / this.bm_chart_data.global_max_value;
+                }
+                if (value - previous_value >= 0.0) {
+                    steps.push(value - previous_value);
+                    previous_value = value;
                 } else {
                     steps.push(0);
                 }
@@ -1040,6 +1126,35 @@ class BmBarChart {
             row.appendChild(value_div);
 
             container.appendChild(row);
+        } else if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+            let row = document.createElement("div");
+            row.classList.add("bm-tooltip-row");
+
+            let key_div = document.createElement("div");
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
+            let abbreviation = {
+                "power_infusion": "PI",
+                "windfury_totem": "WFT"
+            }
+            key_div.appendChild(document.createTextNode(abbreviation[this.bm_chart_data.data_type]));
+            row.appendChild(key_div);
+
+            let value_div = document.createElement("div");
+            value_div.classList.add("bm-tooltip-value");
+            let value = -1;
+            if (this.bm_chart_data.value_calculation === "relative") {
+                value = this.bm_chart_data.convert_number_to_local((this.bm_chart_data.data[key] - this.bm_chart_data.data["{" + key + "}"]) * 100 / this.bm_chart_data.data[key]);
+            } else {
+                value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.data[key] - this.bm_chart_data.data["{" + key + "}"]);
+            }
+            // let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
+            value_div.appendChild(document.createTextNode(value));
+            if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+            }
+            row.appendChild(value_div);
+
+            container.appendChild(row);
         }
 
 
@@ -1118,9 +1233,6 @@ class BmRadarChart {
 
         this.create_chart();
 
-        // $(function () {
-        //     $('[data-toggle="tooltip"]').tooltip()
-        // })
         try {
             $WowheadPower.refreshLinks();
         } catch (error) {
