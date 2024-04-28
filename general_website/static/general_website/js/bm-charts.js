@@ -743,6 +743,10 @@ class BmBarChart {
         }
         add_bm_tooltips_to_dom();
         bm_add_css(BmChartStyleId, BmChartStyleUrl);
+
+        if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
+            provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
+        }
     }
 
     /**
@@ -794,14 +798,14 @@ class BmBarChart {
             }
             return true;
         }).filter((value) => {
-            // filter by active part of active_passive
-            if (this.bm_chart_data.data_type === "races" && (this.bm_chart_data.filter_trinket_active_passive.includes("active") || this.bm_chart_data.filter_trinket_active_passive.includes("Active"))) {
+            // filter by **active** part of active_passive
+            if (this.bm_chart_data.data_type === "trinkets" && (this.bm_chart_data.filter_trinket_active_passive.includes("active") || this.bm_chart_data.filter_trinket_active_passive.includes("Active"))) {
                 return this.bm_chart_data.loaded_data["data_active"][value] === false;
             }
             return true;
         }).filter((value) => {
-            // filter by passive part of active_passive
-            if (this.bm_chart_data.data_type === "races" && (this.bm_chart_data.filter_trinket_active_passive.includes("passive") || this.bm_chart_data.filter_trinket_active_passive.includes("Passive"))) {
+            // filter by **passive** part of active_passive
+            if (this.bm_chart_data.data_type === "trinkets" && (this.bm_chart_data.filter_trinket_active_passive.includes("passive") || this.bm_chart_data.filter_trinket_active_passive.includes("Passive"))) {
                 return this.bm_chart_data.loaded_data["data_active"][value] === true;
             }
             return true;
@@ -1241,6 +1245,10 @@ class BmRadarChart {
         }
         add_bm_tooltips_to_dom();
         bm_add_css(BmChartStyleId, BmChartStyleUrl);
+
+        if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
+            provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
+        }
     }
 
     create_chart() {
