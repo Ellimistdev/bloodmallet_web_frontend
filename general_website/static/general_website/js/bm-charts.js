@@ -211,9 +211,9 @@ class BmChartData {
         "windfury_totem": {
             "value_calculation": "absolute"
         },
-        // "talent_target_scaling": {
-        //     "value_calculation": "total"
-        // }
+        "talent_target_scaling": {
+            "value_calculation": "total"
+        },
         "weapon_enchantments": {
             "value_calculation": "relative"
         }
@@ -1097,7 +1097,11 @@ class BmBarChart {
 
             let value_div = document.createElement("div");
             value_div.classList.add("bm-tooltip-value");
-            let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
+            let mantissa = 2;
+            if (this.bm_chart_data.value_calculation === "total") {
+                mantissa = 0;
+            }
+            let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation), mantissa);
             if (this.bm_chart_data.value_calculation === "absolute" && this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
                 value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
             }

@@ -224,7 +224,6 @@
             {% endif %}>
         <label class="form-check-label" for="absolute_values">{% translate "Use absolute values" %}</label>
     </div>
-    <p>Profile information, filters, and value style selection will return at a later date.</p>
 </div>
 
 {% include 'general_website/chart_information/class_and_spec_information_importer.html' %}
@@ -234,7 +233,7 @@
     data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}"
     data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %}
     data-language="{{ LANGUAGE_CODE }}" data-show-top="-1"
-    data-value-calculation="{% if windfury or power_infusion %}absolute{% else %}relative{% endif %}"
+    data-value-calculation="{% if windfury or power_infusion %}absolute{% elif simulation_type == 'talent_target_scaling' or simulation_type == 'races' %}total{% else %}relative{% endif %}"
     data-loaded-data="">
 </div>
 
