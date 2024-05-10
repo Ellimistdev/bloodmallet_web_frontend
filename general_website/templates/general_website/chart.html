@@ -286,9 +286,9 @@
         let charts = get_charts();
         for (let chart of charts) {
             if (element.checked) {
-                chart.dataset.valueStyle = "absolute";
+                chart.dataset.valueCalculation = "absolute";
             } else {
-                chart.dataset.valueStyle = "relative";
+                chart.dataset.valueCalculation = "relative";
             }
         }
 
