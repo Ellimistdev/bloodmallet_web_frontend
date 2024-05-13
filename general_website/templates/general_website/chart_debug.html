@@ -11,11 +11,37 @@
 {% block content %}
 
 <!-- <div align="center"> -->
+<!-- data-chart-engine="highcharts_old" -->
 
-<div id="bloodmallet_windfury_totem_castingpatchwerk3" class="bloodmallet_chart" data-wow-class="Shaman"
-    data-wow-spec="Enhancement" data-tooltip-engine="wowdb" data-chart-engine="highcharts_old"
-    data-type="windfury_totem" data-entries="14" data-fight-style="castingpatchwerk3" data-background-color="#343a40"
-    data-font-color="#f8f9fa"></div>
+<div id="debug_chart" class="bloodmallet_chart" data-wow-class="warrior" data-wow-spec="fury"
+    data-tooltip-engine="wowhead" data-type="trinkets" data-entries="14" data-fight-style="castingpatchwerk"
+    data-background-color="#343a40" data-font-color="#f8f9fa"></div>
+
+<br /><br /><br /><br /><br />
+
+<div style="display:flex; text-align:center;">
+    <div class="bm-bar-group-19" style="height: 30px; flex:1;">19</div>
+    <div class="bm-bar-group-2" style="height: 30px; flex:1;">2</div>
+    <div class="bm-bar-group-18" style="height: 30px; flex:1;">18</div>
+    <div class="bm-bar-group-6" style="height: 30px; flex:1;">6</div>
+    <div class="bm-bar-group-12" style="height: 30px; flex:1;">12</div>
+    <div class="bm-bar-group-5" style="height: 30px; flex:1;">5</div>
+    <div class="bm-bar-group-1" style="height: 30px; flex:1;">1</div>
+    <div class="bm-bar-group-10" style="height: 30px; flex:1;">10</div>
+    <div class="bm-bar-group-16" style="height: 30px; flex:1;">16</div>
+    <div class="bm-bar-group-8" style="height: 30px; flex:1;">8</div>
+    <div class="bm-bar-group-14" style="height: 30px; flex:1;">14</div>
+    <div class="bm-bar-group-17" style="height: 30px; flex:1;">17</div>
+    <div class="bm-bar-group-3" style="height: 30px; flex:1;">3</div>
+    <div class="bm-bar-group-15" style="height: 30px; flex:1;">15</div>
+    <div class="bm-bar-group-7" style="height: 30px; flex:1;">7</div>
+    <div class="bm-bar-group-20" style="height: 30px; flex:1;">20</div>
+    <div class="bm-bar-group-4" style="height: 30px; flex:1;">4</div>
+    <div class="bm-bar-group-13" style="height: 30px; flex:1;">13</div>
+    <div class="bm-bar-group-9" style="height: 30px; flex:1;">9</div>
+    <div class="bm-bar-group-11" style="height: 30px; flex:1;">11</div>
+</div>
+
 {% endblock %}
 {% block extraimport %}
 
@@ -25,9 +51,11 @@
 <script src="{% static 'general_website/js/navbar_class_menu.js' %}"></script>
 {% endif %}
 {% include 'general_website/layout/chart_import.html' %}
+<!-- <script src="{% static 'general_website/js/bloodmallet_chart_import.js' %}"></script> -->
+
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        bloodmallet_chart_import();
-    });
+    // document.addEventListener("DOMContentLoaded", function () {
+    //     bloodmallet_chart_import();
+    // });
 </script>
 {% endblock %}

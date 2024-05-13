@@ -16,13 +16,10 @@ function provide_meta_data(state, data) {
     if (!is_bloodmallet_dot_com()) {
         return
     }
-    if (debug) {
-        console.log("provide_meta_data");
-    }
 
     // value switch
     if (["trinkets", "windfury_totem", "power_infusion"].includes(state.data_type)) {
-        let element = document.getElementById("value_style_switch")
+        let element = document.getElementById("value_style_switch");
         if (element !== undefined && element !== null) {
             element.hidden = false;
         }
@@ -248,6 +245,12 @@ function provide_meta_data(state, data) {
         $WowheadPower.refreshLinks();
     } catch (error) { }
 
+    publish_raw_data(state, data);
+
+}
+
+function publish_raw_data(bm_chart_data, loaded_data) {
+    document.getElementById(bm_chart_data.root_element.id + "_raw_data").value = JSON.stringify(loaded_data, null, "    ");
 }
 
 function create_talent_iframe(talent_string, title) {

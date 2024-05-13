@@ -236,6 +236,25 @@
     data-value-calculation="{% if windfury or power_infusion %}absolute{% elif simulation_type == 'talent_target_scaling' or simulation_type == 'races' %}total{% else %}relative{% endif %}"
     data-loaded-data="">
 </div>
+<div class="d-flex flex-row-reverse">
+    <button id="chart_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
+        data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Copy raw chart data to clipboard">📋</button>&nbsp;
+    <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#chart_raw_data_collapsable"
+        aria-expanded="false" aria-controls="chart_raw_data_collapsable" data-type="bm-tooltip"
+        data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Show raw chart data">
+        👀
+    </button>
+
+    <!-- <div class="form-group">
+    </div> -->
+</div>
+<div class="collapse" id="chart_raw_data_collapsable">
+    <div class="card card-body form-group">
+        <label for="custom_fight_style">Raw chart data</label>
+        <textarea class="form-control" id="chart_raw_data" rows="8"></textarea>
+        <!-- rows="3" -->
+    </div>
+</div>
 
 {% if additional_fight_styles %}
 {% for fight_style in additional_fight_styles %}
@@ -243,6 +262,26 @@
     data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
     data-language="{{ LANGUAGE_CODE }}" data-show-top="-1"
     data-value-calculation="{% if windfury or power_infusion %}absolute{% else %}relative{% endif %}"></div>
+<div class="d-flex flex-row-reverse">
+    <button id="chart{{ forloop.counter }}_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
+        data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Copy raw chart data to clipboard">📋</button>&nbsp;
+    <button class="btn btn-primary" type="button" data-toggle="collapse"
+        data-target="#chart{{ forloop.counter }}_raw_data_collapsable" aria-expanded="false"
+        aria-controls="chart{{ forloop.counter }}_raw_data_collapsable" data-type="bm-tooltip"
+        data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Show raw chart data">
+        👀
+    </button>
+
+    <!-- <div class="form-group">
+        </div> -->
+</div>
+<div class="collapse" id="chart{{ forloop.counter }}_raw_data_collapsable">
+    <div class="card card-body form-group">
+        <label for="custom_fight_style">Raw chart data</label>
+        <textarea class="form-control" id="chart{{ forloop.counter }}_raw_data" rows="8"></textarea>
+        <!-- rows="3" -->
+    </div>
+</div>
 {% endfor %}
 {% endif %}
 
@@ -296,6 +335,24 @@
         bm_import_charts();
     }
 
+    function copy_to_clipboard(target_id, source_id) {
+        // https://www.w3schools.com/howto/howto_js_copy_clipboard.asp
+        // Get the text field
+        let copyText = document.getElementById(target_id);
+
+        // Select the text field
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // For mobile devices
+
+        // Copy the text inside the text field
+        navigator.clipboard.writeText(copyText.value);
+
+        document.getElementById(source_id).innerText = "✅";
+        setTimeout(() => {
+            document.getElementById(source_id).innerText = "📋";
+        }, 2000);
+    }
+
     {% if chart.simulation_type.command == "talent_target_scaling" %}
     function update_target_count_range(value, output_span_id, chart_attribute_name) {
         document.getElementById(output_span_id).innerHTML = value;
@@ -305,6 +362,16 @@
 
     document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("absolute_values").addEventListener("change", update_value_style);
+        document.getElementById("chart_raw_data_copy").addEventListener("click", () => {
+            copy_to_clipboard("chart_raw_data", "chart_raw_data_copy");
+        });
+        {% if additional_fight_styles %}
+        {% for fight_style in additional_fight_styles %}
+        document.getElementById("chart{{ forloop.counter }}_raw_data_copy").addEventListener("click", () => {
+            copy_to_clipboard("chart{{ forloop.counter }}_raw_data", "chart{{ forloop.counter }}_raw_data_copy");
+        });
+        {% endfor %}
+        {% endif %}
 
         {% if chart.simulation_type.command == "talent_target_scaling" %}
         document.getElementById("range-min-target-count").addEventListener("input", event => {
