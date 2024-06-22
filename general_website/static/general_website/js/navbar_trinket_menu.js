@@ -17,15 +17,15 @@ const fight_style_dict = {
 const fight_styles = Object.keys(fight_style_dict).sort();
 
 const default_item_levels = [
-    "447",
-    "450",
-    "454",
-    "463",
-    "476",
     "480",
     "483",
-    "486",
-    "489"
+    "489",
+    "496",
+    "502",
+    "509",
+    "515",
+    "522",
+    "528",
 ];
 
 const trinkets_s3 = [
@@ -166,7 +166,7 @@ async function update_navbarTrinketMenu(state = {}) {
     }
 
     // set defaults
-    const default_item_level = state.item_levels ? state.item_levels[0] : '447';
+    const default_item_level = state.item_levels ? state.item_levels[0] : '480';
     state.data_type ??= 'trinket_compare';
     state.item_name ??= trinkets_s3[0];
     state.item_level ??= default_item_level;

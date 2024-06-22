@@ -231,6 +231,9 @@ function bloodmallet_chart_import() {
     };
 
     for (const [className, items] of Object.entries(data)) {
+      if (items.status === "error") {
+        continue;
+      }
       for (const [itemName, itemLevels] of Object.entries(items.data)) {
         const itemKey = itemName.toLowerCase().replace(/ /g, "_");
         processedData.items[itemKey] = processedData.items[itemKey] || {};
