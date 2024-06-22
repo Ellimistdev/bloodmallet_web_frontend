@@ -237,19 +237,59 @@
     {% if not trinket_compare %} data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" 
     {% else %} data-item-name="{{ item_name }}" data-item-level="{{ item_level }}" {% endif %}
     data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %} 
-    data-language="{{ LANGUAGE_CODE }}" data-entries="10000" data-background-color="transparent"
-    data-value-style="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}" data-loaded-data="">
+    data-language="{{ LANGUAGE_CODE }}" data-show-top="-1"
+    data-value-calculation="{% if windfury or power_infusion or trinket_compare %}absolute{% elif simulation_type == 'talent_target_scaling' or simulation_type == 'races' %}total{% else %}relative{% endif %}"
+    data-loaded-data="">
+</div>
+<!-- data-entries="10000" data-background-color="transparent" -->
+<div class="d-flex flex-row-reverse">
+    <button id="chart_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
+        data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Copy raw chart data to clipboard">📋</button>&nbsp;
+    <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#chart_raw_data_collapsable"
+        aria-expanded="false" aria-controls="chart_raw_data_collapsable" data-type="bm-tooltip"
+        data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Show raw chart data">
+        👀
+    </button>
+
+    <!-- <div class="form-group">
+    </div> -->
+</div>
+<div class="collapse" id="chart_raw_data_collapsable">
+    <div class="card card-body form-group">
+        <label for="custom_fight_style">Raw chart data</label>
+        <textarea class="form-control" id="chart_raw_data" rows="8"></textarea>
+        <!-- rows="3" -->
+    </div>
 </div>
 
 {% if additional_fight_styles %}
 {% for fight_style in additional_fight_styles %}
 <div id="chart{{ forloop.counter }}" class="bloodmallet_chart mt-3" {% if not trinket_compare %}
     data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" {% else %} 
-    data-item-name="{{ item_name }}" data-item-level="{{ item_level}}" {% endif %}
+    data-item-name="{{ item_name }}" data-item-level="{{ item_level}}" {% endif %} 
     data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
-    data-language="{{ LANGUAGE_CODE }}" data-entries="10000" data-background-color="transparent"
-    data-value-style="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}">
-</div>
+    data-language="{{ LANGUAGE_CODE }}"  data-show-top="-1" data-entries="10000" data-background-color="transparent"
+    data-value-calculation="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}"></div>
+    <div class="d-flex flex-row-reverse">
+        <button id="chart{{ forloop.counter }}_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
+            data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Copy raw chart data to clipboard">📋</button>&nbsp;
+        <button class="btn btn-primary" type="button" data-toggle="collapse"
+            data-target="#chart{{ forloop.counter }}_raw_data_collapsable" aria-expanded="false"
+            aria-controls="chart{{ forloop.counter }}_raw_data_collapsable" data-type="bm-tooltip"
+            data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Show raw chart data">
+            👀
+        </button>
+    
+        <!-- <div class="form-group">
+            </div> -->
+    </div>
+    <div class="collapse" id="chart{{ forloop.counter }}_raw_data_collapsable">
+        <div class="card card-body form-group">
+            <label for="custom_fight_style">Raw chart data</label>
+            <textarea class="form-control" id="chart{{ forloop.counter }}_raw_data" rows="8"></textarea>
+            <!-- rows="3" -->
+        </div>
+    </div>
 {% endfor %}
 {% endif %}
 
@@ -296,30 +336,33 @@
         let charts = get_charts();
         for (let chart of charts) {
             if (element.checked) {
-                chart.dataset.valueStyle = "absolute";
+                chart.dataset.valueCalculation = "absolute";
             } else {
-                chart.dataset.valueStyle = "relative";
+                chart.dataset.valueCalculation = "relative";
             }
         }
 
-        bloodmallet_chart_import();
+        // bloodmallet_chart_import();
+        bm_import_charts();
     }
-    {% if chart.simulation_type.command == "trinkets" %}
-    function set_active_passive(value, checked) {
-        let chart = document.getElementById("chart");
-        let active_passive_filters = chart.dataset.filterActivePassive;
-        // remove from filter
-        if (checked) {
-            chart.dataset.filterActivePassive = active_passive_filters.split(";").filter(v => v !== value).join(";");
-        } else { // add to filter
-            if (active_passive_filters === undefined || active_passive_filters.length === 0) {
-                chart.dataset.filterActivePassive = value;
-            } else {
-                chart.dataset.filterActivePassive = active_passive_filters + ";" + value;
-            }
-        }
+
+    function copy_to_clipboard(target_id, source_id) {
+        // https://www.w3schools.com/howto/howto_js_copy_clipboard.asp
+        // Get the text field
+        let copyText = document.getElementById(target_id);
+
+        // Select the text field
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // For mobile devices
+
+        // Copy the text inside the text field
+        navigator.clipboard.writeText(copyText.value);
+
+        document.getElementById(source_id).innerText = "✅";
+        setTimeout(() => {
+            document.getElementById(source_id).innerText = "📋";
+        }, 2000);
     }
-    {% endif %}
 
     {% if chart.simulation_type.command == "talent_target_scaling" %}
     function update_target_count_range(value, output_span_id, chart_attribute_name) {
@@ -330,33 +373,34 @@
 
     document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("absolute_values").addEventListener("change", update_value_style);
+        document.getElementById("chart_raw_data_copy").addEventListener("click", () => {
+            copy_to_clipboard("chart_raw_data", "chart_raw_data_copy");
+        });
+        {% if additional_fight_styles %}
+        {% for fight_style in additional_fight_styles %}
+        document.getElementById("chart{{ forloop.counter }}_raw_data_copy").addEventListener("click", () => {
+            copy_to_clipboard("chart{{ forloop.counter }}_raw_data", "chart{{ forloop.counter }}_raw_data_copy");
+        });
+        {% endfor %}
+        {% endif %}
 
         {% if chart.simulation_type.command == "talent_target_scaling" %}
         document.getElementById("range-min-target-count").addEventListener("input", event => {
             update_target_count_range(event.target.value, "range-min-target-count-output", "talentTargetScalingMinTargetCount");
         });
         document.getElementById("range-min-target-count").addEventListener("change", event => {
-            bloodmallet_chart_import();
+            // bloodmallet_chart_import();
+            bm_import_charts();
         });
 
         document.getElementById("range-max-target-count").addEventListener("input", event => {
             update_target_count_range(event.target.value, "range-max-target-count-output", "talentTargetScalingMaxTargetCount");
         });
         document.getElementById("range-max-target-count").addEventListener("input", event => {
-            bloodmallet_chart_import();
-        });
-        {% endif %}
-
-
-        {% if chart.simulation_type.command == "trinkets" %}
-        document.getElementsByName("filter-active-passive").forEach(element => {
-            element.addEventListener("change", (element, event) => {
-                set_active_passive(element.target.value, element.target.checked);
-                bloodmallet_chart_import();
-            });
+            // bloodmallet_chart_import();
+            bm_import_charts();
         });
         {% endif %}
     });
 </script>
-<link rel="stylesheet" href="{% static 'general_website/css/restyle-tooltips.css' %}" />
 {% endblock %}

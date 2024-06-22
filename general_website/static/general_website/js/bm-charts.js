@@ -102,7 +102,8 @@ class BmChartData {
      */
     data = {};
     /**
-     * Name of the super-key to filter data to the relevant set for multi-char simulations
+     * Name of the super-key to filter data to the relevant set for multi-char simulations.
+     * Could also be called "profile".
      * e.g. "profile-name": {"My Trinket": {260: 12000, 270: 12500, 280: 13200}}
      *       ^^^^^^^^^^^^
      */
@@ -143,6 +144,18 @@ class BmChartData {
      * options: "cn_CN", "de_DE", "en_US", "es_ES", "fr_FR", "it_IT", "ko_KR", "pt_BR", "ru_RU"
      */
     language = "en_US";
+    language_short_to_long_form = {
+        "cn": "cn_CN",
+        "en": "en_US",
+        "de": "de_DE",
+        "es": "es_ES",
+        "fr": "fr_FR",
+        "it": "it_IT",
+        "ko": "ko_KR",
+        "pt": "pt_BR",
+        "ru": "ru_RU",
+        "zh-hans": "cn_CN"
+    };
     /**
      * e.g. % damage per second, see `x_axis_texts`
      */
@@ -166,22 +179,80 @@ class BmChartData {
     unit = {
         "total": "",
         "relative": "%",
-        "absolute": ""
+        "absolute": "Δ"
     };
     x_axis_texts = {
-        "total": "damage per second",
+        "total": "total damage per second (character)",
         "relative": "% damage per second",
-        "absolute": "damage per second"
+        "absolute": "absolute damage per second"
     };
 
+    /**
+     * e.g. trinkets, secondary_distributions, races,...
+     */
+    data_type = "";
     wow_spec = "";
     wow_class = "";
     secondary_sum = -1;
+
+    data_type_defaults = {
+        "trinkets": {
+            "value_calculation": "relative"
+        },
+        "phials": {
+            "value_calculation": "relative"
+        },
+        "potions": {
+            "value_calculation": "relative"
+        },
+        "power_infusion": {
+            "value_calculation": "absolute"
+        },
+        "windfury_totem": {
+            "value_calculation": "absolute"
+        },
+        "talent_target_scaling": {
+            "value_calculation": "total"
+        },
+        "weapon_enchantments": {
+            "value_calculation": "relative"
+        }
+    };
+
+    /**
+     * list elements remove matching data
+     * e.g. "trinkets": {"itemlevels": [284]} will remove all itemlevel 284 
+     * trinket data from charts visualization
+     */
+    /**
+     * Remove listed itemlevels from trinket chart
+     * @type {Array<Number>}
+     */
+    filter_trinket_itemlevels = [];
+    /**
+     * Remove listed sources from trinket chart
+     * @type {Array<String>}
+     */
+    filter_trinket_sources = [];
+    /**
+     * Remove active trinkets if list contains "active". Remove passive 
+     * trinkets if list contains "passive". If both words are in the list no 
+     * trinkets will be shown.
+     * @type {Array<String>}
+     */
+    filter_trinket_active_passive = [];
+
+    /**
+     * Limits the chart to show only the top X elements
+     */
+    show_top = 5;
 
     enable_title = true;
     enable_subtitle = true;
     enable_simc_subtitle = true;
     enable_tooltips = true;
+    enable_legend = false;
+    enable_end_of_bar_values = false;
 
     /**
      * Extract the value from `key_chain` of `loaded_data` and stores it in class as `property`.
@@ -216,12 +287,25 @@ class BmChartData {
         }
     }
 
-    _set_subtitle() {
-        let subtitle = this.loaded_data["profile"]["character"]["spec"] + " " + this.loaded_data["profile"]["character"]["class"];
-        subtitle += " | " + this.loaded_data["simc_settings"]["fight_style"];
-        subtitle += " | UTC " + this.loaded_data["metadata"]["timestamp"];
+    /**
+     * Set `property` of BmChartData to to a data_type appropriate default, if present.
+     * @param {String} property a BmChartData property that might or might not be part of data_type_defaults
+     */
+    _set_default_from_data_type(property) {
+        if (this.data_type_defaults.hasOwnProperty(this.data_type) && this.data_type_defaults[this.data_type].hasOwnProperty(property)) {
+            this[property] = this.data_type_defaults[this.data_type][property];
+        }
+    }
 
-        this.subtitle = subtitle;
+    _set_subtitle() {
+        let subtitle_parts = [];
+        if (this.loaded_data.hasOwnProperty("profile")) {
+            subtitle_parts.push(this.loaded_data["profile"]["character"]["spec"] + " " + this.loaded_data["profile"]["character"]["class"]);
+        }
+        subtitle_parts.push(this.loaded_data["simc_settings"]["fight_style"]);
+        subtitle_parts.push("UTC " + this.loaded_data["metadata"]["timestamp"]);
+
+        this.subtitle = subtitle_parts.join(" | ");
     }
 
     /**
@@ -281,19 +365,35 @@ class BmChartData {
          */
         this.root_element = root_element;
 
-        if (!this.root_element.dataset.hasOwnProperty("loadedData")) {
+        if (!this.root_element.dataset.hasOwnProperty("loadedData") || (this.root_element.dataset.hasOwnProperty("loadedData") && this.root_element.dataset.loadedData === "")) {
             throw new Error("Data musst be loaded in Element before attempting to create the associated chart.");
         }
 
         this.loaded_data = JSON.parse(this.root_element.dataset.loadedData);
 
+        this._extract_data_from_loaded_data("data_type", ["data_type"]);
         this._extract_data_from_loaded_data("element_id", ["element_id"]);
         this._extract_data_from_loaded_data("title", ["data_type"]);
         this._set_subtitle();
         this._extract_data_from_loaded_data("simc_hash", ["metadata", "SimulationCraft"]);
-        this.legend_title = "Itemlevels";
+        if (this.data_type === "races") {
+            this.legend_title = "Race";
+        } else if (this.data_type === "trinkets") {
+            this.legend_title = "Itemlevels";
+        } else if (["phials", "potions", "weapon_enchantments"].includes(this.data_type)) {
+            this.legend_title = "Ranks";
+        } else if (this.data_type === "talent_target_scaling") {
+            this.legend_title = "Targets";
+        } else if (this.data_type === "windfury_totem") {
+            this.legend_title = "Effect";
+        } else if (this.data_type === "power_infusion") {
+            this.legend_title = "Effect";
+        } else {
+            this.legend_title = "legend_title not set";
+        }
         this._extract_data_from_loaded_data("legend_title", ["legend_title"]);
         this._extract_data_from_loaded_data("data", ["data"]);
+        this._set_default_from_data_type("value_calculation");
         this._extract_setting_from_root_element("value_calculation", "valueCalculation");
         this._extract_setting_from_root_element("selected_data_key", "selectedDataKey");
 
@@ -305,18 +405,23 @@ class BmChartData {
         this._extract_data_from_loaded_data("secondary_sum", ["secondary_sum"]);
 
         // optional
-        // TODO: Continue here to transform data extraction to use extract_data_from_loaded_data and extract_setting_from_root_element if appropriate
         this._extract_data_from_loaded_data("series_names", ["simulated_steps"]);
         if (this.series_names.length === 0) {
             for (let key_value_object of Object.values(this.data)) {
                 for (let series of Object.keys(key_value_object)) {
-                    if (this.series_names.indexOf(series) === -1) {
+                    let parsed_int = Number.parseInt(series);
+                    if (this.series_names.indexOf(parsed_int) === -1 && parsed_int.toString() === series) {
+                        // series are numbers, e.g. itemlevels or ranks
+                        this.series_names.push(parsed_int);
+                    } else if (this.series_names.indexOf(series) === -1 && parsed_int.toString() !== series) {
+                        // series are words, e.g. like 10_10_10_70 from secondary distribution charts
                         this.series_names.push(series);
                     }
                 }
             }
         }
-        this.series_names.sort();
+        this.series_names.sort((a, b) => a - b);
+
         // optional
         this._extract_data_from_loaded_data("sorted_data_keys", ["sorted_data_keys"])
         if (this.sorted_data_keys.length === 0) {
@@ -333,7 +438,7 @@ class BmChartData {
         // extend if number of keys === 1 and number of series_names > 1
         this._extract_data_from_loaded_data("base_values", ["data", "baseline"]);
         if (Object.keys(this.base_values).length === 0) {
-            console.log("No base_values found");
+            // console.log("No base_values found");
             for (let series of this.series_names) {
                 // we assume 0 dps to be the baseline
                 this.base_values[series] = 0;
@@ -349,39 +454,77 @@ class BmChartData {
             // console.log("as many base_values found as series_names");
             // do nothing
         } else {
-            throw "base_value must be an empty object, have only one key, or the same length and keys as series_names.";
+            throw "base_value must be an empty object, have only one key, or the same length and keys as series_names." + this.data_type;
         }
 
-        // optional: language_dict
+        // optional
         this._extract_data_from_loaded_data("language_dict", ["translations"]);
         this._extract_data_from_loaded_data("item_id_dict", ["item_ids"]);
         this._extract_data_from_loaded_data("spell_id_dict", ["spell_ids"]);
-        this._extract_data_from_loaded_data("language", ["language"]);
+        this._extract_setting_from_root_element("language", "language");
+        if (Object.keys(this.language_short_to_long_form).indexOf(this.language) > -1) {
+            this.language = this.language_short_to_long_form[this.language];
+        }
+        this._extract_setting_from_root_element("show_top", "showTop", this._convert_to_number);
+        this._extract_setting_from_root_element("filter_trinket_itemlevels", "filterTrinketItemlevels", this._convert_to_number_list);
+        this._extract_setting_from_root_element("filter_trinket_sources", "filterTrinketSources", this._convert_to_string_list);
+        this._extract_setting_from_root_element("filter_trinket_active_passive", "filterTrinketActivePassive", this._convert_to_string_list);
         this._extract_setting_from_root_element("enable_title", "enableTitle", this._convert_to_bool);
         this._extract_setting_from_root_element("enable_subtitle", "enableSubtitle", this._convert_to_bool);
         this._extract_setting_from_root_element("enable_simc_subtitle", "enableSimcSubtitle", this._convert_to_bool);
         this._extract_setting_from_root_element("enable_tooltips", "enableTooltips", this._convert_to_bool);
+        this._extract_setting_from_root_element("enable_legend", "enableLegend", this._convert_to_bool);
 
-        this.global_max_value = Math.max(...Object.values(this.data).map(element => Math.max(...Object.values(element))));
+        if (this.data_type === "races") {
+            this.global_max_value = Math.max(...Object.values(this.data));
+        } else if (["power_infusion", "windfury_totem"].indexOf(this.data_type) > -1) {
+            let biggest_diff = 0;
+            if (this.value_calculation === "relative") {
+                for (const spec of this.sorted_data_keys) {
+                    let local_diff = this.get_relative_gain(this.data[spec], this.data["{" + spec + "}"]);
+                    if (biggest_diff < local_diff) {
+                        biggest_diff = local_diff;
+                    }
+                }
+            } else {
+                for (const spec of this.sorted_data_keys) {
+                    let local_diff = this.data[spec] - this.data["{" + spec + "}"];
+                    if (biggest_diff < local_diff) {
+                        biggest_diff = local_diff;
+                    }
+                }
+            }
+            this.global_max_value = biggest_diff;
+        } else {
+            this.global_max_value = Math.max(...Object.values(this.data).map(element => Math.max(...Object.values(element))));
+        }
         // delete this.data.baseline;
-
-        // this.create_chart();
-
-        // $(function () {
-        //     $('[data-toggle="tooltip"]').tooltip()
-        // })
-        // try {
-        //     $WowheadPower.refreshLinks();
-        // } catch (error) {
-        //     console.error("Error occured while trying to refresh WowheadPower links.");
-        //     console.error(error);
-        // }
-        // add_bm_tooltips_to_dom();
-        // bm_add_css(BmChartStyleId, BmChartStyleUrl);
     }
 
     _convert_to_bool(input) {
         return input.toLowerCase() === 'true'
+    }
+
+    /**
+     * 
+     * @param {String} input 
+     * @returns {Array<String>}
+     */
+    _convert_to_string_list(input) {
+        return input.split(";");
+    }
+
+    /**
+     * 
+     * @param {String} input 
+     * @returns {Array<Number>}
+     */
+    _convert_to_number_list(input) {
+        return input.split(";").map((value) => { return Number.parseInt(value); });
+    }
+
+    _convert_to_number(input) {
+        return Number.parseInt(input);
     }
 
     /**
@@ -402,7 +545,7 @@ class BmChartData {
 
     /**
      * Returns the relative gain of `changed_number` compared to `base_value`.
-     * E.g. changed_value=80, base_value=100 => -20
+     * E.g. changed_value=80, base_value=100 => -20 (%)
      * @param {Number} changed_value 
      * @param {Number} base_value 
      * @returns {Number}
@@ -412,11 +555,23 @@ class BmChartData {
         return relative_gain - 100.0;
     }
 
+    /**
+     * Calculate the absolute gain of `changed_value` compared to `base_value`.
+     * E.g. changed_value = 7 , base_value = 5 , result = 2
+     * @param {Number} changed_value 
+     * @param {Number} base_value 
+     * @returns {Number}
+     */
     get_absolute_gain(changed_value, base_value) {
         let value = changed_value - base_value;
         return value > 0 ? value : 0;
     }
 
+    /**
+     * Translate `key` using already loaded data.
+     * @param {String} key to be translated `key`
+     * @returns {String}
+     */
     get_translated_name(key) {
         if (key in this.language_dict && this.language in this.language_dict[key]) {
             return this.language_dict[key][this.language];
@@ -426,7 +581,18 @@ class BmChartData {
     }
 
     _get_wowhead_url(key) {
-        let base = "https://www.wowhead.com/";
+        const subdomain = {
+            "en_US": "www",
+            "cn_CN": "cn",
+            "de_DE": "de",
+            "es_ES": "es",
+            "fr_FR": "fr",
+            "it_IT": "it",
+            "ko_KR": "ko",
+            "pt_BR": "pt",
+            "ru_RU": "ru"
+        };
+        let base = "https://" + subdomain[this.language] + ".wowhead.com/";
         if (key in this.spell_id_dict) {
             base += "spell=";
             base += this.spell_id_dict[key];
@@ -439,30 +605,93 @@ class BmChartData {
         return base;
     }
 
+    /**
+     * Shorten name but keeping special name addition.
+     * @param {String} name 
+     * @returns {String}
+     */
+    _shorten_name(name) {
+        if (name.length < 20) {
+            return name;
+        }
+        // might need to remove this
+        if (!name.includes("[")) {
+            return name;
+        }
+        let to_be_shortened = name.split("[")[0];
+        to_be_shortened = to_be_shortened.trim();
+        let specifier = name.split("[")[1];
+        specifier = specifier.split("]")[0];
+        let name_sections = to_be_shortened.split(":");
+        let name_section_parts = [];
+        for (const name_section of name_sections) {
+            name_section_parts.push(name_section.trim().split(" ").map((part) => part[0]));
+        }
+
+        let new_name = "";
+        // console.log(name_section_parts);
+        for (const characters of name_section_parts) {
+            // console.log(characters);
+            if (new_name !== "") {
+                new_name += ":";
+            }
+            new_name += characters.join("");
+        }
+        new_name += " [" + specifier + "]";
+
+        return new_name
+    }
+
+    /**
+     * Get a wowhead link for `key`
+     * @param {String} key base (english) name
+     * @returns {HTMLElement} translated link with tooltip-information
+     */
     get_wowhead_link(key) {
-        let translated_name = document.createTextNode(this.get_translated_name(key));
+        let translated_name = this.get_translated_name(key);
+        translated_name = this._shorten_name(translated_name);
+
+        let translated_name_node = document.createTextNode(translated_name);
         let url = this._get_wowhead_url(key);
         if (url === undefined) {
-            return translated_name;
+            return translated_name_node;
         }
         let link = document.createElement("a");
         link.href = url;
-        link.appendChild(translated_name);
+        link.appendChild(translated_name_node);
         return link;
     }
 
+    /**
+     * Get the dps value of `key` & `series` using `value_calculation`.
+     * @param {String} key key to find the data (dps) object
+     * @param {String} series key to find the actual dps value of the object
+     * @param {String} value_calculation enum like string to determine how the value should get calculated
+     * @returns {Number} dps value
+     */
     get_value(key, series, value_calculation) {
         if (value_calculation === "total") {
             return this.data[key][series];
         } else if (value_calculation === "absolute") {
             return this.get_absolute_gain(this.data[key][series], this.base_values[series]);
         } else if (value_calculation === "relative") {
-            return this.get_relative_gain(this.data[key][series], this.base_values[series]);
+            // special case for augmentatione vokers to compare the gain to 
+            // their own base dps without the group dps
+            let relative_gain = -1;
+            if (this.wow_class === "evoker" && this.wow_spec === "augmentation") {
+                let aug_base_value = this.loaded_data["profile"]["metadata"]["base_dps"];
+                let raw_gain = this.get_absolute_gain(this.data[key][series], this.base_values[series]);
+                // console.log("augmentation had a raw gain of", raw_gain, "dps compared to its own max dps of", aug_base_value);
+                relative_gain = this.get_relative_gain(aug_base_value + raw_gain, aug_base_value);
+            } else {
+                relative_gain = this.get_relative_gain(this.data[key][series], this.base_values[series]);
+            }
+            return relative_gain;
         }
     }
 
     /**
-     * 
+     * Add a bm-tooltip to `element` showing `tooltip` in `position`.
      * @param {HTMLElement} element element gets a tooltip
      * @param {String} tooltip tooltip string, can contain html as string
      * @param {String} position options: left, right, top, bottom
@@ -474,6 +703,13 @@ class BmChartData {
         element.setAttribute("data-type", "bm-tooltip");
         element.setAttribute("data-bm-tooltip-text", tooltip);
         element.setAttribute("data-bm-tooltip-placement", position);
+    }
+
+    clean_up_root() {
+        this.root_element.innerHTML = "";
+        // while (this.root_element.hasChildNodes()) {
+        //     this.root_element.removeChild(this.root_element.firstChild);
+        // }
     }
 }
 
@@ -495,11 +731,10 @@ class BmBarChart {
         this.vertical_line = undefined;
         this.bm_chart_data = chart_data;
 
+        this.bm_chart_data.clean_up_root();
+
         this.create_chart();
 
-        // $(function () {
-        //     $('[data-toggle="tooltip"]').tooltip()
-        // })
         try {
             $WowheadPower.refreshLinks();
         } catch (error) {
@@ -508,30 +743,146 @@ class BmBarChart {
         }
         add_bm_tooltips_to_dom();
         bm_add_css(BmChartStyleId, BmChartStyleUrl);
+
+        if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
+            provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
+        }
+    }
+
+    /**
+     * 
+     * @param {HTMLElement} root_element root element
+     * @param {Array<[Number, String]} series_index_names 
+     * @returns 
+     */
+    _create_legend(root_element, series_index_names) {
+        if (!this.bm_chart_data.enable_legend) {
+            return;
+        }
+
+        let legend = document.createElement("div");
+        legend.classList.add("bm-legend");
+        let legend_title = document.createElement("div");
+        legend_title.classList.add("bm-legend-title");
+        legend_title.appendChild(document.createTextNode(this.bm_chart_data.legend_title));
+        legend.appendChild(legend_title);
+        let legend_items = document.createElement("div");
+        legend_items.classList.add("bm-legend-items");
+        for (let [index, series] of series_index_names) {
+            let legend_series = document.createElement("div");
+            legend_series.classList.add("bm-legend-item", "bm-bar-group-" + (index + 1));
+            legend_series.appendChild(document.createTextNode(series));
+            legend_items.appendChild(legend_series);
+            // required to space the legend items
+            legend_items.appendChild(document.createTextNode(" "));
+        }
+        legend.appendChild(legend_items);
+
+        root_element.appendChild(legend);
     }
 
     create_chart() {
+        // filter out unwanted data
+        let effective_series_index_names = Array.from(this.bm_chart_data.series_names.entries()).filter(([index, series]) => {
+            // filter by itemlevels
+            return !this.bm_chart_data.filter_trinket_itemlevels.includes(series);
+        })
+
+        let effective_sorted_data_keys = this.bm_chart_data.sorted_data_keys.slice().filter((key) => {
+            // remove "baseline"
+            return key !== "baseline";
+        }).filter((key) => {
+            // filter by data_source
+            if (this.bm_chart_data.loaded_data.hasOwnProperty("data_sources")) {
+                return !this.bm_chart_data.filter_trinket_sources.includes(this.bm_chart_data.loaded_data["data_sources"][key])
+            }
+            return true;
+        }).filter((value) => {
+            // filter by **active** part of active_passive
+            if (this.bm_chart_data.data_type === "trinkets" && (this.bm_chart_data.filter_trinket_active_passive.includes("active") || this.bm_chart_data.filter_trinket_active_passive.includes("Active"))) {
+                return this.bm_chart_data.loaded_data["data_active"][value] === false;
+            }
+            return true;
+        }).filter((value) => {
+            // filter by **passive** part of active_passive
+            if (this.bm_chart_data.data_type === "trinkets" && (this.bm_chart_data.filter_trinket_active_passive.includes("passive") || this.bm_chart_data.filter_trinket_active_passive.includes("Passive"))) {
+                return this.bm_chart_data.loaded_data["data_active"][value] === true;
+            }
+            return true;
+        }).filter((key) => {
+            // filter by no-remaining series
+            if (this.bm_chart_data.data_type === "trinkets") {
+                for (const tmp_series of Object.keys(this.bm_chart_data.data[key])) {
+                    if (!this.bm_chart_data.filter_trinket_itemlevels.includes(
+                        Number.parseInt(tmp_series)
+                    )) {
+                        return true;
+                    }
+                }
+                return false;
+            } else {
+                return true;
+            }
+        }).sort((a, b) => {
+            let a_dps_object = structuredClone(this.bm_chart_data.data[a]);
+            for (let key of Object.keys(a_dps_object)) {
+                if (this.bm_chart_data.filter_trinket_itemlevels.includes(
+                    Number.parseInt(key)
+                )) {
+                    delete a_dps_object[Number.parseInt(key)];
+                }
+            }
+            let b_dps_object = structuredClone(this.bm_chart_data.data[b]);
+            for (let key of Object.keys(b_dps_object)) {
+                if (this.bm_chart_data.filter_trinket_itemlevels.includes(
+                    Number.parseInt(key)
+                )) {
+                    delete b_dps_object[Number.parseInt(key)];
+                }
+            };
+            let a_dps = Math.max(...Object.values(a_dps_object));
+            let b_dps = Math.max(...Object.values(b_dps_object));
+            if (Number.isInteger(a_dps_object) && Number.isInteger(b_dps_object)) {
+                a_dps = a_dps_object;
+                b_dps = b_dps_object;
+            }
+            // power infusion special way to sort
+            if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+                a_dps = this.bm_chart_data.data[a] - this.bm_chart_data.data["{" + a + "}"];
+                b_dps = this.bm_chart_data.data[b] - this.bm_chart_data.data["{" + b + "}"];
+                if (this.bm_chart_data.value_calculation === "relative") {
+                    a_dps = a_dps / this.bm_chart_data.data[a];
+                    b_dps = b_dps / this.bm_chart_data.data[b];
+                }
+            }
+            return b_dps - a_dps;
+        });
+        if (this.bm_chart_data.show_top > 0) {
+            effective_sorted_data_keys = effective_sorted_data_keys.slice(0, this.bm_chart_data.show_top);
+        }
+
         let root = this.bm_chart_data.root_element;
         root.classList.add("bm-bar-chart");
 
         this.bm_chart_data.add_title(root);
         this.bm_chart_data.add_subtitle(root);
         this.bm_chart_data.add_simc_subtitle(root);
+        this._create_legend(root, effective_series_index_names);
 
         // axis titles
         let axis_titles = document.createElement("div");
-        axis_titles.classList.add("bm-row");
+        axis_titles.classList.add("bm-axis", "bm-row");
         let key_title = document.createElement("div");
         key_title.classList.add("bm-key-title");
         // key_title.appendChild(document.createTextNode(this.y_axis_title));
         axis_titles.appendChild(key_title);
+        // axis title
         let bar_title = document.createElement("div");
         bar_title.classList.add("bm-bar-title");
-        // bar start
+        // min value
+        let min = document.createElement("span");
+        min.classList.add("bm-bar-min")
         if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
-            let min = document.createElement("span");
-            min.classList.add("bm-bar-min")
-
             let unit = create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
 
             if (this.bm_chart_data.value_calculation === "absolute") {
@@ -541,33 +892,53 @@ class BmBarChart {
                 min.appendChild(document.createTextNode(0));
                 min.appendChild(unit);
             }
-
-            bar_title.appendChild(min);
+        } else {
+            min.appendChild(document.createTextNode(0));
         }
+        bar_title.appendChild(min);
         bar_title.appendChild(document.createTextNode(this.bm_chart_data.x_axis_title));
-        // bar end
+        // max value
+        let max = document.createElement("span");
+        max.classList.add("bm-bar-max")
         if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
-            let max = document.createElement("span");
-            max.classList.add("bm-bar-max")
-
             let unit = create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
 
             let base_value = this.bm_chart_data.base_values[this.bm_chart_data.series_names[this.bm_chart_data.series_names.length - 1]];
+
             if (this.bm_chart_data.value_calculation === "absolute") {
                 max.appendChild(unit);
-                max.appendChild(document.createTextNode(this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value)));
+                if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+                    max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.global_max_value)));
+                } else {
+                    max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value))));
+                }
             } else if (this.bm_chart_data.value_calculation === "relative") {
-                max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_relative_gain(this.bm_chart_data.global_max_value, base_value))));
+                let relative_gain = -1;
+                if (this.bm_chart_data.wow_class === "evoker" && this.bm_chart_data.wow_spec === "augmentation") {
+                    let aug_base_value = this.bm_chart_data.loaded_data["profile"]["metadata"]["base_dps"];
+                    let raw_gain = this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value);
+                    // console.log("augmentation had a raw gain of", raw_gain, "dps compared to its own max dps of", aug_base_value);
+                    relative_gain = this.bm_chart_data.get_relative_gain(aug_base_value + raw_gain, aug_base_value);
+                } else {
+                    if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+                        relative_gain = this.bm_chart_data.global_max_value;
+                    } else {
+                        relative_gain = this.bm_chart_data.get_relative_gain(this.bm_chart_data.global_max_value, base_value);
+                    }
+                }
+
+                max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(relative_gain)));
                 max.appendChild(unit);
             }
-
-            bar_title.appendChild(max);
+        } else {
+            max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.global_max_value, 0)));
         }
+        bar_title.appendChild(max);
         axis_titles.appendChild(bar_title);
         root.appendChild(axis_titles);
 
         // actual data / bars
-        for (let key of this.bm_chart_data.sorted_data_keys) {
+        for (let key of effective_sorted_data_keys) {
             let row = document.createElement("div");
             row.classList.add("bm-row");
             let key_div = document.createElement("div");
@@ -579,7 +950,45 @@ class BmBarChart {
             // add bar elements
             let steps = [];
             let previous_value = 0;
-            for (let [index, series] of this.bm_chart_data.series_names.entries()) {
+            // chart types without multiple series
+            if (this.bm_chart_data.data_type === "races") {
+                // absolute calc
+                let relative_value = (this.bm_chart_data.data[key]) * 100 / (this.bm_chart_data.global_max_value);
+                if (relative_value - previous_value >= 0.0) {
+                    steps.push(relative_value - previous_value);
+                    previous_value = relative_value;
+                } else {
+                    steps.push(0);
+                }
+                let bar_part = document.createElement("div");
+                bar_part.classList.add("bm-bar-element", "bm-bar-group-1");
+                bar.appendChild(bar_part);
+                bar_part.addEventListener("click", (ev) => {
+                    this.create_vertical_line(ev);
+                });
+            } else if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+                let value = 0;
+                if (this.bm_chart_data.value_calculation === "relative") {
+                    //  relative
+                    value = ((this.bm_chart_data.data[key] - this.bm_chart_data.data["{" + key + "}"]) * 100 / this.bm_chart_data.data[key]) * 100 / this.bm_chart_data.global_max_value;
+                } else {
+                    // absolute calc
+                    value = (this.bm_chart_data.data[key] - this.bm_chart_data.data["{" + key + "}"]) * 100 / this.bm_chart_data.global_max_value;
+                }
+                if (value - previous_value >= 0.0) {
+                    steps.push(value - previous_value);
+                    previous_value = value;
+                } else {
+                    steps.push(0);
+                }
+                let bar_part = document.createElement("div");
+                bar_part.classList.add("bm-bar-element", "bm-bar-group-1");
+                bar.appendChild(bar_part);
+                bar_part.addEventListener("click", (ev) => {
+                    this.create_vertical_line(ev);
+                });
+            }
+            for (let [index, series] of effective_series_index_names) {
                 if (!this.bm_chart_data.data[key].hasOwnProperty(series)) {
                     // data doesn't have series element, skipping
                     continue;
@@ -594,13 +1003,36 @@ class BmBarChart {
                 }
                 let bar_part = document.createElement("div");
                 bar_part.classList.add("bm-bar-element", "bm-bar-group-" + (index + 1));
+
                 // add final stack value as readable text
-                if (index === this.bm_chart_data.series_names.length - 1) {
-                    let final_stack_value = document.createElement("span");
-                    final_stack_value.classList.add("bm-bar-final-value");
-                    final_stack_value.appendChild(document.createTextNode(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation)));
-                    bar_part.appendChild(final_stack_value);
+                if (this.bm_chart_data.enable_end_of_bar_values) {
+                    let key_available_series = Object.keys(this.bm_chart_data.data[key]);
+                    let filtered_available_series = key_available_series.filter((value) => {
+                        return !this.bm_chart_data.filter_trinket_itemlevels.includes(value);
+                    }).map((value) => {
+                        return Number.parseInt(value);
+                    });
+                    let highest_available_series_of_key = Math.max(...filtered_available_series);
+                    console.log(key_available_series, filtered_available_series, highest_available_series_of_key, series);
+                    if (series === highest_available_series_of_key) {
+                        let final_stack_value = document.createElement("span");
+                        final_stack_value.classList.add("bm-bar-final-value");
+                        final_stack_value.appendChild(
+                            document.createTextNode(
+                                this.bm_chart_data.convert_number_to_local(
+                                    this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation)
+                                )
+                            )
+                        );
+                        if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                            final_stack_value.appendChild(
+                                create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation])
+                            );
+                        }
+                        bar_part.appendChild(final_stack_value);
+                    }
                 }
+
                 bar.appendChild(bar_part);
                 // add more information for debugging
                 // bar_part.dataset.end = previous_value;
@@ -622,57 +1054,35 @@ class BmBarChart {
             // bar.dataset.html = "true";
             // bar.title = this.create_tooltip(key);
             // bm-tooltips
-            this.bm_chart_data.add_tooltip(bar, this.create_tooltip(key), "left");
+            this.bm_chart_data.add_tooltip(bar, this.create_tooltip(key, effective_series_index_names), "left");
 
             row.appendChild(bar);
             root.appendChild(row);
         }
 
-        // legend
-        let legend = document.createElement("div");
-        legend.classList.add("bm-legend");
-        let legend_title = document.createElement("div");
-        legend_title.classList.add("bm-legend-title");
-        legend_title.appendChild(document.createTextNode(this.bm_chart_data.legend_title));
-        legend.appendChild(legend_title);
-        let legend_items = document.createElement("div");
-        legend_items.classList.add("bm-legend-items");
-        for (let [index, series] of this.bm_chart_data.series_names.entries()) {
-            let legend_series = document.createElement("div");
-            legend_series.classList.add("bm-legend-item", "bm-bar-group-" + (index + 1));
-            legend_series.appendChild(document.createTextNode(series));
-            legend_items.appendChild(legend_series);
-            // required to space the legend items
-            legend_items.appendChild(document.createTextNode(" "));
-        }
-        legend.appendChild(legend_items);
-        root.appendChild(legend)
     }
 
-    create_tooltip(key) {
+    /**
+     * Create the string representation of a html structured tooltip.
+     * @param {String} key 
+     * @param {Array<[Number, String]>} index_series
+     * @returns {String}
+     */
+    create_tooltip(key, indexed_series) {
+        // use own local copy
+        indexed_series = indexed_series.slice();
         let container = document.createElement("div");
         container.classList.add("bm-tooltip-container");
 
         let title = document.createElement("div");
         title.classList.add("bm-tooltip-title");
         let translated_name = this.bm_chart_data.get_translated_name(key);
+        // translated_name = this._shorten_name(translated_name);
         title.appendChild(document.createTextNode(translated_name));
         container.appendChild(title);
 
-        let series_names = this.bm_chart_data.series_names.slice();
-        let bm_bar_group_classes = [];
-        for (let i = 1; i <= series_names.length; i++) {
-            bm_bar_group_classes.push("bm-bar-group-" + i);
-        }
-
-        let reverse = true;
-        if (reverse) {
-            series_names = series_names.reverse();
-            bm_bar_group_classes = bm_bar_group_classes.reverse();
-        }
-
         // inverse sort to have the table start with the highest value
-        for (let [index, series] of series_names.entries()) {
+        for (let [index, series] of indexed_series.reverse()) {
             if (!this.bm_chart_data.data[key].hasOwnProperty(series)) {
                 // data doesn't have series element, skipping
                 continue;
@@ -681,14 +1091,71 @@ class BmBarChart {
             row.classList.add("bm-tooltip-row");
 
             let key_div = document.createElement("div");
-            // TODO: Index for colour is wrong because the series was inverted
-            key_div.classList.add("bm-tooltip-key", bm_bar_group_classes[index]);
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-" + (index + 1));
             key_div.appendChild(document.createTextNode(series));
             row.appendChild(key_div);
 
             let value_div = document.createElement("div");
             value_div.classList.add("bm-tooltip-value");
-            let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
+            let mantissa = 2;
+            if (this.bm_chart_data.value_calculation === "total") {
+                mantissa = 0;
+            }
+            let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation), mantissa);
+            if (this.bm_chart_data.value_calculation === "absolute" && this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+            }
+            value_div.appendChild(document.createTextNode(value));
+            if (this.bm_chart_data.value_calculation === "relative" && this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+            }
+            row.appendChild(value_div);
+
+            container.appendChild(row);
+        }
+        // chart types without multiple series
+        if (this.bm_chart_data.data_type === "races") {
+            let row = document.createElement("div");
+            row.classList.add("bm-tooltip-row");
+
+            let key_div = document.createElement("div");
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
+            key_div.appendChild(document.createTextNode(key));
+            row.appendChild(key_div);
+
+            let value_div = document.createElement("div");
+            value_div.classList.add("bm-tooltip-value");
+            let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.data[key]);
+            // let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
+            value_div.appendChild(document.createTextNode(value));
+            if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+            }
+            row.appendChild(value_div);
+
+            container.appendChild(row);
+        } else if (["power_infusion", "windfury_totem"].indexOf(this.bm_chart_data.data_type) > -1) {
+            let row = document.createElement("div");
+            row.classList.add("bm-tooltip-row");
+
+            let key_div = document.createElement("div");
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
+            let abbreviation = {
+                "power_infusion": "PI",
+                "windfury_totem": "WFT"
+            }
+            key_div.appendChild(document.createTextNode(abbreviation[this.bm_chart_data.data_type]));
+            row.appendChild(key_div);
+
+            let value_div = document.createElement("div");
+            value_div.classList.add("bm-tooltip-value");
+            let value = -1;
+            if (this.bm_chart_data.value_calculation === "relative") {
+                value = this.bm_chart_data.convert_number_to_local((this.bm_chart_data.data[key] - this.bm_chart_data.data["{" + key + "}"]) * 100 / this.bm_chart_data.data[key]);
+            } else {
+                value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.data[key] - this.bm_chart_data.data["{" + key + "}"]);
+            }
+            // let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
             value_div.appendChild(document.createTextNode(value));
             if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
                 value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
@@ -697,6 +1164,7 @@ class BmBarChart {
 
             container.appendChild(row);
         }
+
 
         let legend = document.createElement("div");
         legend.classList.add("bm-tooltip-row");
@@ -715,7 +1183,6 @@ class BmBarChart {
 
         return container.outerHTML;
     }
-
 
     remove_vertical_line() {
         if (this.vertical_line !== undefined) {
@@ -770,11 +1237,10 @@ class BmRadarChart {
     constructor(chart_data = new BmChartData()) {
         this.bm_chart_data = chart_data;
 
+        this.bm_chart_data.clean_up_root();
+
         this.create_chart();
 
-        // $(function () {
-        //     $('[data-toggle="tooltip"]').tooltip()
-        // })
         try {
             $WowheadPower.refreshLinks();
         } catch (error) {
@@ -783,6 +1249,10 @@ class BmRadarChart {
         }
         add_bm_tooltips_to_dom();
         bm_add_css(BmChartStyleId, BmChartStyleUrl);
+
+        if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
+            provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
+        }
     }
 
     create_chart() {
@@ -806,10 +1276,10 @@ class BmRadarChart {
 
         table.appendChild(this.create_distribution_table(v_crit, v_haste, v_mastery, v_vers, dps));
 
-        table.appendChild(this.create_radar_chart(v_crit, v_haste, v_mastery, v_vers, dps, true, false, size));
+        table.appendChild(this.create_main_radar(v_crit, v_haste, v_mastery, v_vers, dps, size));
 
         let stacked_overview_table = document.createElement("div");
-        stacked_overview_table.style.display = "table";
+        // stacked_overview_table.style.display = "table";
         stacked_overview_table.appendChild(this.create_mini_radar_row(v_crit, v_haste, v_mastery, v_vers, dps, size, zoom, 0));
         stacked_overview_table.appendChild(this.create_mini_radar_row(70, 10, 10, 10, dps, size, zoom));
         stacked_overview_table.appendChild(this.create_mini_radar_row(10, 70, 10, 10, dps, size, zoom));
@@ -838,10 +1308,14 @@ class BmRadarChart {
         let table = document.createElement("div");
         table.classList.add("bm-stat-table");
 
+        let floater = document.createElement("div");
+        floater.classList.add("bm-stat-floater");
+        table.appendChild(floater);
+
         // header
         let header = document.createElement("div");
         header.classList.add("bm-stat-header");
-        table.appendChild(header);
+        floater.appendChild(header);
 
         // let stat = document.createElement("div");
         // stat.classList.add("bm-stat-cell");
@@ -918,10 +1392,10 @@ class BmRadarChart {
             return value
         }
 
-        table.appendChild(add_row("Critical Strike", crit, get_rating(crit, this.bm_chart_data.secondary_sum), get_ingame(crit, this.bm_chart_data.secondary_sum, "Critical Strike")));
-        table.appendChild(add_row("Haste", haste, get_rating(haste, this.bm_chart_data.secondary_sum), get_ingame(haste, this.bm_chart_data.secondary_sum, "Haste")));
-        table.appendChild(add_row("Mastery", mastery, get_rating(mastery, this.bm_chart_data.secondary_sum), get_ingame(mastery, this.bm_chart_data.secondary_sum, "Mastery")));
-        table.appendChild(add_row("Versatility", vers, get_rating(vers, this.bm_chart_data.secondary_sum), get_ingame(vers, this.bm_chart_data.secondary_sum, "Versatility")));
+        floater.appendChild(add_row("Critical Strike", crit, get_rating(crit, this.bm_chart_data.secondary_sum), get_ingame(crit, this.bm_chart_data.secondary_sum, "Critical Strike")));
+        floater.appendChild(add_row("Haste", haste, get_rating(haste, this.bm_chart_data.secondary_sum), get_ingame(haste, this.bm_chart_data.secondary_sum, "Haste")));
+        floater.appendChild(add_row("Mastery", mastery, get_rating(mastery, this.bm_chart_data.secondary_sum), get_ingame(mastery, this.bm_chart_data.secondary_sum, "Mastery")));
+        floater.appendChild(add_row("Versatility", vers, get_rating(vers, this.bm_chart_data.secondary_sum), get_ingame(vers, this.bm_chart_data.secondary_sum, "Versatility")));
 
         return table;
     }
@@ -978,6 +1452,16 @@ class BmRadarChart {
         return row;
     }
 
+    create_main_radar(crit, haste, mastery, vers, dps, size) {
+        let floater = document.createElement("div");
+        floater.classList.add("bm-radar-main-radar");
+
+        let radar = this.create_radar_chart(crit, haste, mastery, vers, dps, true, false, size);
+        floater.appendChild(radar);
+
+        return floater;
+    }
+
     /**
      * Create a radar chart.
      * @param {Number} crit 
@@ -998,8 +1482,12 @@ class BmRadarChart {
         let legend_space = max_value / 10;
 
         let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("height", size * zoom);
-        svg.setAttribute("width", size * zoom);
+        // svg.setAttribute("height", size * zoom);
+        // svg.setAttribute("width", size * zoom);
+        svg.style.minWidth = "45px";
+        // svg.style.maxWidth = "100px";
+        svg.style.maxWidth = "365px";
+        svg.style.margin = "auto";
         svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
 
         // background
@@ -1089,3 +1577,75 @@ class BmRadarChart {
         return svg;
     }
 }
+
+function bm_import_charts() {
+    // find bloodmallet_chart class elements
+    let chart_anchors = document.querySelectorAll("div.bloodmallet_chart");
+    // console.log(chart_anchors);
+    const endpoint = "https://bloodmallet.com/chart/get";
+
+    for (const chart_anchor of chart_anchors) {
+        let request_endpoint = undefined;
+        if (chart_anchor.dataset.hasOwnProperty("chartId")) {
+            // if chart_id -> load id
+            let chart_id = chart_anchor.dataset["chartId"];
+            // console.log("Identified chart id:", chart_id);
+            request_endpoint = endpoint + "/" + chart_id;
+        } else if (chart_anchor.dataset.hasOwnProperty("wowClass") && chart_anchor.dataset.hasOwnProperty("wowSpec")) {
+            // elif class & spec [& chart type] [& fight style] -> load general data
+            let wow_class = chart_anchor.dataset["wowClass"];
+            let wow_spec = chart_anchor.dataset["wowSpec"];
+            let chart_type = "trinkets";
+            if (chart_anchor.dataset.hasOwnProperty("type")) {
+                chart_type = chart_anchor.dataset["type"];
+            }
+            let fight_style = "castingpatchwerk";
+            if (chart_anchor.dataset.hasOwnProperty("fightStyle")) {
+                fight_style = chart_anchor.dataset["fightStyle"];
+            }
+            // console.log("Identified chart_import for standard", chart_type, "chart of fight_style", fight_style, "for", wow_spec, wow_class);
+            request_endpoint = [endpoint, chart_type, fight_style, wow_class, wow_spec].join("/");
+        }
+        // console.log("bloodmallet.com: loading chart from", request_endpoint);
+
+        let request = new XMLHttpRequest();
+        request.open("GET", request_endpoint, true); // async request
+        request.onload = function (e) {
+            // console.log(e);
+            if (request.readyState === 4) {
+                if (request.status === 200) {
+                    // store loaded data in html element
+                    chart_anchor.dataset.loadedData = request.responseText;
+                    // console.log("Added data to ", chart_anchor, "from request", request_endpoint);
+
+                    // create BmChartData from element
+                    let bm_data = new BmChartData(chart_anchor);
+                    // console.log(bm_data.data_type);
+                    // get chart type from loaded data
+                    let chart = BmBarChart;
+                    if (bm_data.data_type === "secondary_distributions") {
+                        // create Chart based on chart type 
+                        chart = BmRadarChart;
+                    }
+
+                    new chart(bm_data);
+
+                    // let json = JSON.parse(request.responseText);
+                    // console.log(json);
+                    // console.log("Load and save finished.");
+                } else {
+                    console.error("Fetching data from", request_endpoint, "received status code", request.status, "and status text:", request.statusText);
+                }
+            }
+        };
+        request.onerror = function (e) {
+            console.error("Fetching data from '" + request_endpoint + "' encountered an error:", e);
+        };
+        request.send(null);
+    }
+}
+
+// Load data on document load
+document.addEventListener("DOMContentLoaded", function () {
+    bm_import_charts();
+});

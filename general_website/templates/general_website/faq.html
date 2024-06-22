@@ -10,14 +10,14 @@
         <h2 id="what-is-bloodmallet" class="faq-question">What is bloodmallet.com?</h2>
         <p>
             bloodmallet.com offers DPS simulation data for everyone for World of Warcraft. Comparing different setups
-            often requires simulations. To ease this need for information bloodmallet.com offers a wide range of
-            prepared simulation data. This way you can get your overview a lot quicker and get back into the action
-            faster.
+            often requires simulations. To make this information more accessible bloodmallet.com offers a wide range of
+            prepared simulation data. This way you can get your overview a lot quicker and get back to gaming faster.
         </p>
         <p>
-            As with all prepared information, the exact context of your character is missing and that can change
-            the outcome. <a href="https://www.patreon.com/bloodmallet">Patrons</a> of this project are able to create
-            their own custom charts with their own character input. This way they can get a for them specific overview.
+            Prepared information is a great starting point, but the exact context of your character is missing and that
+            can change the outcome. <a href="https://www.patreon.com/bloodmallet">Patrons</a> of this project are able
+            to create their own custom charts with their own character input. This way they can get information specific
+            to their character.
         </p>
         <p>If you enjoy this resource and want to create your own charts? Become a Patron:
         </p>
@@ -29,90 +29,77 @@
     <div class="offset-md-1 col-md-10 mt-5">
         <h2 id="data-generation" class="faq-question">How is the data generated?</h2>
         <p>
-            <a href="http://www.simulationcraft.org/">SimulationCraft</a> is used to generate all the
-            data you can find here. Creating the required input to run SimulationCraft and managing the process is done
-            by the open source project <a href="https://github.com/Bloodmallet/bloodytools">bloodytools</a>.
+            <a href="http://www.simulationcraft.org/">SimulationCraft</a> (open source) is used to generate all the
+            data you can find here. The input generation for SimulationCraft and process management are done by <a
+                href="https://github.com/Bloodmallet/bloodytools">bloodytools</a> (open source).
         </p>
     </div>
     <div class="offset-md-1 col-md-10 mt-5">
-        <h2 id="generation-settings" class="faq-question">What settings are used to create the data?</h2>
+        <h2 id="generation-settings" class="faq-question">What settings are used to run simulations?</h2>
         <table class="table">
             <thead>
                 <tr>
-                    <th scope="col">Setting (fight style)</th>
-                    <th>CastingPatchwerk</th>
-                    <th>~ 3</th>
-                    <th>~ 5</th>
+                    <th scope="col">Setting</th>
+                    <th>Value</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <th scope="row">Number of permanent targets</th>
-                    <td>1</td>
-                    <td>3</td>
-                    <td>5</td>
-                </tr>
-                <tr>
                     <th scope="row">Profile/Tier</th>
-                    <td>T30 (Aberrus)</td>
-                    <td>T30 (Aberrus)</td>
-                    <td>T30 (Aberrus)</td>
-                </tr>
-                <tr>
-                    <th scope="row">Iterations</th>
-                    <td>20000 (sufficient to reach target_error)</td>
-                    <td>20000 (sufficient to reach target_error)</td>
-                    <td>20000 (sufficient to reach target_error)</td>
+                    <td><a href="https://github.com/simulationcraft/simc/tree/dragonflight/profiles/DF4">DF4</a>
+                        (Dragonflight: Season 4)</td>
                 </tr>
                 <tr>
                     <th scope="row">Target Error</th>
                     <td>0.1%</td>
-                    <td>0.1%</td>
-                    <td>0.1%</td>
+                </tr>
+                <tr>
+                    <th scope="row">Iterations</th>
+                    <td>60000 (sufficient to reach target_error)</td>
                 </tr>
                 <tr>
                     <th scope="row">Max Time</th>
-                    <td>300 seconds</td>
-                    <td>300 seconds</td>
                     <td>300 seconds</td>
                 </tr>
                 <tr>
                     <th scope="row">Vary Combat Length</th>
                     <td>20%</td>
-                    <td>20%</td>
-                    <td>20%</td>
                 </tr>
                 <tr>
                     <th scope="row">Fixed Time</th>
-                    <td>true</td>
-                    <td>true</td>
                     <td>true</td>
                 </tr>
                 <tr>
                     <th scope="row">Default Actions</th>
                     <td>true</td>
-                    <td>true</td>
-                    <td>true</td>
                 </tr>
                 <tr>
                     <th scope="row">Optimize Expressions</th>
                     <td>true</td>
-                    <td>true</td>
-                    <td>true</td>
                 </tr>
                 <tr>
                     <th scope="row">Ready Trigger</th>
-                    <td>true</td>
-                    <td>true</td>
                     <td>true</td>
                 </tr>
             </tbody>
         </table>
     </div>
     <div class="offset-md-1 col-md-10 mt-5">
+        <h2 id="fightstyle-explanation" class="faq-question">What are these fight styles?</h2>
+        <p>
+            <strong>CastingPatchwerk</strong> is a non-movement fight with 1 permanent enemy.
+        </p>
+        <p>
+            <strong>CastingPatchwerk3</strong> is a non-movement fight with 3 permanent enemies.
+        </p>
+        <p>
+            <strong>CastingPatchwerk5</strong> is a non-movement fight with 5 permanent enemies.
+        </p>
+    </div>
+    <div class="offset-md-1 col-md-10 mt-5">
         <h2 id="up-to-date" class="faq-question">Are the charts up to date?</h2>
         <p>
-            Each chart shows it's generation UTC date timestamp in its subtitle.
+            Each chart shows its generation UTC date timestamp in its subtitle.
         </p>
     </div>
     <div class="offset-md-1 col-md-10 mt-5">

@@ -668,12 +668,12 @@ function bloodmallet_chart_import() {
     } else if (["legendaries", "soulbind_nodes", "covenants", "domination_shards"].includes(state.data_type)) {
       baseline_dps = data["data"]["baseline"];
     } else {
-      baseline_dps = data["data"]["baseline"][data["simulated_steps"][data["simulated_steps"].length - 1]];
-      if (debug) {
-        console.log("minimal itemlevel", data["simulated_steps"][data["simulated_steps"].length - 1]);
-        console.log("baseline dps dict", data["data"]["baseline"]);
-        console.log("Baseline dps: " + baseline_dps);
-      }
+      baseline_dps = Math.min(...Object.values(data["data"]["baseline"]));
+    }
+    if (debug) {
+      console.log("minimal itemlevel", data["simulated_steps"][data["simulated_steps"].length - 1]);
+      console.log("baseline dps dict", data["data"]["baseline"]);
+      console.log("Baseline dps: " + baseline_dps);
     }
     // add other baseline profiles, e.g. covenant profiles for legendaries
     for (let key of Object.keys(data["data"])) {
