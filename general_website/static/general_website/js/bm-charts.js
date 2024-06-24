@@ -371,6 +371,11 @@ class BmChartData {
 
         this.loaded_data = JSON.parse(this.root_element.dataset.loadedData);
 
+        if (this.loaded_data.status === "error" && this.loaded_data.message !== undefined) {
+            console.error("bm-charts encountered an error while loading data. Error:", this.loaded_data.message);
+            return;
+        }
+
         this._extract_data_from_loaded_data("data_type", ["data_type"]);
         this._extract_data_from_loaded_data("element_id", ["element_id"]);
         this._extract_data_from_loaded_data("title", ["data_type"]);
