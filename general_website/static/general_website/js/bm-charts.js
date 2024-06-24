@@ -745,7 +745,11 @@ class BmBarChart {
         bm_add_css(BmChartStyleId, BmChartStyleUrl);
 
         if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
-            provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
+            try {
+                provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
+            } catch (error) {
+                console.log("Tried to provide metadata to bloodmallet.com, but failed.", error);
+            }
         }
     }
 

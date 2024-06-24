@@ -3,66 +3,68 @@
 
 {% comment %} <header> {% endcomment %}
     <nav class="navbar sticky-top navbar-expand-lg bg-dark navbar-dark top-nav light-border-bottom">
-        <a class="navbar-brand" href="{% url 'index' %}">
-            <img src="{% static 'general_website/assets/bloodmallet.svg' %}" style="width: 35px; vertical-align:top;" />
-            <span id="brand-name" style="font-weight:300;">bloodmallet</span>
-            <!-- <img src="{% static 'general_website/assets/bloodmallet_logo.svg' %}" style="width: 35px; vertical-align:top;" /> <span id="brand-name" style="font-weight:300;">bloodmallet</span> -->
-        </a>
-        <!-- Menu button if device is too small for full menu -->
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTopMenu"
-            aria-controls="navbarTopMenu" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <!-- Menu list -->
-        <div class="collapse navbar-collapse" id="navbarTopMenu">
-
-            <ul class="navbar-nav mr-auto">
-                <a class="nav-link" href="{% url 'chart_windfury_totem' %}"><span style="color:aqua">🌪️</span>
-                    {% translate "Windfury Totem" %}</a>
-                <a class="nav-link" href="{% url 'chart_power_infusion' %}"><span style="color:aqua">🌞</span>
-                    {% translate "Power Infusion" %}</a>
-                <!-- <li class="nav-item">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'index' %}">
+                <img src="{% static 'general_website/assets/bloodmallet.svg' %}"
+                    style="width: 35px; vertical-align:top;" />
+                <span style="font-weight:300;">bloodmallet</span>
+                <!-- <img src="{% static 'general_website/assets/bloodmallet_logo.svg' %}" style="width: 35px; vertical-align:top;" /> <span id="brand-name" style="font-weight:300;">bloodmallet</span> -->
+            </a>
+            <!-- Menu button if device is too small for full menu -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTopMenu"
+                aria-controls="navbarTopMenu" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <!-- Menu list -->
+            <div class="collapse navbar-collapse" id="navbarTopMenu">
+                <ul class="navbar-nav me-auto">
+                    <a class="nav-link" href="{% url 'chart_windfury_totem' %}"><span style="color:aqua">🌪️</span>
+                        {% translate "Windfury Totem" %}</a>
+                    <a class="nav-link" href="{% url 'chart_power_infusion' %}"><span style="color:aqua">🌞</span>
+                        {% translate "Power Infusion" %}</a>
+                    <!-- <li class="nav-item">
                     <a class="nav-link" href="{% url 'tears' %}">{% translate "Meme" %}</a>
                 </li> -->
-                <!-- <li class="nav-item">
+                    <!-- <li class="nav-item">
                     <a class="nav-link" href="{% url 'talent_trees' %}">{% translate "Dragonflight: Talent trees" %}</a>
                 </li> -->
-                {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'my_charts' %}" id="my_charts_link">
-                        {% translate "My Charts" %}
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'my_charts' %}" id="my_charts_link">
+                            {% translate "My Charts" %}
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
 
-            <!-- Settings -->
-            <ul class="navbar-nav ml-auto">
-                {% if not request.user.is_authenticated %}
-                <a class="nav-link" href="{% url 'login' %}" id="navbarLogin">
-                    {% translate "Login" %}
-                </a>
-                <a class="nav-link" href="{% url 'signup' %}" id="navbarSignup">
-                    {% translate "Register" %}
-                </a>
-                {% endif %}
-                {% if request.user.is_authenticated and request.user.is_superuser %}
-                <a class="nav-link" href="{% url 'compute_api:index' %}" id="navbarSuperuser">
-                    {% translate "Superuser" %}
-                </a>
-                <a class="nav-link" href="{% url 'admin:index' %}" id="navbarAdmin">
-                    {% translate "Admin" %}
-                </a>
-                {% endif%}
-                <a class="nav-link" href="{% url 'settings' %}" id="navbarLogin">
-                    {% translate "Settings" %}
-                </a>
-                {% if request.user.is_authenticated %}
-                <a class="nav-link" href="{% url 'logout' %}" id="navbarLogin">
-                    {% translate "Logout" %}
-                </a>
-                {% endif %}
-            </ul>
+                <!-- Settings -->
+                <ul class="navbar-nav d-flex">
+                    {% if not request.user.is_authenticated %}
+                    <a class="nav-link" href="{% url 'login' %}" id="navbarLogin">
+                        {% translate "Login" %}
+                    </a>
+                    <a class="nav-link" href="{% url 'signup' %}" id="navbarSignup">
+                        {% translate "Register" %}
+                    </a>
+                    {% endif %}
+                    {% if request.user.is_authenticated and request.user.is_superuser %}
+                    <a class="nav-link" href="{% url 'compute_api:index' %}" id="navbarSuperuser">
+                        {% translate "Superuser" %}
+                    </a>
+                    <a class="nav-link" href="{% url 'admin:index' %}" id="navbarAdmin">
+                        {% translate "Admin" %}
+                    </a>
+                    {% endif%}
+                    <a class="nav-link" href="{% url 'settings' %}" id="navbarLogin">
+                        {% translate "Settings" %}
+                    </a>
+                    {% if request.user.is_authenticated %}
+                    <a class="nav-link" href="{% url 'logout' %}" id="navbarLogin">
+                        {% translate "Logout" %}
+                    </a>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </nav>
 

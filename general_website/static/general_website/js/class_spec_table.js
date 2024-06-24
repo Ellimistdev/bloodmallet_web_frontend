@@ -88,9 +88,10 @@ function build_table() {
             } else {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
                 a_spec_btn.href = '';
-                a_spec_btn.dataset.toggle = "tooltip";
-                a_spec_btn.dataset.placement = "top";
-                a_spec_btn.dataset.title = "Missing SimulationCraft profile or lack of dps support for the spec.";
+                a_spec_btn.setAttribute("data-type", "bm-tooltip");
+                // a_spec_btn.title = "Missing SimulationCraft profile or lack of dps support for the spec.";
+                a_spec_btn.setAttribute("data-bm-tooltip-text", "Missing SimulationCraft profile or lack of dps support for the spec.");
+                a_spec_btn.setAttribute("data-bm-tooltip-placement", "top");
             }
 
             a_spec_btn.innerHTML = capitalize_first_letters(wow_spec).replace("_", " ");
@@ -98,7 +99,7 @@ function build_table() {
         }
         table.appendChild(div_class_cell);
     }
-    $('[data-toggle="tooltip"]').tooltip();
+    bm_register_tooltips();
 }
 
 

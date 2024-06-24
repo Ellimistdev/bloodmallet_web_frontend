@@ -57,17 +57,19 @@ function update_navbarClassMenu(state) {
     // create base element with selected class
     let li_nav_item_class = document.createElement("li");
     li_nav_item_class.className = "nav-item dropdown";
-    ul_nav.appendChild(li_nav_item_class);
+
     let a_nav_link = document.createElement("a");
     a_nav_link.className = "nav-link dropdown-toggle " + state.wow_class + "-color " + state.wow_class + "-menu-border";
-    a_nav_link.href = "";
-    a_nav_link.setAttribute("data-toggle", "dropdown");
-    a_nav_link.setAttribute("aria-haspopup", "true");
+    a_nav_link.href = "#";
+    a_nav_link.role = "button";
+    a_nav_link.setAttribute("data-bs-toggle", "dropdown");
+    // a_nav_link.setAttribute("aria-haspopup", "true");
     a_nav_link.setAttribute("aria-expanded", "false");
     a_nav_link.id = "navbar_wow_class_selection";
 
     a_nav_link.innerText = capitalize_first_letters(state.wow_class).replace("_", " ");
     li_nav_item_class.appendChild(a_nav_link);
+    ul_nav.appendChild(li_nav_item_class);
 
     // create drop down div
     let div_dropdown = document.createElement("div");
@@ -111,8 +113,8 @@ function update_navbarClassMenu(state) {
     let a_nav_link_spec = document.createElement("a");
     a_nav_link_spec.className = "nav-link dropdown-toggle " + state.wow_class + "-color " + state.wow_class + "-menu-border";
     a_nav_link_spec.href = "";
-    a_nav_link_spec.setAttribute("data-toggle", "dropdown");
-    a_nav_link_spec.setAttribute("aria-haspopup", "true");
+    a_nav_link_spec.setAttribute("data-bs-toggle", "dropdown");
+    // a_nav_link_spec.setAttribute("aria-haspopup", "true");
     a_nav_link_spec.setAttribute("aria-expanded", "false");
     a_nav_link_spec.id = "navbar_wow_spec_selection";
 
@@ -187,8 +189,8 @@ function update_navbarClassMenu(state) {
     let a_nav_link_simulation_type = document.createElement("a");
     a_nav_link_simulation_type.className = "nav-link dropdown-toggle " + state.wow_class + "-color " + state.wow_class + "-menu-border";
     a_nav_link_simulation_type.href = "";
-    a_nav_link_simulation_type.setAttribute("data-toggle", "dropdown");
-    a_nav_link_simulation_type.setAttribute("aria-haspopup", "true");
+    a_nav_link_simulation_type.setAttribute("data-bs-toggle", "dropdown");
+    // a_nav_link_simulation_type.setAttribute("aria-haspopup", "true");
     a_nav_link_simulation_type.setAttribute("aria-expanded", "false");
     a_nav_link_simulation_type.id = "navbar_simulation_type_selection";
 
@@ -219,8 +221,8 @@ function update_navbarClassMenu(state) {
     let a_nav_link_fight_style = document.createElement("a");
     a_nav_link_fight_style.className = "nav-link dropdown-toggle " + state.wow_class + "-color " + state.wow_class + "-menu-border";
     a_nav_link_fight_style.href = "";
-    a_nav_link_fight_style.setAttribute("data-toggle", "dropdown");
-    a_nav_link_fight_style.setAttribute("aria-haspopup", "true");
+    a_nav_link_fight_style.setAttribute("data-bs-toggle", "dropdown");
+    // a_nav_link_fight_style.setAttribute("aria-haspopup", "true");
     a_nav_link_fight_style.setAttribute("aria-expanded", "false");
     a_nav_link_fight_style.id = "navbar_fight_style_selection";
 

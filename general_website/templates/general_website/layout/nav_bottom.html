@@ -2,66 +2,69 @@
 {% load static %}
 <footer>
     <nav class="navbar navbar-expand-lg bg-dark navbar-dark bottom-nav">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarBottomMenu"
-            aria-controls="navbarBottomMenu" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarBottomMenu">
-            <ul class="navbar-nav mr-auto">
-                {% if not user.is_superuser and not user.patron_uuid and not user.is_guide_writer and not user.is_simulationcraft_developer %}
-                <li class="nav-item patron-link">
-                    <a class="nav-link" href="https://www.patreon.com/bloodmallet">
-                        <svg class="svg-icon">
-                            <use xlink:href="{% static 'general_website/assets/social-icons.svg' %}#patreon"></use>
-                        </svg>
-                        <span style="color: #F96854;">{% translate "Patreon" %}</span>
-                    </a>
-                </li>
-                {% endif %}
-                <li class="nav-item">
-                    <a class="nav-link" href="https://github.com/Bloodmallet/bloodmallet_web_frontend/issues">
-                        <svg class="svg-icon">
-                            <use xlink:href="{% static 'general_website/assets/social-icons.svg' %}#github"></use>
-                        </svg>
-                        <span>{% translate "Bugreport" %}</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="https://discord.gg/PKT2PWGB6w">
-                        <div class="svg-icon">
+        <div class="container-fluid">
+            <div class="collapse navbar-collapse" id="navbarBottomMenu">
+                <ul class="navbar-nav me-auto">
+                    {% if not user.is_superuser and not user.patron_uuid and not user.is_guide_writer and not user.is_simulationcraft_developer %}
+                    <li class="nav-item patron-link">
+                        <a class="nav-link" href="https://www.patreon.com/bloodmallet">
                             <svg class="svg-icon">
-                                <use xlink:href="{% static 'general_website/assets/social-icons.svg' %}#discord"></use>
+                                <use xlink:href="{% static 'general_website/assets/social-icons.svg' %}#patreon"></use>
                             </svg>
-                        </div>
-                        <span>Discord</span>
-                    </a>
-                </li>
-            </ul>
+                            <span style="color: #F96854;">{% translate "Patreon" %}</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://github.com/Bloodmallet/bloodmallet_web_frontend/issues">
+                            <svg class="svg-icon">
+                                <use xlink:href="{% static 'general_website/assets/social-icons.svg' %}#github"></use>
+                            </svg>
+                            <span>{% translate "Bugreport" %}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://discord.gg/PKT2PWGB6w">
+                            <div class="svg-icon">
+                                <svg class="svg-icon">
+                                    <use xlink:href="{% static 'general_website/assets/social-icons.svg' %}#discord">
+                                    </use>
+                                </svg>
+                            </div>
+                            <span>Discord</span>
+                        </a>
+                    </li>
+                </ul>
 
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'handbook' %}">
-                        {% translate "Handbook" %}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'faq' %}">
-                        {% translate "FAQ" %}
-                    </a>
-                </li>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'handbook' %}">
+                            {% translate "Handbook" %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faq' %}">
+                            {% translate "FAQ" %}
+                        </a>
+                    </li>
 
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'about' %}">{% translate "About" %}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'terms_and_conditions' %}">
-                        {% translate "Terms and Conditions" %}
-                    </a>
-                </li>
-                {% comment %} <li class="nav-item">
-                    <a class="nav-link" href="{% url 'privacy_policy' %}">{% translate "Privacy Policy" %}</a>
-                </li> {% endcomment %}
-            </ul>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'about' %}">{% translate "About" %}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'terms_and_conditions' %}">
+                            {% translate "Terms and Conditions" %}
+                        </a>
+                    </li>
+                    {% comment %} <li class="nav-item">
+                        <a class="nav-link" href="{% url 'privacy_policy' %}">{% translate "Privacy Policy" %}</a>
+                    </li> {% endcomment %}
+                </ul>
+            </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarBottomMenu"
+                aria-controls="navbarBottomMenu" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
         </div>
     </nav>
 </footer>

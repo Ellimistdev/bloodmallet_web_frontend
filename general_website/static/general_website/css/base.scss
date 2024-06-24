@@ -71,9 +71,16 @@ $input-color: $lightest-color;
 $input-bg: $darkest-color;
 $input-border-color: $light-color;
 
+$table-color: $input-color;
+
 // card style override
 $card-bg: $body-bg;
 $card-border-color: $light-color;
+
+$accordion-button-bg: $darkest-color;
+$accordion-button-active-bg: $darkest-color;
+$accordion-button-active-color: $lightest-color;
+$accordion-icon-active-color: $lightest-color;
 
 // modal style override
 $close-color: $lightest-color;
