@@ -1,9 +1,8 @@
-# This requirements file is a commented mirror of bloodmallet/requirements.txt, which is needed where it is for deployment.
-# Furthermore due to the deployment the requirements file can't have comments for now.
-# (It would break the deployment)
-
 # Attention!
 # Make sure to use 'python -m pip install --upgrade pip setuptools wheel' before trying to use 'pip install -U -r requirements.txt'
+
+setuptools
+wheel
 
 Django
 django-allauth

@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",  # required by django-allauth
+    "django.contrib.humanize", # required by django-allauth
     # 'bloodytests',
     "allauth",
     "allauth.account",
@@ -195,6 +196,17 @@ except ModuleNotFoundError:
 else:
     # Google cloud storage handling
     DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+            # "OPTIONS": {
+            #   ...your_options_here
+            # },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
 
 STANDARD_CHART_NAME = "Bloodmallet Standard Chart"
 
