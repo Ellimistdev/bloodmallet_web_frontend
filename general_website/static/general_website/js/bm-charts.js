@@ -1594,6 +1594,21 @@ function bm_import_charts() {
     const endpoint = "https://bloodmallet.com/chart/get";
 
     for (const chart_anchor of chart_anchors) {
+        if (chart_anchor.dataset.loadedData) {
+            // create BmChartData from element
+            let bm_data = new BmChartData(chart_anchor);
+            // console.log(bm_data.data_type);
+            // get chart type from loaded data
+            let chart = BmBarChart;
+            if (bm_data.data_type === "secondary_distributions") {
+                // create Chart based on chart type 
+                chart = BmRadarChart;
+            }
+
+            new chart(bm_data);
+            continue;
+        }
+
         let request_endpoint = undefined;
         if (chart_anchor.dataset.hasOwnProperty("chartId")) {
             // if chart_id -> load id
