@@ -131,7 +131,7 @@ function update_navbarClassMenu(state) {
         if ([
             // "death_knight_blood",
             // "death_knight_frost",
-            // "death_knight_unholy",
+            "death_knight_unholy",
             // "demon_hunter_havoc",
             "demon_hunter_vengeance",
             // "druid_balance",
