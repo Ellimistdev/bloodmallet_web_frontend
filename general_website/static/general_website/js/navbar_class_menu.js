@@ -157,7 +157,7 @@ function update_navbarClassMenu(state) {
             // "priest_holy",
             // "priest_discipline",
             // "rogue_assassination",
-            // "rogue_outlaw",
+            "rogue_outlaw",
             // "rogue_subtlety",
             "shaman_elemental",
             "shaman_enhancement",

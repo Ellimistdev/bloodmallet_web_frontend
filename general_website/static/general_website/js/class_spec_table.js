@@ -72,7 +72,7 @@ function build_table() {
                 // "paladin_retribution",
                 "priest_shadow",
                 // "rogue_assassination",
-                // "rogue_outlaw",
+                "rogue_outlaw",
                 // "rogue_subtlety",
                 "shaman_elemental",
                 "shaman_enhancement",
