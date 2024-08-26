@@ -17,10 +17,6 @@ example import of simulation type and spec specific disclaimer
 {% endif %}
 {% endcomment %}
 
-{% if windfury %}
-{% include 'general_website/chart_information/disclaimers/windfury_totem.html' %}
-{% endif %}
-
 {% if power_infusion %}
 {% include 'general_website/chart_information/disclaimers/power_infusion.html' %}
 {% endif %}
@@ -35,8 +31,4 @@ example import of simulation type and spec specific disclaimer
 
 {% if general_result and simulation_type == "tier_set" and wow_class == "death_knight" and wow_spec == "blood" %}
 {% include 'general_website/chart_information/disclaimers/tier_set_death_knight_blood.html' %}
-{% endif %}
-
-{% if simulation_type == "trinkets" and wow_class == "shaman" and wow_spec == "elemental" %}
-{% include 'general_website/chart_information/disclaimers/trinkets_shaman_elemental.html' %}
 {% endif %}
