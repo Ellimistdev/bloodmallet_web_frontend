@@ -114,6 +114,46 @@ function provide_meta_data(state, data) {
         }
     }
 
+    // show all profiles of the simulation, allow switching between them
+    if (["secondary_distributions"].indexOf(state.data_type) > -1 && Object.keys(data).length > 1) {
+        // found multiple profiles we should show to the user.
+        let profile_root = document.getElementById("selected_data_key-area");
+        while (profile_root.hasChildNodes()) {
+            profile_root.childNodes[0].remove();
+        }
+        if (profile_root.className.indexOf("input-group") === -1) {
+            profile_root.classList.add("input-group");
+        }
+
+        let select_label = document.createElement("label");
+        select_label.classList.add("input-group-text");
+        select_label.classList.add(data["profile"]["character"]["class"] + "-color");
+        select_label.htmlFor = "profile-selector";
+        select_label.appendChild(document.createTextNode("Active profile:"));
+        profile_root.appendChild(select_label);
+
+        let profile_select = document.createElement("select");
+        profile_select.id = "profile-selector";
+        profile_select.classList.add("form-select");
+        profile_select.ariaLabel = "Select a profile you want to see its values.";
+        for (let profile of Object.keys(data["data"])) {
+            let option = document.createElement("option");
+            option.value = profile;
+            option.appendChild(document.createTextNode(profile));
+            if (profile == state["selected_data_key"]) {
+                option.selected = true;
+            }
+            profile_select.appendChild(option);
+        }
+        profile_root.appendChild(profile_select);
+        profile_root.hidden = false;
+
+        profile_select.addEventListener("change", (event) => {
+            document.getElementById("chart").dataset.selectedDataKey = event.target.value;
+            bm_import_charts();
+        });
+    }
+
     // show all used talent trees for talent related simulations
     if (["tier_set", "talent_target_scaling"].indexOf(state.data_type) > -1) {
         let post_chart = document.getElementById("post_chart");
@@ -309,3 +349,4 @@ function set_active_passive_filter(value, checked) {
         }
     }
 }
+

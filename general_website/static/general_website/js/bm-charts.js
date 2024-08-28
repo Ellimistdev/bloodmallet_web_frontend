@@ -401,6 +401,10 @@ class BmChartData {
         this._set_default_from_data_type("value_calculation");
         this._extract_setting_from_root_element("value_calculation", "valueCalculation");
         this._extract_setting_from_root_element("selected_data_key", "selectedDataKey");
+        // set sole data point as selected data for secondary distributions
+        if (Object.keys(this.data).indexOf(this.selected_data_key) === -1) {
+            this.selected_data_key = Object.keys(this.data)[0];
+        }
 
         this.x_axis_title = this.x_axis_texts[this.value_calculation];
         this._extract_data_from_loaded_data("x_axis_title", ["x_axis_title"]);
