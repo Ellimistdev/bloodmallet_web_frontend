@@ -150,7 +150,7 @@ function update_navbarClassMenu(state) {
             // "monk_brewmaster",
             // "monk_windwalker",
             // "monk_mistweaver",
-            // "paladin_protection",
+            "paladin_protection",
             // "paladin_retribution",
             // "paladin_holy",
             "priest_shadow",
@@ -165,9 +165,9 @@ function update_navbarClassMenu(state) {
             // "warlock_affliction",
             // "warlock_demonology",
             // "warlock_destruction",
-            // "warrior_arms",
-            // "warrior_fury",
-            // "warrior_protection"
+            "warrior_arms",
+            "warrior_fury",
+            "warrior_protection"
         ].indexOf(state.wow_class + "_" + tmp_spec) === -1) {
             continue;
         }

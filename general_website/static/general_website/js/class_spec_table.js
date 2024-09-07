@@ -68,7 +68,7 @@ function build_table() {
                 "mage_frost",
                 // "monk_brewmaster",
                 // "monk_windwalker",
-                // "paladin_protection",
+                "paladin_protection",
                 // "paladin_retribution",
                 "priest_shadow",
                 // "rogue_assassination",
@@ -79,9 +79,9 @@ function build_table() {
                 // "warlock_affliction",
                 // "warlock_demonology",
                 // "warlock_destruction",
-                // "warrior_arms",
-                // "warrior_fury",
-                // "warrior_protection"
+                "warrior_arms",
+                "warrior_fury",
+                "warrior_protection"
             ].indexOf(snake_case) > -1) {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec;
                 a_spec_btn.href = '/chart/' + wow_class + '/' + wow_spec + '/trinkets/castingpatchwerk';
