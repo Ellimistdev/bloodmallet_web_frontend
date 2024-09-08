@@ -28,6 +28,8 @@
 
 {% block precontent %}
 {% if general_result or trinket_compare %}
+{% block precontent %}
+{% if general_result or trinket_compare %}
 <nav class="navbar navbar-expand-md bg-dark navbar-dark sticky-top" id="navBarDataMenu">
     <div class="container-fluid">
 
@@ -196,6 +198,7 @@
             </div>
         </div>
         {% endif %}
+        {% endif %}
         {% if chart.simulation_type.command == "trinkets" %}
         <div class="accordion-item">
             <div class="accordion-header bg-dark" id="advanced_options-label">
@@ -253,9 +256,10 @@
     data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}"
     data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %}
     data-language="{{ LANGUAGE_CODE }}" data-show-top="-1"
-    data-value-calculation="{% if windfury or power_infusion %}absolute{% elif simulation_type == 'talent_target_scaling' or simulation_type == 'races' %}total{% else %}relative{% endif %}"
+    data-value-calculation="{% if windfury or power_infusion or trinket_compare %}absolute{% elif simulation_type == 'talent_target_scaling' or simulation_type == 'races' %}total{% else %}relative{% endif %}"
     data-loaded-data="">
 </div>
+<!-- data-entries="10000" data-background-color="transparent" -->
 <div class="d-flex flex-row-reverse">
     <button id="chart_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
         data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Copy raw chart data to clipboard">📋</button>&nbsp;
@@ -371,6 +375,9 @@ WIP -->
 {% if general_result %}
 <script src="{% static 'general_website/js/classes_specs.js' %}"></script>
 <script src="{% static 'general_website/js/navbar_class_menu.js' %}"></script>
+{% endif %}
+{% if trinket_compare %}
+<script src="{% static 'general_website/js/navbar_trinket_menu.js' %}"></script>
 {% endif %}
 {% if trinket_compare %}
 <script src="{% static 'general_website/js/navbar_trinket_menu.js' %}"></script>
