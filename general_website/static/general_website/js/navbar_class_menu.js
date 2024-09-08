@@ -162,9 +162,9 @@ function update_navbarClassMenu(state) {
             "shaman_elemental",
             "shaman_enhancement",
             // "shaman_restoration",
-            // "warlock_affliction",
-            // "warlock_demonology",
-            // "warlock_destruction",
+            "warlock_affliction",
+            "warlock_demonology",
+            "warlock_destruction",
             "warrior_arms",
             "warrior_fury",
             "warrior_protection"

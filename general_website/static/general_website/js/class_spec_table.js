@@ -76,9 +76,9 @@ function build_table() {
                 // "rogue_subtlety",
                 "shaman_elemental",
                 "shaman_enhancement",
-                // "warlock_affliction",
-                // "warlock_demonology",
-                // "warlock_destruction",
+                "warlock_affliction",
+                "warlock_demonology",
+                "warlock_destruction",
                 "warrior_arms",
                 "warrior_fury",
                 "warrior_protection"
