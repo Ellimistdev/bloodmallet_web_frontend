@@ -1220,9 +1220,8 @@ class BmBarChart {
         let root = this.bm_chart_data.root_element;
 
         let parent_box = root.getBoundingClientRect();
-        let box = event.target.getBoundingClientRect();
-        // the additional 14-15 px might be left padding of one of the parents? but this is only guess-work
-        let left = box.left + window.scrollX + box.width - parent_box.left + 14;
+        let event_box = event.target.getBoundingClientRect();
+        let left = event_box.right + window.scrollX;
 
         let line = document.createElement("div");
         line.style.position = "absolute";
