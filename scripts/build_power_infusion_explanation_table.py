@@ -17,6 +17,7 @@ SEASON_ID = f"{EXPANSION_ABBREVIATION}{SEASON}"
 GENERATED_START = "<!-- auto generated power infusion section start -->"
 GENERATED_END = "<!-- auto generated power infusion section end -->"
 TARGET_FILE = "./general_website/templates/general_website/chart_information/simulation_type/power_infusion.html"
+SIMULATIONCRAFT_EXPANSION_GIT_BRANCH = "thewarwithin"
 
 
 def get_simc_hash() -> str:
@@ -125,7 +126,7 @@ def generate_table(
         table.append(2 * spacing + "<tr>")
         table.append(
             3 * spacing
-            + f'<th scope="row"><a href="https://github.com/simulationcraft/simc/blob/dragonflight/profiles/{SEASON_ID}/{SEASON_ID}_{_underscored_simc_name(spec.wow_spec)}.simc">{spec.wow_spec}</a></th>'
+            + f'<th scope="row"><a href="https://github.com/simulationcraft/simc/blob/{SIMULATIONCRAFT_EXPANSION_GIT_BRANCH}/profiles/{SEASON_ID}/{SEASON_ID}_{_underscored_simc_name(spec.wow_spec)}.simc">{spec.wow_spec}</a></th>'
         )
         table.append(3 * spacing + f"<td>{explanation}</td>")
         table.append(
