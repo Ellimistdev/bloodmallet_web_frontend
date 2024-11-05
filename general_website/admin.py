@@ -15,7 +15,7 @@ from general_website.models.world_of_warcraft import WowSpec
 from general_website.models.dynamic_config import Broadcast
 from general_website.models.dynamic_config import Config
 
-from django.contrib.auth.admin import UserAdmin
+# from django.contrib.auth.admin import UserAdmin
 
 # admin.site.register(User, UserAdmin)
 
@@ -83,17 +83,13 @@ class SimulationTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Simulation)
 class SimulationAdmin(admin.ModelAdmin):
-    list_filter = (
-        "failed",
-    )
+    list_filter = ("failed",)
     search_fields = [
         "user__username",
         "user__email",
         "id",
     ]
-    readonly_fields = (
-        'created_at',
-    )
+    readonly_fields = ("created_at",)
 
 
 @admin.register(Queue)
@@ -112,4 +108,12 @@ class ResultAdmin(admin.ModelAdmin):
 
 @admin.register(GeneralResult)
 class GeneralResultAdmin(admin.ModelAdmin):
-    pass
+    list_filter = ("wow_class", "wow_spec")
+
+    search_fields = [
+        "simulation__user__username",
+        "simulation__user_email",
+        "simulation__id",
+        "wow_class",
+        "wow_spec",
+    ]

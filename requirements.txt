@@ -16,7 +16,8 @@ django-sass-processor
 
 # autogenerate forms
 django-crispy-forms
-crispy-bootstrap4
+# crispy-bootstrap4
+crispy-bootstrap5
 
 # google api for the secret app
 google-api-python-client
