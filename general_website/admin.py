@@ -94,7 +94,7 @@ class SimulationAdmin(admin.ModelAdmin):
 
 @admin.register(Queue)
 class QueueAdmin(admin.ModelAdmin):
-    pass
+    list_filter = ("state",)
 
 
 @admin.register(Result)
