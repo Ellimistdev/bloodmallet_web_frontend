@@ -60,9 +60,9 @@ function build_table() {
                 "evoker_devastation",
                 // "evoker_preservation",
                 // "evoker_augmentation",
-                "hunter_beast_mastery",
-                "hunter_marksmanship",
-                "hunter_survival",
+                // "hunter_beast_mastery",
+                // "hunter_marksmanship",
+                // "hunter_survival",
                 "mage_arcane",
                 "mage_fire",
                 "mage_frost",
@@ -85,6 +85,16 @@ function build_table() {
             ].indexOf(snake_case) > -1) {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec;
                 a_spec_btn.href = '/chart/' + wow_class + '/' + wow_spec + '/trinkets/castingpatchwerk';
+            } else if ([
+                "hunter_beast_mastery",
+                "hunter_marksmanship",
+                "hunter_survival",
+            ].indexOf(snake_case) > -1) {
+                a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
+                a_spec_btn.href = '';
+                a_spec_btn.setAttribute("data-type", "bm-tooltip");
+                a_spec_btn.setAttribute("data-bm-tooltip-text", "Hunter Theorycrafters determined having profiles in SimulationCraft and therefore profiles being used on/by bloodmallet.com front-page causes more harm than good. Therefore they removed their profiles and don't intend to re-add them. Custom Charts can still get generated with your /simc input from your ingame character.");
+                a_spec_btn.setAttribute("data-bm-tooltip-placement", "top");
             } else {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
                 a_spec_btn.href = '';
