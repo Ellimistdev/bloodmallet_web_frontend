@@ -228,8 +228,7 @@
 <!-- <div align="center"> -->
 <div id="chart" class="bloodmallet_chart mt-3" {% if general_result or windfury or power_infusion %}
     data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}"
-    data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %}
-    data-language="{{ LANGUAGE_CODE }}" data-show-top="-1"
+    data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %} data-show-top="-1"
     data-value-calculation="{% if windfury or power_infusion %}absolute{% elif simulation_type == 'talent_target_scaling' or simulation_type == 'races' %}total{% else %}relative{% endif %}"
     data-loaded-data="">
 </div>
@@ -257,7 +256,7 @@
 {% for fight_style in additional_fight_styles %}
 <div id="chart{{ forloop.counter }}" class="bloodmallet_chart mt-3" data-wow-class="{{ wow_class }}"
     data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
-    data-language="{{ LANGUAGE_CODE }}" data-show-top="-1"
+    data-show-top="-1"
     data-value-calculation="{% if windfury or power_infusion %}absolute{% else %}relative{% endif %}"></div>
 <div class="d-flex flex-row-reverse">
     <button id="chart{{ forloop.counter }}_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
