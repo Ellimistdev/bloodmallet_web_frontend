@@ -93,7 +93,7 @@ function build_table() {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
                 a_spec_btn.href = '';
                 a_spec_btn.setAttribute("data-type", "bm-tooltip");
-                a_spec_btn.setAttribute("data-bm-tooltip-text", "Hunter Theorycrafters determined having profiles in SimulationCraft and therefore profiles being used on/by bloodmallet.com front-page causes more harm than good. Therefore they removed their profiles and don't intend to re-add them. Custom Charts can still get generated with your /simc input from your ingame character.");
+                a_spec_btn.setAttribute("data-bm-tooltip-text", "SimulationCraft has currently no Hunter profiles. While an attempt was made to update them, this wasn't merged yet. Custom charts can still get generated using your own character.");
                 a_spec_btn.setAttribute("data-bm-tooltip-placement", "top");
             } else {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
