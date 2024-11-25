@@ -60,9 +60,9 @@ function build_table() {
                 "evoker_devastation",
                 // "evoker_preservation",
                 // "evoker_augmentation",
-                // "hunter_beast_mastery",
-                // "hunter_marksmanship",
-                // "hunter_survival",
+                "hunter_beast_mastery",
+                "hunter_marksmanship",
+                "hunter_survival",
                 "mage_arcane",
                 "mage_fire",
                 "mage_frost",
@@ -86,14 +86,12 @@ function build_table() {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec;
                 a_spec_btn.href = '/chart/' + wow_class + '/' + wow_spec + '/trinkets/castingpatchwerk';
             } else if ([
-                "hunter_beast_mastery",
-                "hunter_marksmanship",
-                "hunter_survival",
+                "not-a-spec",
             ].indexOf(snake_case) > -1) {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
                 a_spec_btn.href = '';
                 a_spec_btn.setAttribute("data-type", "bm-tooltip");
-                a_spec_btn.setAttribute("data-bm-tooltip-text", "SimulationCraft has currently no Hunter profiles. While an attempt was made to update them, this wasn't merged yet. Custom charts can still get generated using your own character.");
+                a_spec_btn.setAttribute("data-bm-tooltip-text", "Alternative custom message.");
                 a_spec_btn.setAttribute("data-bm-tooltip-placement", "top");
             } else {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
