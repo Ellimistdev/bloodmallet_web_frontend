@@ -25,9 +25,6 @@
 
 {% endblock %}
 
-
-{% block precontent %}
-{% if general_result or trinket_compare %}
 {% block precontent %}
 {% if general_result or trinket_compare %}
 <nav class="navbar navbar-expand-md bg-dark navbar-dark sticky-top" id="navBarDataMenu">
@@ -197,7 +194,6 @@
                 </div>
             </div>
         </div>
-        {% endif %}
         {% endif %}
         {% if chart.simulation_type.command == "trinkets" %}
         <div class="accordion-item">
