@@ -147,7 +147,7 @@ function update_navbarClassMenu(state) {
             "mage_arcane",
             "mage_fire",
             "mage_frost",
-            // "monk_brewmaster",
+            "monk_brewmaster",
             "monk_windwalker",
             // "monk_mistweaver",
             "paladin_protection",

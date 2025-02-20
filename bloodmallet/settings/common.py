@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/2.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
+
 import os
 
 from django.contrib.messages import constants as messages
@@ -30,7 +31,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",  # required by django-allauth
-    "django.contrib.humanize", # required by django-allauth
+    "django.contrib.humanize",  # required by django-allauth
     # 'bloodytests',
     "allauth",
     "allauth.account",
@@ -39,7 +40,7 @@ INSTALLED_APPS = [
     "sass_processor",
     "corsheaders",
     "crispy_forms",
-    "crispy_bootstrap4",
+    "crispy_bootstrap5",
     "vinaigrette",
     "anymail",
     "general_website",
@@ -164,9 +165,8 @@ AUTHENTICATION_BACKENDS = (
 SITE_ID = 1
 # ACCOUNT_ADAPTER = 'general_website.allauth_overwrite.SocialAccountAdapter'
 
-# we can either use crispy or bootstrap4
-# automatic bootstrap form frontend generator
-CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # from where is this?
 LOGIN_URL = "login"

@@ -66,7 +66,7 @@ function build_table() {
                 "mage_arcane",
                 "mage_fire",
                 "mage_frost",
-                // "monk_brewmaster",
+                "monk_brewmaster",
                 "monk_windwalker",
                 "paladin_protection",
                 "paladin_retribution",
@@ -85,6 +85,14 @@ function build_table() {
             ].indexOf(snake_case) > -1) {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec;
                 a_spec_btn.href = '/chart/' + wow_class + '/' + wow_spec + '/trinkets/castingpatchwerk';
+            } else if ([
+                "not-a-spec",
+            ].indexOf(snake_case) > -1) {
+                a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
+                a_spec_btn.href = '';
+                a_spec_btn.setAttribute("data-type", "bm-tooltip");
+                a_spec_btn.setAttribute("data-bm-tooltip-text", "Alternative custom message.");
+                a_spec_btn.setAttribute("data-bm-tooltip-placement", "top");
             } else {
                 a_spec_btn.className = 'spec-btn ' + wow_class + '-button col-12 translate_' + wow_spec + ' btn-disabled';
                 a_spec_btn.href = '';

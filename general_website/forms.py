@@ -20,6 +20,7 @@ from general_website.models.world_of_warcraft import WowSpec
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field, Div, HTML
 from crispy_forms.bootstrap import Accordion, AccordionGroup, StrictButton
+from crispy_bootstrap5.bootstrap5 import BS5Accordion
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +170,7 @@ class SimulationCreationForm(forms.ModelForm):
             ),
             Div(HTML(f"<h2>{advanced}</h2>"), css_class="mt-3"),
             Div(
-                Accordion(
+                BS5Accordion(
                     AccordionGroup(
                         _("Fight style"),
                         Div(
@@ -179,15 +180,12 @@ class SimulationCreationForm(forms.ModelForm):
                             css_class="form-row",
                         ),
                         active=False,
-                        template="general_website/forms/accordion-group.html",
                     ),
                     AccordionGroup(
                         _("APL"),
                         Field("custom_apl"),
                         active=False,
-                        template="general_website/forms/accordion-group.html",
                     ),
-                    template="general_website/forms/accordion.html",
                 ),
                 css_class="mb-3",
             ),

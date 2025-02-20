@@ -5,7 +5,7 @@
 
 {% block precontent %}
 {% with page='settings' %}
-    {% include 'general_website/layout/nav_settings.html' %}
+{% include 'general_website/layout/nav_settings.html' %}
 {% endwith %}
 {% endblock %}
 
@@ -13,12 +13,10 @@
 {% block content %}
 
 <h1 class="mt-3 display-4">{% translate "Settings" %}</h1>
-<p>{% translate "A settings page...more to come" %}</p>
-
 
 <form action="{% url 'set_language' %}" method="post" class="container-fluid">
     {% csrf_token %}
-    <input name="next" type="hidden" value="{{ redirect_to }}">
+    {# Here could be an input element named 'next' with a redirect url #}
     <div class="form-group">
         <label for="language_selection">{% translate "Language" %}</label>
         <select name="language" class="form-control" id="language_selection">
@@ -26,9 +24,9 @@
             {% get_available_languages as LANGUAGES %}
             {% get_language_info_list for LANGUAGES as languages %}
             {% for language in languages %}
-                <option value="{{ language.code }}"{% if language.code == LANGUAGE_CODE %} selected{% endif %}>
-                    {{ language.name_local }} ({{ language.code }})
-                </option>
+            <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %} selected{% endif %}>
+                {{ language.name_local }} ({{ language.code }})
+            </option>
             {% endfor %}
         </select>
     </div>
@@ -43,55 +41,56 @@
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
                 <input type="radio" class="form-check-input" name="language" id="chinese_selection" value="cn_CN">
-                    简体中文
+                简体中文
             </label>
         </div>
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
                 <input type="radio" class="form-check-input" name="language" id="german_selection" value="de_DE">
-                    Deutsch
+                Deutsch
             </label>
         </div>
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
-                <input type="radio" class="form-check-input" name="language" id="english_selection" value="en_US" checked>
-                    English
+                <input type="radio" class="form-check-input" name="language" id="english_selection" value="en_US"
+                    checked>
+                English
             </label>
         </div>
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
                 <input type="radio" class="form-check-input" name="language" id="spanish_selection" value="es_ES">
-                    Español
+                Español
             </label>
         </div>
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
                 <input type="radio" class="form-check-input" name="language" id="french_selection" value="fr_FR">
-                    Français
+                Français
             </label>
         </div>
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
                 <input type="radio" class="form-check-input" name="language" id="italian_selection" value="it_IT">
-                    Italiano
+                Italiano
             </label>
         </div>
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
                 <input type="radio" class="form-check-input" name="language" id="korean_selection" value="ko_KR">
-                    한국어
+                한국어
             </label>
         </div>
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
                 <input type="radio" class="form-check-input" name="language" id="portuguese_selection" value="pt_BR">
-                    Português Brasileiro
+                Português Brasileiro
             </label>
         </div>
         <div class="form-check">
             <label class="offset-sm-2 form-check-label">
                 <input type="radio" class="form-check-input" name="language" id="russian_selection" value="ru_RU">
-                    Русский
+                Русский
             </label>
         </div>
     </fieldset>
@@ -100,27 +99,30 @@
         <legend>{% translate "Chart mode" %}</legend>
         <div class="offset-sm-2 form-check">
             <label class="form-check-label">
-                <input type="radio" class="form-check-input" name="chart_mode" id="absolute_gain" value="absolute_gain" checked>
-                    {% translate "Δ - absolute dps gain" %}
+                <input type="radio" class="form-check-input" name="chart_mode" id="absolute_gain" value="absolute_gain"
+                    checked>
+                {% translate "Δ - absolute dps gain" %}
             </label>
         </div>
         <div class="offset-sm-2 form-check">
             <label class="form-check-label">
                 <input type="radio" class="form-check-input" name="chart_mode" id="relative_gain" value="relative_gain">
-                    {% translate "% - relative dps gain" %}
+                {% translate "% - relative dps gain" %}
             </label>
         </div>
         <div class="offset-sm-2 form-check">
             <label class="form-check-label">
-                <input type="radio" class="form-check-input" name="chart_mode" id="absolute_value" value="absolute_value">
-                    {% translate "|x| - absolute value" %}
+                <input type="radio" class="form-check-input" name="chart_mode" id="absolute_value"
+                    value="absolute_value">
+                {% translate "|x| - absolute value" %}
             </label>
         </div>
     </fieldset>
 
     <div class="form-group row">
         <legend>Chart icons</legend>
-        <label class="offset-sm-2 form-check" style="cursor: pointer" id="translate_iconize_chart" for="inconized_charts_checkbox">
+        <label class="offset-sm-2 form-check" style="cursor: pointer" id="translate_iconize_chart"
+            for="inconized_charts_checkbox">
             <input class="form-check-input" type="checkbox" id="inconized_charts_checkbox" style="cursor: pointer">
             {% translate "active" %}
         </label>

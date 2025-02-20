@@ -1594,9 +1594,21 @@ function bm_import_charts() {
     // find bloodmallet_chart class elements
     let chart_anchors = document.querySelectorAll("div.bloodmallet_chart");
     // console.log(chart_anchors);
-    const endpoint = "https://bloodmallet.com/chart/get";
+    const domain = "bloodmallet.com";
+    const local = "127.0.0.1";
+    const endpoint = `https://${domain}/chart/get`;
 
     for (const chart_anchor of chart_anchors) {
+
+        // set language if language information is missing from chart and language cookie was set
+        if (!chart_anchor.dataset.language && (
+            location.hostname == domain || location.hostname == local
+        ) && ('; ' + document.cookie).indexOf("; django_language=") > -1) {
+            // https://stackoverflow.com/a/59603055/8002464
+            let language = ('; ' + document.cookie).split(`; django_language=`).pop().split(';')[0];
+            chart_anchor.dataset.language = language;
+        }
+
         if (chart_anchor.dataset.loadedData) {
             // create BmChartData from element
             let bm_data = new BmChartData(chart_anchor);
