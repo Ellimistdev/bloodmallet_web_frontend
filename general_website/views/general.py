@@ -570,12 +570,12 @@ def chart_power_infusion(request):
 
 def chart_trinket_compare(
     request,
-    item_name="accelerating_sandglass",
-    item_level="447",
+    item_name="algari_alchemist_stone",
+    item_level="600",
     fight_style="castingpatchwerk",
 ):
     """Shows the trinket chart"""
-    logger.debug("called")
+    logger.debug("chart_trinket_compare called")
 
     context = {
         "trinket_compare": True,
@@ -586,6 +586,7 @@ def chart_trinket_compare(
     }
 
     logger.info(context)
+    logger.debug(request)
 
     return render(request, "general_website/chart.html", context=context)
 
