@@ -253,22 +253,6 @@
         <textarea class="form-control" id="chart_raw_data" rows="8"></textarea>
         <!-- rows="3" -->
     </div>
-
-    
-        <!-- WIP/ -->
-
-    <!-- {% if not trinket_compare %} data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" 
-    {% else %} data-item-name="{{ item_name }}" data-item-level="{{ item_level }}" {% endif %} -->
-        
-
-    <!-- <div id="chart" class="bloodmallet_chart mt-3" {% if general_result or windfury or power_infusion or trinket_compare %}
-        data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}"
-        data-type="{{ simulation_type }}" {% else %} data-chart-id="{{ chart_id }}" {% endif %} 
-        {% if trinket_compare %} data-item-name="{{ item_name }}" data-item-level="{{ item_level }}" {% endif %}
-        data-entries="10000" data-background-color="transparent"
-        data-value-style="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}" data-loaded-data="">
-    </div> -->
-        <!-- WIP/ -->
 </div>
 
 {% if additional_fight_styles %}
@@ -277,16 +261,6 @@
     data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
     data-show-top="-1"
     data-value-calculation="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}"></div>
-<!-- WIP
-<div id="chart{{ forloop.counter }}" class="bloodmallet_chart mt-3" {% if not trinket_compare %}
-    data-wow-class="{{ wow_class }}" data-wow-spec="{{ wow_spec }}" {% else %} 
-    data-item-name="{{ item_name }}" data-item-level="{{ item_level}}" {% endif %}
-    data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
-    data-entries="10000" data-background-color="transparent"
-    data-value-style="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}">
-</div>
-WIP -->
-
 
         <div class="d-flex flex-row-reverse">
             <button id="chart{{ forloop.counter }}_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
@@ -311,33 +285,21 @@ WIP -->
     {% endfor %}
 {% endif %}
 
-
-<!-- WIP/ -->
-<!-- {% for fight_style in additional_fight_styles %}
-    <div id="chart{{ forloop.counter }}" class="bloodmallet_chart mt-3" data-wow-class="{{ wow_class }}"
-        data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
-        {% if trinket_compare %} data-item-name="{{ item_name }}" data-item-level="{{ item_level}}" {% endif %}
-        data-entries="10000" data-background-color="transparent"
-        data-value-style="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}">
-    </div>
-{% endfor %} -->
-<!-- WIP/ -->
-
 <div id="post_chart" class="mt-5" hidden>
     {% if chart.simulation_type.command == "talent_target_scaling" %}
-        <form class="form-inline">
-            <div class="form-group mb-2">
-                <label for="customRange1">Min target count:&nbsp;<span id="range-min-target-count-output">1</span></label>
-                <input type="range" class="custom-range" id="range-min-target-count" min="1" max="15" value="1">
-            </div>
-            <div class="form-group mx-sm-3 mb-2">
-                <label for="customRange1">Max target count:&nbsp;<span id="range-max-target-count-output">15</span></label>
-                <input type="range" class="custom-range" id="range-max-target-count" min="1" max="15" value="15">
-            </div>
-        </form>
+    <form class="form-inline">
+        <div class="form-group mb-2">
+            <label for="customRange1">Min target count:&nbsp;<span id="range-min-target-count-output">1</span></label>
+            <input type="range" class="custom-range" id="range-min-target-count" min="1" max="15" value="1">
+        </div>
+        <div class="form-group mx-sm-3 mb-2">
+            <label for="customRange1">Max target count:&nbsp;<span id="range-max-target-count-output">15</span></label>
+            <input type="range" class="custom-range" id="range-max-target-count" min="1" max="15" value="15">
+        </div>
+    </form>
     {% endif %}
     {% if chart.simulation_type.command == "talent_target_scaling" or chart.simulation_type.command == "tier_set" %}
-        <div id="talent-information-div"></div>
+    <div id="talent-information-div"></div>
     {% endif %}
 </div>
 
@@ -349,11 +311,11 @@ WIP -->
 
 {% include 'general_website/layout/wowhead_tooltips.html' %}
 {% if general_result %}
-    <script src="{% static 'general_website/js/classes_specs.js' %}"></script>
-    <script src="{% static 'general_website/js/navbar_class_menu.js' %}"></script>
+<script src="{% static 'general_website/js/classes_specs.js' %}"></script>
+<script src="{% static 'general_website/js/navbar_class_menu.js' %}"></script>
 {% endif %}
 {% if trinket_compare %}
-    <script src="{% static 'general_website/js/navbar_trinket_menu.js' %}"></script>
+<script src="{% static 'general_website/js/navbar_trinket_menu.js' %}"></script>
 {% endif %}
 {% include 'general_website/layout/chart_import.html' %}
 
@@ -395,10 +357,10 @@ WIP -->
     }
 
     {% if chart.simulation_type.command == "talent_target_scaling" %}
-        function update_target_count_range(value, output_span_id, chart_attribute_name) {
-            document.getElementById(output_span_id).innerHTML = value;
-            document.getElementById("chart").dataset[chart_attribute_name] = value;
-        }
+    function update_target_count_range(value, output_span_id, chart_attribute_name) {
+        document.getElementById(output_span_id).innerHTML = value;
+        document.getElementById("chart").dataset[chart_attribute_name] = value;
+    }
     {% endif %}
 
     document.addEventListener("DOMContentLoaded", function () {

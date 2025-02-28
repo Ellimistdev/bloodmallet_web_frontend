@@ -143,7 +143,6 @@ async function initializeNavbarTrinketMenu() {
     }
 
     const initialData = JSON.parse(chart.dataset.loadedData);
-    console.log("Initial chart data:", initialData);
 
     // Get the current fight style from the chart
     const currentFightStyle = initialData.simc_settings?.fight_style || 'castingpatchwerk';
@@ -151,23 +150,18 @@ async function initializeNavbarTrinketMenu() {
     // Fetch the list of available trinkets
     const availableTrinkets = await fetchAvailableTrinkets(currentFightStyle);
     
-    // Find localized name for the current trinket
-    let trinketKey = initialData.item_name;
-    
     // Update state with real data
     let state = {
         data_type: 'trinket_compare',
         fight_style: currentFightStyle,
         wow_class: 'priest',
-        item_name: trinketKey,
+        item_name: initialData.item_name,
         item_level: initialData.item_level,
         item_levels: initialData.item_levels,
         available_trinkets: availableTrinkets
     };
 
     await update_navbarTrinketMenu(state);
-    
-    console.log(`Loaded ${availableTrinkets.length} available trinkets`);
 
     // Set up observer to watch for future changes
     const observer = new MutationObserver(async (mutations) => {
@@ -184,11 +178,9 @@ async function initializeNavbarTrinketMenu() {
                     }
                     
                     // Get trinket key
-                    const trinketKey = data.item_name;
-                    
                     state = {
                         ...state,
-                        item_name: trinketKey,
+                        item_name: data.item_name,
                         item_level: data.item_level,
                         item_levels: data.item_levels,
                         fight_style: newFightStyle,
