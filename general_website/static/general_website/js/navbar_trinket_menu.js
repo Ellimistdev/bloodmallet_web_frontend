@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     await initializeNavbarTrinketMenu();
 });
 
-
 let fight_style_dict = {
     "castingpatchwerk": "Casting Patchwerk 1 target",
     "castingpatchwerk3": "Casting Patchwerk 3 targets",
@@ -18,15 +17,97 @@ let fight_style_dict = {
 const fight_styles = Object.keys(fight_style_dict).sort();
 
 async function updateTrinketChartViaMenu(state) {
-    await window.updateTrinketChartAsync(state);
-    const jsonString = document.getElementById("chart").getAttribute("data-loaded-data");
-    const dataObj = JSON.parse(jsonString);
-    state.item_id = dataObj.item_id;
-    state.item_name = formatText(dataObj.item_name, "item_name");
-    state.item_level = dataObj.item_level;
-    state.item_levels = dataObj.item_levels;
-    state.fight_style = dataObj.simc_settings.fight_style;
-    await update_navbarTrinketMenu(state);
+    const chart = document.getElementById("chart");
+
+    // Store current selected values
+    const currentSelection = {
+        item_name: state.item_name,
+        item_level: state.item_level,
+        fight_style: state.fight_style
+    };
+
+    try {
+        const data = await getTrinketDataAsync(state.item_name, state.item_level, state.fight_style);
+        const availableItemLevels = data.item_levels || [];
+
+        // If currently selected item level isn't available for this trinket, use the first available one
+        if (!availableItemLevels.includes(currentSelection.item_level)) {
+            currentSelection.item_level = availableItemLevels[0];
+        }
+
+        // Update the chart
+        await window.updateTrinketChartAsync(currentSelection);
+
+        // Get the updated data from the chart
+        const loadedData = chart.getAttribute("data-loaded-data");
+        if (!loadedData) {
+            console.error("No chart data found after update");
+            return;
+        }
+
+        const json = JSON.parse(loadedData);
+
+        // Update state with the new data
+        state = {
+            ...state,
+            item_id: json.item_id,
+            item_name: currentSelection.item_name,
+            item_level: currentSelection.item_level,
+            item_levels: json.item_levels,
+            fight_style: currentSelection.fight_style,
+            available_trinkets: state.available_trinkets
+        };
+
+        // Update the menu with the new state
+        await update_navbarTrinketMenu(state);
+
+    } catch (error) {
+        console.error("Error updating trinket chart:", error);
+    }
+}
+
+async function fetchAvailableTrinkets(fightStyle) {
+    const data = await fetchAndProcessDataAsync(fightStyle);
+    return localizeTrinketNames(data);
+}
+
+// Helper function to localize trinket data
+function localizeTrinketNames(data) {
+    const availableTrinkets = [];
+    if (data && data.items) {
+
+        const userLanguage = this.language || "en_US";
+
+        for (const trinketKey in data.items) {
+            if (trinketKey !== "baseline") {
+                let trinketName = null;
+
+                // If translations are available for this trinket
+                if (data.items[trinketKey].translations) {
+                    // Try user's language first
+                    if (data.items[trinketKey].translations[userLanguage]) {
+                        trinketName = data.items[trinketKey].translations[userLanguage];
+                    }
+                    // Fall back to English if user's language isn't available
+                    else if (data.items[trinketKey].translations.en_US) {
+                        trinketName = data.items[trinketKey].translations.en_US;
+                    }
+                }
+                
+                // If no translation was found, use the key as a fallback
+                if (!trinketName) {
+                    trinketName = trinketKey.replace(/_/g, ' ');
+                }
+                
+                availableTrinkets.push({
+                    key: trinketKey,
+                    name: trinketName
+                });
+            }
+        }
+    }
+
+    return availableTrinkets.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 async function initializeNavbarTrinketMenu() {
@@ -34,6 +115,20 @@ async function initializeNavbarTrinketMenu() {
     const chart = document.querySelector('.bloodmallet_chart');
     if (!chart) return;
 
+    // Create initial navbar with loading state
+    let initialState = {
+        data_type: 'trinket_compare',
+        fight_style: 'castingpatchwerk',
+        wow_class: 'priest',
+        item_name: 'Loading...',
+        item_level: 'Loading...',
+        item_levels: [],
+        available_trinkets: []
+    };
+    
+    // Show loading state immediately
+    await update_navbarTrinketMenu(initialState);
+    
     // Wait for initial chart data to load
     const maxAttempts = 10;
     let attempts = 0;
@@ -42,25 +137,37 @@ async function initializeNavbarTrinketMenu() {
         attempts++;
     }
 
-    let state = {
-        data_type: 'trinket_compare',
-        fight_style: 'castingpatchwerk',
-        wow_class: 'priest'
-    };
-
-    // If chart data is loaded, update state with it
-    if (chart.dataset.loadedData) {
-        const data = JSON.parse(chart.dataset.loadedData);
-        state = {
-            ...state,
-            item_name: formatText(data.item_name, "item_name"),
-            item_level: data.item_level,
-            item_levels: data.item_levels,
-            fight_style: data.simc_settings?.fight_style || state.fight_style
-        };
+    if (!chart.dataset.loadedData) {
+        console.error("Chart data failed to load");
+        return;
     }
 
+    const initialData = JSON.parse(chart.dataset.loadedData);
+    console.log("Initial chart data:", initialData);
+
+    // Get the current fight style from the chart
+    const currentFightStyle = initialData.simc_settings?.fight_style || 'castingpatchwerk';
+    
+    // Fetch the list of available trinkets
+    const availableTrinkets = await fetchAvailableTrinkets(currentFightStyle);
+    
+    // Find localized name for the current trinket
+    let trinketKey = initialData.item_name;
+    
+    // Update state with real data
+    let state = {
+        data_type: 'trinket_compare',
+        fight_style: currentFightStyle,
+        wow_class: 'priest',
+        item_name: trinketKey,
+        item_level: initialData.item_level,
+        item_levels: initialData.item_levels,
+        available_trinkets: availableTrinkets
+    };
+
     await update_navbarTrinketMenu(state);
+    
+    console.log(`Loaded ${availableTrinkets.length} available trinkets`);
 
     // Set up observer to watch for future changes
     const observer = new MutationObserver(async (mutations) => {
@@ -68,12 +175,24 @@ async function initializeNavbarTrinketMenu() {
             if (mutation.type === 'attributes' && mutation.attributeName === 'data-loaded-data') {
                 const data = JSON.parse(chart.dataset.loadedData || '{}');
                 if (data.item_name && data.item_level) {
+                    // If fight style changed, fetch new trinket list
+                    const newFightStyle = data.simc_settings?.fight_style || state.fight_style;
+                    let availableTrinkets = state.available_trinkets;
+                    
+                    if (newFightStyle !== state.fight_style) {
+                        availableTrinkets = await fetchAvailableTrinkets(newFightStyle);
+                    }
+                    
+                    // Get trinket key
+                    const trinketKey = data.item_name;
+                    
                     state = {
                         ...state,
-                        item_name: data.item_name,
+                        item_name: trinketKey,
                         item_level: data.item_level,
                         item_levels: data.item_levels,
-                        fight_style: data.simc_settings?.fight_style || state.fight_style
+                        fight_style: newFightStyle,
+                        available_trinkets: availableTrinkets
                     };
                     await update_navbarTrinketMenu(state);
                 }
@@ -92,16 +211,37 @@ async function update_navbarTrinketMenu(state = {}) {
         console.log("update_navbarTrinketMenu");
     }
 
+    // Get initial chart data if no state provided
+    if (Object.keys(state).length === 0) {
+        const chart = document.getElementById("chart");
+        if (chart && chart.dataset.loadedData) {
+            const data = JSON.parse(chart.dataset.loadedData);
+            
+            // Fetch the list of available trinkets
+            const availableTrinkets = await fetchAvailableTrinkets(data.simc_settings?.fight_style || 'castingpatchwerk');
+            
+            state = {
+                data_type: 'trinket_compare',
+                item_id: data.item_id,
+                item_name: data.item_name,
+                item_level: data.item_level,
+                item_levels: data.item_levels,
+                fight_style: data.simc_settings?.fight_style || 'castingpatchwerk',
+                wow_class: 'priest',
+                available_trinkets: availableTrinkets
+            };
+        }
+    }
+
     // set defaults
     const default_item_level = state.item_levels ? state.item_levels[0] : '600';
-    const default_item_id = Object.keys(TRINKETS.items)[0];
     state.data_type ??= 'trinket_compare';
-    state.item_id ??= default_item_id;
-    state.item_name ??= TRINKETS.items[default_item_id].translations.en_US;
+    state.item_name ??= '';
     state.item_level ??= default_item_level;
-    state.item_levels ??= TRINKETS.baseline.item_levels;
+    state.item_levels ??= [];
     state.fight_style ??= fight_styles[0];
     state.wow_class = 'priest';
+    state.available_trinkets ??= [];
 
     const navbarTrinketMenu = document.getElementById("navbarTrinketMenu");
 
@@ -131,12 +271,21 @@ async function update_navbarTrinketMenu(state = {}) {
         const divDropdown = createDropdownMenuEntries(items, id, state);
         li.appendChild(divDropdown);
     }
-
+    
+    // Find the localized name for the currently selected trinket
+    let selectedTrinketLocalizedName = state.item_name; // Default to the key if we can't find a localized name
+    
+    // Try to find the localized name in the available trinkets
+    const selectedTrinket = state.available_trinkets.find(trinket => trinket.key === state.item_name);
+    if (selectedTrinket) {
+        selectedTrinketLocalizedName = selectedTrinket.name;
+    }
+    
     // Add trinket selection (dropdown)
-    createDropdownMenu(state.item_name, "item_name", TRINKETS.items.map((item) => item.translations.en_US));
+    createDropdownMenu(selectedTrinketLocalizedName, "item_name", state.available_trinkets);
 
     // Add item level selection (dropdown)
-    createDropdownMenu(formatText(state.item_level, "item_level"), "item_level", state.item_levels);
+    createDropdownMenu(state.item_level, "item_level", state.item_levels);
 
     // Add fight style selection (dropdown)
     createDropdownMenu(formatText(state.fight_style, "fight_style"), "fight_style", fight_styles);
@@ -145,15 +294,19 @@ async function update_navbarTrinketMenu(state = {}) {
 }
 
 const formatText = (item, id) => {
+    if (!item) return "Loading...";
+    
     switch (id) {
         case "slug":
             return item.replaceAll(" ", "_").toLowerCase();
-        case "item_name":
         case "item_level":
-            return capitalize_first_letters(item).replaceAll("_", " ");
+            // For item levels, we want to keep the original text
+            return item;
         case "fight_style":
-            return fight_style_dict[item];
+            // For fight styles, use the predefined dictionary
+            return fight_style_dict[item] || item;
         default:
+            // For other cases like item names, we want to use the original text
             return item;
     }
 }
@@ -169,18 +322,27 @@ const createDropdownMenuEntries = (items, id, state) => {
     }
 
     const dropdownItems = items.map((item) => {
-        const slug = formatText(item, "slug")
+        // Handle both simple strings (for item levels, fight styles) and trinket objects
+        const itemValue = typeof item === 'object' ? item.key : item;
+        const itemDisplay = typeof item === 'object' ? item.name : formatText(item, id);
+        
         const a = document.createElement("a");
         a.className = `dropdown-item ${state.wow_class}-button`;
-        a.id = `navbar_${slug}_selector`;
-        a.innerText = formatText(item, id);
-        a.href="#";
+        a.id = `navbar_${formatText(itemValue, "slug")}_selector`;
+        a.innerText = itemDisplay;
+        a.href = "#";
 
         // Add event listener to handle the selection
         const handleSelection = async (event) => {
             event.preventDefault();
-            state[id] = slug;
-            await updateTrinketChartViaMenu(state);
+            const newState = { ...state };
+            if (id === "item_name") {
+                // For trinkets, use the snake_case key
+                newState.item_name = itemValue;
+            } else {
+                newState[id] = item;
+            }
+            await updateTrinketChartViaMenu(newState);
         };
 
         a.addEventListener("click", handleSelection);
@@ -190,19 +352,4 @@ const createDropdownMenuEntries = (items, id, state) => {
 
     dropdownMenu.append(...dropdownItems);
     return dropdownMenu;
-}
-
-/**
- * Capitalize all first letters in a string.
- * Example: string_test -> String_Test
- */
-function capitalize_first_letters(string) {
-    let new_string = string.charAt(0).toUpperCase();
-    if (string.indexOf("_") > -1) {
-        new_string += string.slice(1, string.indexOf("_") + 1);
-        new_string += capitalize_first_letters(string.slice(string.indexOf("_") + 1));
-    } else {
-        new_string += string.slice(1);
-    }
-    return new_string;
 }

@@ -558,17 +558,28 @@ class BmChartData {
 
         this._extract_data_from_loaded_data("data_type", ["data_type"]);
         this._extract_data_from_loaded_data("element_id", ["element_id"]);
-        if (this.data_type == "trinket_compare") {
-            this._extract_data_from_loaded_data("title", ["item_name"]);
-        } else {
+        if (this.data_type !== "trinket_compare") {
             this._extract_data_from_loaded_data("title", ["data_type"]);
         }
         this._set_subtitle();
         this._extract_data_from_loaded_data("simc_hash", ["metadata", "SimulationCraft"]);
 
         if (this.data_type === "trinket_compare") {
-            this.title = formatText(this.title, "item_name");
+            // Get user language
+            const userLanguage = this.language || "en_US";
+            
+            // Extract the item name as usual
             this._extract_data_from_loaded_data("item_name", ["item_name"]);
+            
+            // Extract title - prefer localized name if available
+            if (this.loaded_data.translations && this.loaded_data.translations[userLanguage]) {
+                this.title = this.loaded_data.translations[userLanguage];
+            } else {
+                // Fallback to formatted item_name
+                this.title = formatText(this.loaded_data.item_name, "item_name");
+            }
+            
+            // Continue with other extractions
             this._extract_data_from_loaded_data("item_level", ["item_level"]);
             this._extract_data_from_loaded_data("item_levels", ["item_levels"]);
         }

@@ -570,8 +570,8 @@ def chart_power_infusion(request):
 
 def chart_trinket_compare(
     request,
-    item_name="algari_alchemist_stone",
-    item_level="600",
+    item_name="eye_of_kezan",
+    item_level="636",
     fight_style="castingpatchwerk",
 ):
     """Shows the trinket chart"""
