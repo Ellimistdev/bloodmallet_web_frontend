@@ -260,29 +260,28 @@
 <div id="chart{{ forloop.counter }}" class="bloodmallet_chart mt-3" data-wow-class="{{ wow_class }}"
     data-wow-spec="{{ wow_spec }}" data-fight-style="{{ fight_style }}" data-type="{{ simulation_type }}"
     data-show-top="-1"
-    data-value-calculation="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}"></div>
+    data-value-calculation="{% if windfury or power_infusion or trinket_compare %}absolute{% else %}relative{% endif %}">
+</div>
 
-        <div class="d-flex flex-row-reverse">
-            <button id="chart{{ forloop.counter }}_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
-                data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Copy raw chart data to clipboard">📋</button>&nbsp;
-            <button class="btn btn-primary" type="button" data-toggle="collapse"
-                data-target="#chart{{ forloop.counter }}_raw_data_collapsable" aria-expanded="false"
-                aria-controls="chart{{ forloop.counter }}_raw_data_collapsable" data-type="bm-tooltip"
-                data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Show raw chart data">
-                👀
-            </button>
+<div class="d-flex flex-row-reverse">
+    <button id="chart{{ forloop.counter }}_raw_data_copy" type="button" class="btn btn-primary" data-type="bm-tooltip"
+        data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Copy raw chart data to clipboard">📋</button>&nbsp;
+    <button class="btn btn-primary" type="button" data-toggle="collapse"
+        data-target="#chart{{ forloop.counter }}_raw_data_collapsable" aria-expanded="false"
+        aria-controls="chart{{ forloop.counter }}_raw_data_collapsable" data-type="bm-tooltip"
+        data-bm-tooltip-placement="bottom" data-bm-tooltip-text="Show raw chart data">
+        👀
+    </button>
+</div>
 
-            <!-- <div class="form-group">
-                </div> -->
-        </div>
-        <div class="collapse" id="chart{{ forloop.counter }}_raw_data_collapsable">
-            <div class="card card-body form-group">
-                <label for="custom_fight_style">Raw chart data</label>
-                <textarea class="form-control" id="chart{{ forloop.counter }}_raw_data" rows="8"></textarea>
-                <!-- rows="3" -->
-            </div>
-        </div>
-    {% endfor %}
+<div class="collapse" id="chart{{ forloop.counter }}_raw_data_collapsable">
+    <div class="card card-body form-group">
+        <label for="custom_fight_style">Raw chart data</label>
+        <textarea class="form-control" id="chart{{ forloop.counter }}_raw_data" rows="8"></textarea>
+        <!-- rows="3" -->
+    </div>
+</div>
+{% endfor %}
 {% endif %}
 
 <div id="post_chart" class="mt-5" hidden>
