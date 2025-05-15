@@ -2164,6 +2164,53 @@ class BmUIUtils {
     };
 
     /**
+     * Safely parse JSON with error handling
+     * 
+     * @param {string} jsonString - JSON string to parse
+     * @param {*} defaultValue - Default value to return if parsing fails
+     * @returns {Object} Parsed object or default value
+     */
+    static safeJsonParse = (jsonString, defaultValue = null) => {
+        if (!jsonString) return defaultValue;
+        try {
+            return JSON.parse(jsonString);
+        } catch (error) {
+            console.error("Error parsing JSON:", error);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Get chart data from a chart element
+     * @param {HTMLElement} chart - Chart element
+     * @returns {Object|null} Chart data or null if not available
+     */
+    static getChartData = (chart) => {
+        if (!chart || !chart.dataset.loadedData) return null;
+        return safeJsonParse(chart.dataset.loadedData);
+    }
+
+    /**
+     * Inject CSS into the head of the document
+     * 
+     * @param {string} id - ID for the style element
+     * @param {string} url - URL to the CSS file
+     */
+    static addCSS(id, url) {
+        if (document.getElementById(id)) {
+            return;
+        }
+
+        const styles = document.createElement("link");
+        styles.id = id;
+        styles.rel = "stylesheet";
+        styles.type = "text/css";
+        styles.href = url + "?now=" + Date.now();
+        styles.media = "all";
+        document.getElementsByTagName('head')[0].appendChild(styles);
+    }
+
+    /**
      * Creates a unit text node with the appropriate styling
      * @param {string} unit The unit to display (e.g., "%")
      * @returns {HTMLSpanElement} A span element containing the unit
@@ -2208,32 +2255,5 @@ class BmUIUtils {
         });
 
         return element;
-    }
-
-    /**
-     * Safely parse JSON with error handling
-     * 
-     * @param {string} jsonString - JSON string to parse
-     * @param {*} defaultValue - Default value to return if parsing fails
-     * @returns {Object} Parsed object or default value
-     */
-    static safeJsonParse = (jsonString, defaultValue = null) => {
-        if (!jsonString) return defaultValue;
-        try {
-            return JSON.parse(jsonString);
-        } catch (error) {
-            console.error("Error parsing JSON:", error);
-            return defaultValue;
-        }
-    }
-
-    /**
-     * Get chart data from a chart element
-     * @param {HTMLElement} chart - Chart element
-     * @returns {Object|null} Chart data or null if not available
-     */
-    static getChartData = (chart) => {
-        if (!chart || !chart.dataset.loadedData) return null;
-        return safeJsonParse(chart.dataset.loadedData);
     }
 }
