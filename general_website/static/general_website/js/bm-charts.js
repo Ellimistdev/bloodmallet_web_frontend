@@ -1031,24 +1031,29 @@ class BmBarChart {
             return;
         }
 
-        let legend = document.createElement("div");
-        legend.classList.add("bm-legend");
-        let legend_title = document.createElement("div");
-        legend_title.classList.add("bm-legend-title");
-        legend_title.appendChild(document.createTextNode(this.bm_chart_data.legend_title));
+        const legend = BmUIUtils.createElement("div", { className: "bm-legend" });
+
+        const legend_title = BmUIUtils.createElement("div", {
+            className: "bm-legend-title",
+            innerText: this.bm_chart_data.legend_title
+        });
+
         legend.appendChild(legend_title);
-        let legend_items = document.createElement("div");
-        legend_items.classList.add("bm-legend-items");
+
+        const legend_items = BmUIUtils.createElement("div", { className: "bm-legend-items" });
+
         for (let [index, series] of series_index_names) {
-            let legend_series = document.createElement("div");
-            legend_series.classList.add("bm-legend-item", "bm-bar-group-" + (index + 1));
-            legend_series.appendChild(document.createTextNode(series));
-            legend_items.appendChild(legend_series);
-            // required to space the legend items
+            const legend_item = BmUIUtils.createElement("div", {
+                className: `bm-legend-item bm-bar-group-${index + 1}`,
+                innerText: series
+            });
+
+            legend_items.appendChild(legend_item);
+            // Required to space the legend items
             legend_items.appendChild(document.createTextNode(" "));
         }
-        legend.appendChild(legend_items);
 
+        legend.appendChild(legend_items);
         root_element.appendChild(legend);
     }
 
@@ -1056,88 +1061,107 @@ class BmBarChart {
      * Create the complete chart
      */
     create_chart() {
-        // filter out unwanted data
-        let effective_series_index_names = Array.from(this.bm_chart_data.series_names.entries()).filter(([index, series]) => {
-            // filter by itemlevels
-            return !this.bm_chart_data.filter_trinket_itemlevels.includes(series);
-        })
+        // Filter out unwanted data
+        let effective_series_index_names = Array.from(this.bm_chart_data.series_names.entries())
+            .filter(([index, series]) => !this.bm_chart_data.filter_trinket_itemlevels.includes(series));
 
-        let effective_sorted_data_keys = this.bm_chart_data.sorted_data_keys.slice().filter((key) => {
-            // remove "baseline"
-            return key !== "baseline";
-        }).filter((key) => {
-            // filter by data_source
-            if (this.bm_chart_data.loaded_data.hasOwnProperty("data_sources")) {
-                return !this.bm_chart_data.filter_trinket_sources.includes(this.bm_chart_data.loaded_data["data_sources"][key])
-            }
-            return true;
-        }).filter((value) => {
-            // filter by **active** part of active_passive
-            if (this.bm_chart_data.data_type === "trinkets" && (this.bm_chart_data.filter_trinket_active_passive.includes("active") || this.bm_chart_data.filter_trinket_active_passive.includes("Active"))) {
-                return this.bm_chart_data.loaded_data["data_active"][value] === false;
-            }
-            return true;
-        }).filter((value) => {
-            // filter by **passive** part of active_passive
-            if (this.bm_chart_data.data_type === "trinkets" && (this.bm_chart_data.filter_trinket_active_passive.includes("passive") || this.bm_chart_data.filter_trinket_active_passive.includes("Passive"))) {
-                return this.bm_chart_data.loaded_data["data_active"][value] === true;
-            }
-            return true;
-        }).filter((key) => {
-            // filter by no-remaining series
-            if (this.bm_chart_data.data_type === "trinkets") {
-                for (const tmp_series of Object.keys(this.bm_chart_data.data[key])) {
-                    if (!this.bm_chart_data.filter_trinket_itemlevels.includes(
-                        Number.parseInt(tmp_series)
-                    )) {
-                        return true;
+        // Process data keys with filters
+        let effective_sorted_data_keys = this.bm_chart_data.sorted_data_keys.slice()
+            // Remove "baseline"
+            .filter(key => key !== "baseline")
+            // Filter by data_source
+            .filter(key => {
+                if (this.bm_chart_data.loaded_data.hasOwnProperty("data_sources")) {
+                    return !this.bm_chart_data.filter_trinket_sources.includes(
+                        this.bm_chart_data.loaded_data["data_sources"][key]
+                    );
+                }
+                return true;
+            })
+            // Filter active trinkets
+            .filter(value => {
+                if (this.bm_chart_data.data_type === "trinkets" &&
+                    (this.bm_chart_data.filter_trinket_active_passive.includes("active") ||
+                        this.bm_chart_data.filter_trinket_active_passive.includes("Active"))) {
+                    return this.bm_chart_data.loaded_data["data_active"][value] === false;
+                }
+                return true;
+            })
+            // Filter passive trinkets
+            .filter(value => {
+                if (this.bm_chart_data.data_type === "trinkets" &&
+                    (this.bm_chart_data.filter_trinket_active_passive.includes("passive") ||
+                        this.bm_chart_data.filter_trinket_active_passive.includes("Passive"))) {
+                    return this.bm_chart_data.loaded_data["data_active"][value] === true;
+                }
+                return true;
+            })
+            // Filter by no-remaining series
+            .filter(key => {
+                if (this.bm_chart_data.data_type === "trinkets") {
+                    for (const tmp_series of Object.keys(this.bm_chart_data.data[key])) {
+                        if (!this.bm_chart_data.filter_trinket_itemlevels.includes(
+                            Number.parseInt(tmp_series)
+                        )) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                return true;
+            })
+            // Sort by DPS value
+            .sort((a, b) => {
+                let a_dps_object = structuredClone(this.bm_chart_data.data[a]);
+                let b_dps_object = structuredClone(this.bm_chart_data.data[b]);
+
+                // Remove filtered item levels
+                for (let key of Object.keys(a_dps_object)) {
+                    if (this.bm_chart_data.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
+                        delete a_dps_object[Number.parseInt(key)];
                     }
                 }
-                return false;
-            } else {
-                return true;
-            }
-        }).sort((a, b) => {
-            let a_dps_object = structuredClone(this.bm_chart_data.data[a]);
-            for (let key of Object.keys(a_dps_object)) {
-                if (this.bm_chart_data.filter_trinket_itemlevels.includes(
-                    Number.parseInt(key)
-                )) {
-                    delete a_dps_object[Number.parseInt(key)];
+                for (let key of Object.keys(b_dps_object)) {
+                    if (this.bm_chart_data.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
+                        delete b_dps_object[Number.parseInt(key)];
+                    }
                 }
-            }
-            let b_dps_object = structuredClone(this.bm_chart_data.data[b]);
-            for (let key of Object.keys(b_dps_object)) {
-                if (this.bm_chart_data.filter_trinket_itemlevels.includes(
-                    Number.parseInt(key)
-                )) {
-                    delete b_dps_object[Number.parseInt(key)];
+
+                let a_dps = Math.max(...Object.values(a_dps_object));
+                let b_dps = Math.max(...Object.values(b_dps_object));
+
+                if (Number.isInteger(a_dps_object) && Number.isInteger(b_dps_object)) {
+                    a_dps = a_dps_object;
+                    b_dps = b_dps_object;
                 }
-            };
-            let a_dps = Math.max(...Object.values(a_dps_object));
-            let b_dps = Math.max(...Object.values(b_dps_object));
-            if (Number.isInteger(a_dps_object) && Number.isInteger(b_dps_object)) {
-                a_dps = a_dps_object;
-                b_dps = b_dps_object;
-            }
-            // power infusion special way to sort
-            if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bm_chart_data.data_type) > -1) {
-                a_dps = this.bm_chart_data.data[a] - (this.bm_chart_data.base_values[a] || this.bm_chart_data.data["{" + a + "}"]);
-                b_dps = this.bm_chart_data.data[b] - (this.bm_chart_data.base_values[b] || this.bm_chart_data.data["{" + b + "}"]);
-                if (this.bm_chart_data.value_calculation === "relative") {
-                    a_dps = a_dps / this.bm_chart_data.data[a];
-                    b_dps = b_dps / this.bm_chart_data.data[b];
+
+                // Special sorting for certain chart types
+                if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bm_chart_data.data_type) > -1) {
+                    a_dps = this.bm_chart_data.data[a] - (this.bm_chart_data.base_values[a] ||
+                        this.bm_chart_data.data["{" + a + "}"]);
+                    b_dps = this.bm_chart_data.data[b] - (this.bm_chart_data.base_values[b] ||
+                        this.bm_chart_data.data["{" + b + "}"]);
+
+                    if (this.bm_chart_data.value_calculation === "relative") {
+                        a_dps = a_dps / this.bm_chart_data.data[a];
+                        b_dps = b_dps / this.bm_chart_data.data[b];
+                    }
                 }
-            }
-            return b_dps - a_dps;
-        });
+
+                return b_dps - a_dps;
+            });
+
+        // Limit the number of displayed data points
+        // If show_top is set to 0, all data points are shown
         if (this.bm_chart_data.show_top > 0) {
             effective_sorted_data_keys = effective_sorted_data_keys.slice(0, this.bm_chart_data.show_top);
         }
 
+        // Setup chart container
         let root = this.bm_chart_data.root_element;
         root.classList.add("bm-bar-chart");
 
+        // Add header elements
         this.bm_chart_data.add_title(root);
         this.bm_chart_data.add_subtitle(root);
         this.bm_chart_data.add_simc_subtitle(root);
@@ -1146,6 +1170,7 @@ class BmBarChart {
         // axis titles
         let axis_titles = document.createElement("div");
         axis_titles.classList.add("bm-axis", "bm-row");
+
         let key_title = document.createElement("div");
         key_title.classList.add("bm-key-title");
         // key_title.appendChild(document.createTextNode(this.y_axis_title));
@@ -1381,7 +1406,7 @@ class BmBarChart {
                 mantissa = 0;
             }
             let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation), mantissa);
-            
+
             // Add unit in proper position
             const unit = this.bm_chart_data.unit[this.bm_chart_data.value_calculation];
             if (this.bm_chart_data.value_calculation === "absolute" && unit.length > 0) {
