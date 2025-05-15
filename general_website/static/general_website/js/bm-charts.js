@@ -236,36 +236,10 @@ const sortData = (data) => {
 };
 
 /**
- * Inject css into head
- * @param {String} id id of the styles element in the website
- * @param {String} url url to the styles
- * @returns Nothing
-*/
-function bm_add_css(id, url) {
-    if (document.getElementById(id)) {
-        return;
-    }
-
-    let styles = document.createElement("link");
-    styles.id = id;
-    styles.rel = "stylesheet";
-    styles.type = "text/css";
-    styles.href = url + "?now=" + Date.now();
-    styles.media = "all";
-    document.getElementsByTagName('head')[0].appendChild(styles);
-}
-
-/**
  * Add bloodmallet tooltip js to page and execute `bm_register_tooltips`.
  */
 function add_bm_tooltips_to_dom() {
-    if (!document.getElementById(BmTooltipJsId)) {
-        let js = document.createElement("script");
-        js.id = BmTooltipJsId;
-        js.type = "text/javascript";
-        js.src = BmTooltipJsUrl + "?now=" + Date.now();
-        document.getElementsByTagName('head')[0].appendChild(js);
-    }
+    BmUIUtils.addCSS(BmTooltipJsId, BmTooltipJsUrl);
 
     try {
         bm_register_tooltips();
@@ -278,19 +252,6 @@ function add_bm_tooltips_to_dom() {
             console.error(error);
         });
     }
-}
-
-/**
- * Create span with unit with applied bm-unit class
- * @param {String} unit e.g. %
- * @returns span
- */
-function create_unit_textnode(unit) {
-    let span = document.createElement("span");
-    span.classList.add("bm-unit");
-    span.appendChild(document.createTextNode(unit));
-
-    return span;
 }
 
 /**
@@ -444,7 +405,6 @@ class BmChartData {
     };
 
     // Filter settings
-
     /**
      * list elements remove matching data
      * e.g. "trinkets": {"itemlevels": [284]} will remove all itemlevel 284 
@@ -939,7 +899,7 @@ class BmChartData {
         }
 
         new_name += " [" + specifier + "]";
-        return new_name
+        return new_name;
     }
 
     /**
@@ -1005,7 +965,6 @@ class BmChartData {
         element.setAttribute("data-bm-tooltip-placement", position);
     }
 
-
     /**
      * Clear content from root element
      */
@@ -1051,22 +1010,21 @@ class BmBarChart {
         }
 
         add_bm_tooltips_to_dom();
-        bm_add_css(BmChartStyleId, BmChartStyleUrl);
+        BmUIUtils.addCSS(BmChartStyleId, BmChartStyleUrl);
 
         if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
             try {
                 provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
             } catch (error) {
-                console.log("Tried to provide metadata to bloodmallet.com, but failed.", error);
+                console.log("Failed to provide metadata to bloodmallet.com:", error);
             }
         }
     }
 
     /**
-     * 
-     * @param {HTMLElement} root_element root element
-     * @param {Array<[Number, String]} series_index_names 
-     * @returns 
+     * Create legend for the chart
+     * @param {HTMLElement} root_element - Root element
+     * @param {Array<[Number, String]>} series_index_names - Series data
      */
     _create_legend(root_element, series_index_names) {
         if (!this.bm_chart_data.enable_legend) {
@@ -1094,6 +1052,9 @@ class BmBarChart {
         root_element.appendChild(legend);
     }
 
+    /**
+     * Create the complete chart
+     */
     create_chart() {
         // filter out unwanted data
         let effective_series_index_names = Array.from(this.bm_chart_data.series_names.entries()).filter(([index, series]) => {
@@ -1196,30 +1157,31 @@ class BmBarChart {
         let min = document.createElement("span");
         min.classList.add("bm-bar-min")
         if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
-            let unit = create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
+            let unitTextNode = BmUIUtils.createUnitTextNode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
 
             if (this.bm_chart_data.value_calculation === "absolute") {
-                min.appendChild(unit);
+                min.appendChild(unitTextNode);
                 min.appendChild(document.createTextNode(0));
             } else if (this.bm_chart_data.value_calculation === "relative") {
                 min.appendChild(document.createTextNode(0));
-                min.appendChild(unit);
+                min.appendChild(unitTextNode);
             }
         } else {
             min.appendChild(document.createTextNode(0));
         }
+
         bar_title.appendChild(min);
         bar_title.appendChild(document.createTextNode(this.bm_chart_data.x_axis_title));
         // max value
         let max = document.createElement("span");
         max.classList.add("bm-bar-max")
         if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
-            let unit = create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
+            let unitTextNode = BmUIUtils.createUnitTextNode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
 
             let base_value = this.bm_chart_data.base_values[this.bm_chart_data.series_names[this.bm_chart_data.series_names.length - 1]];
 
             if (this.bm_chart_data.value_calculation === "absolute") {
-                max.appendChild(unit);
+                max.appendChild(unitTextNode);
                 if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bm_chart_data.data_type) > -1) {
                     max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.global_max_value)));
                 } else {
@@ -1341,7 +1303,9 @@ class BmBarChart {
                         );
                         if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
                             final_stack_value.appendChild(
-                                create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation])
+                                BmUIUtils.createUnitTextNode(
+                                    this.bm_chart_data.unit[this.bm_chart_data.value_calculation]
+                                )
                             );
                         }
                         bar_part.appendChild(final_stack_value);
@@ -1417,12 +1381,17 @@ class BmBarChart {
                 mantissa = 0;
             }
             let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation), mantissa);
-            if (this.bm_chart_data.value_calculation === "absolute" && this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
-                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+            
+            // Add unit in proper position
+            const unit = this.bm_chart_data.unit[this.bm_chart_data.value_calculation];
+            if (this.bm_chart_data.value_calculation === "absolute" && unit.length > 0) {
+                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
             }
+
             value_div.appendChild(document.createTextNode(value));
-            if (this.bm_chart_data.value_calculation === "relative" && this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
-                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+
+            if (this.bm_chart_data.value_calculation === "relative" && unit.length > 0) {
+                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
             }
             row.appendChild(value_div);
 
@@ -1443,8 +1412,11 @@ class BmBarChart {
             let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.data[key]);
             // let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
             value_div.appendChild(document.createTextNode(value));
-            if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
-                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+
+            // Add unit if applicable
+            const unit = this.bm_chart_data.unit[this.bm_chart_data.value_calculation];
+            if (unit.length > 0) {
+                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
             }
             row.appendChild(value_div);
 
@@ -1475,8 +1447,10 @@ class BmBarChart {
             }
             // let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
             value_div.appendChild(document.createTextNode(value));
-            if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
-                value_div.appendChild(create_unit_textnode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]));
+            // Add unit if applicable
+            const unit = this.bm_chart_data.unit[this.bm_chart_data.value_calculation];
+            if (unit.length > 0) {
+                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
             }
             row.appendChild(value_div);
 
@@ -1565,7 +1539,7 @@ class BmRadarChart {
             console.error(error);
         }
         add_bm_tooltips_to_dom();
-        bm_add_css(BmChartStyleId, BmChartStyleUrl);
+        BmUIUtils.addCSS(BmChartStyleId, BmChartStyleUrl);
 
         if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
             provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
@@ -1643,7 +1617,7 @@ class BmRadarChart {
         let best_ratio = document.createElement("div");
         best_ratio.classList.add("bm-stat-cell");
         best_ratio.appendChild(document.createTextNode("Best Ratio: " + this.bm_chart_data.convert_number_to_local(dps, 0)));
-        best_ratio.appendChild(create_unit_textnode("dps"));
+        best_ratio.appendChild(BmUIUtils.createUnitTextNode("dps"));
         // let ingame_value = document.createElement("div");
         // ingame_value.classList.add("bm-stat-cell");
         // ingame_value.appendChild(document.createTextNode("Ingame"));
@@ -1659,7 +1633,7 @@ class BmRadarChart {
                 element.appendChild(document.createTextNode(text));
                 element.classList.add("bm-stat-cell");
                 if (suffix !== undefined) {
-                    element.appendChild(create_unit_textnode(suffix));
+                    element.appendChild(BmUIUtils.createUnitTextNode(suffix));
                 }
                 return element;
             }
@@ -1755,12 +1729,12 @@ class BmRadarChart {
         value.classList.add("bm-radar-mini-table-value");
         row.appendChild(value);
 
-        value.appendChild(create_unit_textnode(this.bm_chart_data.unit["relative"]));
+        value.appendChild(BmUIUtils.createUnitTextNode(this.bm_chart_data.unit["relative"]));
 
         // add dps as tooltip
         let container = document.createElement("div");
         container.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(abs_dps, 0)));
-        container.appendChild(create_unit_textnode("dps"));
+        container.appendChild(BmUIUtils.createUnitTextNode("dps"));
 
         value.setAttribute("data-bm-tooltip-text", container.outerHTML);
         value.setAttribute("data-bm-tooltip-placement", "right");
