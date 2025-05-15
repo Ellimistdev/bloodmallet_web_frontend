@@ -1,3 +1,12 @@
+/**
+ * BloodMallet.com chart system - Main charting component
+ * 
+ * This file contains the chart generation system for bloodmallet.com
+ * - BmBarChart: Main bar chart display component
+ * - BmRadarChart: Secondary stats radar chart display component
+ * - BmChartData: Data and configuration extraction component
+ */
+
 const BmChartStyleId = "bm-chart-styles";
 const BmChartStyleUrl = "/static/general_website/css/bm-charts.css";
 const BmTooltipJsId = "bm-tooltip-javascript";
@@ -7,17 +16,31 @@ let trinketDataCache = {};
 const TRINKET_DATA_CACHE_KEY = 'trinketData';
 const TRINKET_DATA_CACHE_EXPIRY = 30 * 60 * 1000;  // 30 minutes in milliseconds
 
+/**
+ * Check if trinket data cache is still valid
+ * @returns {boolean} True if cache is valid
+ */
 const isTrinketDataCacheValid = () => {
     const timestamp = localStorage.getItem(TRINKET_DATA_CACHE_KEY + '_timestamp');
     return timestamp && (Date.now() - parseInt(timestamp, 10)) < TRINKET_DATA_CACHE_EXPIRY;
-}
+};
 
+/**
+ * Load trinket data from cache if valid
+ */
 const loadTrinketDataCache = () => {
     if (isTrinketDataCacheValid()) {
         trinketDataCache = JSON.parse(localStorage.getItem(TRINKET_DATA_CACHE_KEY)) || {};
     }
-}
+};
 
+/**
+ * Get trinket comparison data for a specific item and level
+ * @param {string} itemName - Trinket name
+ * @param {string} itemLevel - Item level
+ * @param {string} fightStyle - Fight style
+ * @returns {Promise<Object>} - Processed trinket data
+ */
 const getTrinketDataAsync = async (itemName, itemLevel, fightStyle) => {
     console.debug(`getTrinketDataAsync called with: ${itemName}, ${itemLevel}, ${fightStyle}`);
     let data;
@@ -35,6 +58,7 @@ const getTrinketDataAsync = async (itemName, itemLevel, fightStyle) => {
         const availableLevels = Object.keys(itemData.itemLevels)
             .map(level => parseInt(level))
             .sort((a, b) => b - a); // Sort descending
+
 
         const firstItemLevelKey = availableLevels[0].toString();
         const { sorted_data_keys, ...itemLevelData } = itemData.itemLevels[itemLevel] || itemData.itemLevels[firstItemLevelKey];
@@ -59,8 +83,13 @@ const getTrinketDataAsync = async (itemName, itemLevel, fightStyle) => {
         console.error("Error in getTrinketDataAsync:", error);
         throw error;
     }
-}
+};
 
+/**
+ * Fetch and process trinket data for all specs
+ * @param {string} fightStyle - Fight style
+ * @returns {Promise<Object>} Processed and sorted data
+ */
 const fetchAndProcessDataAsync = async (fightStyle) => {
     const specs = [
         ["death_knight", "blood", "Blood Death Knight"],
@@ -95,7 +124,7 @@ const fetchAndProcessDataAsync = async (fightStyle) => {
         ["warrior", "arms", "Arms Warrior"],
         ["warrior", "fury", "Fury Warrior"],
         ["warrior", "protection", "Protection Warrior"],
-    ]
+    ];
 
     loadTrinketDataCache();
     const cacheKey = `${fightStyle}`;
@@ -122,8 +151,13 @@ const fetchAndProcessDataAsync = async (fightStyle) => {
     localStorage.setItem(TRINKET_DATA_CACHE_KEY + '_timestamp', Date.now());
 
     return sortedData;
-}
+};
 
+/**
+ * Process raw trinket data into a structured format
+ * @param {Object} data - Raw data from API
+ * @returns {Object} Processed data 
+ */
 const processData = (data) => {
     const processedData = {
         items: {},
@@ -169,8 +203,13 @@ const processData = (data) => {
     });
 
     return processedData;
-}
+};
 
+/**
+ * Sort data entries by DPS values
+ * @param {Object} data - Processed data
+ * @returns {Object} Sorted data
+ */
 const sortData = (data) => {
     const sortedData = {
         items: {},
@@ -194,7 +233,7 @@ const sortData = (data) => {
         }
     }
     return sortedData;
-}
+};
 
 /**
  * Inject css into head
@@ -218,7 +257,7 @@ function bm_add_css(id, url) {
 
 /**
  * Add bloodmallet tooltip js to page and execute `bm_register_tooltips`.
-*/
+ */
 function add_bm_tooltips_to_dom() {
     if (!document.getElementById(BmTooltipJsId)) {
         let js = document.createElement("script");
@@ -255,22 +294,22 @@ function create_unit_textnode(unit) {
 }
 
 /**
- * On creation class gets handed an html element containing all data and 
- * settings required for the generation of a BmChart. Class collects
- * configs and offers them in a single location with auto-complete.
-*/
+ * Main chart data extractor and configuration class
+ * Extracts and provides access to data required for chart rendering
+ */
 class BmChartData {
     /**
+     * Root element containing the chart
      * @type {HTMLElement}
      */
     root_element;
 
     /**
-     * loaded data from the backend
+     * Data loaded from the API or backend
      */
     loaded_data = {};
 
-    // data extracted from loaded_data
+    // Data properties extracted from loaded_data
     /**
      * e.g. "Trinkets | Elemental Shaman | Castingpatchwerk"
      */
@@ -325,30 +364,17 @@ class BmChartData {
      * e.g. {"Talent Tree 1": ["10_10_10_70", ...], ...}
      */
     sorted_data_data_keys = {};
-
-
     /**
      * e.g. {260: 11400, 270: 11400, 280: 11400}
      */
     base_values = {};
 
-    // settings
+    // Settings
+
     /**
      * options: "cn_CN", "de_DE", "en_US", "es_ES", "fr_FR", "it_IT", "ko_KR", "pt_BR", "ru_RU"
      */
     language = "en_US";
-    language_short_to_long_form = {
-        "cn": "cn_CN",
-        "en": "en_US",
-        "de": "de_DE",
-        "es": "es_ES",
-        "fr": "fr_FR",
-        "it": "it_IT",
-        "ko": "ko_KR",
-        "pt": "pt_BR",
-        "ru": "ru_RU",
-        "zh-hans": "cn_CN"
-    };
     /**
      * e.g. % damage per second, see `x_axis_texts`
      */
@@ -362,18 +388,20 @@ class BmChartData {
      */
     value_calculation = "total";
 
-    // calculated values based on `data`
+    // Calculated values
+
     /**
      * max dps value found in `data`
      */
     global_max_value = -1;
 
-    // statics
+    // Constants
     unit = {
         "total": "",
         "relative": "%",
         "absolute": "Δ"
     };
+
     x_axis_texts = {
         "total": "total damage per second (character)",
         "relative": "% damage per second",
@@ -415,6 +443,8 @@ class BmChartData {
         }
     };
 
+    // Filter settings
+
     /**
      * list elements remove matching data
      * e.g. "trinkets": {"itemlevels": [284]} will remove all itemlevel 284 
@@ -443,6 +473,7 @@ class BmChartData {
      */
     show_top = 5;
 
+    // Display flags
     enable_title = true;
     enable_subtitle = true;
     enable_simc_subtitle = true;
@@ -452,8 +483,8 @@ class BmChartData {
 
     /**
      * Extract the value from `key_chain` of `loaded_data` and stores it in class as `property`.
-     * @param {String} property name of the property to be set on this class
-     * @param {Array<String>} key_chain nested keys in loaded_data to get the value for `property`
+     * @param {String} property - Name of the property to be set on this class
+     * @param {Array<String>} key_chain - Nested keys in loaded_data to get the value for `property`
      */
     _extract_data_from_loaded_data(property, key_chain) {
         let could_descend = true;
@@ -473,30 +504,35 @@ class BmChartData {
 
     /**
      * Extract the value of `key` of the root html element dataset and stores it in class as `property`.
-     * @param {String} property name of the proeprty to be set on this class
-     * @param {String} key name of the dataset key containing the wanted value
-     * @param {CallableFunction} converter converter({String}): String 
+     * @param {String} property - Name of the property to be set on this class
+     * @param {String} key - Name of the dataset key containing the wanted value
+     * @param {Function} converter - Function to convert the value
      */
-    _extract_setting_from_root_element(property, key, converter = (v) => { return v }) {
+    _extract_setting_from_root_element(property, key, converter = (v) => v) {
         if (this.root_element.dataset.hasOwnProperty(key)) {
             this[property] = converter(this.root_element.dataset[key]);
         }
     }
 
     /**
-     * Set `property` of BmChartData to to a data_type appropriate default, if present.
-     * @param {String} property a BmChartData property that might or might not be part of data_type_defaults
+     * Set `property` of BmChartData to a data_type appropriate default, if present.
+     * @param {String} property - A BmChartData property that might be part of data_type_defaults
      */
     _set_default_from_data_type(property) {
-        if (this.data_type_defaults.hasOwnProperty(this.data_type) && this.data_type_defaults[this.data_type].hasOwnProperty(property)) {
+        if (this.data_type_defaults.hasOwnProperty(this.data_type) &&
+            this.data_type_defaults[this.data_type].hasOwnProperty(property)) {
             this[property] = this.data_type_defaults[this.data_type][property];
         }
     }
 
+    /**
+     * Set subtitle from data
+     */
     _set_subtitle() {
         let subtitle_parts = [];
         if (this.loaded_data.hasOwnProperty("profile")) {
-            subtitle_parts.push(this.loaded_data["profile"]["character"]["spec"] + " " + this.loaded_data["profile"]["character"]["class"]);
+            subtitle_parts.push(this.loaded_data["profile"]["character"]["spec"] + " " +
+                this.loaded_data["profile"]["character"]["class"]);
         }
         subtitle_parts.push(this.loaded_data["simc_settings"]["fight_style"]);
         subtitle_parts.push("UTC " + this.loaded_data["metadata"]["timestamp"]);
@@ -504,6 +540,9 @@ class BmChartData {
         this.subtitle = subtitle_parts.join(" | ");
     }
 
+    /**
+     * Set title for trinket compare chart type
+     */
     _setTrinketCompareTitle() {
         // Extract the item name
         this._extract_data_from_loaded_data("item_name", ["item_name"]);
@@ -535,8 +574,8 @@ class BmChartData {
     }
 
     /**
-     * Add title to `element`
-     * @param {HTMLElement} element root element
+     * Add title to element
+     * @param {HTMLElement} element - Target element
      */
     add_title(element) {
         if (!this.enable_title) {
@@ -549,8 +588,8 @@ class BmChartData {
     }
 
     /**
-     * Add subtitle to `element`
-     * @param {HTMLElement} element root element
+     * Add subtitle to element
+     * @param {HTMLElement} element - Target element
      */
     add_subtitle(element) {
         if (!this.enable_subtitle) {
@@ -563,8 +602,8 @@ class BmChartData {
     }
 
     /**
-     * Add simc subtitle to `element`
-     * @param {HTMLElement} element root element
+     * Add SimC subtitle with hash to element
+     * @param {HTMLElement} element - Target element
      */
     add_simc_subtitle(element) {
         if (!this.enable_simc_subtitle) {
@@ -584,14 +623,19 @@ class BmChartData {
         element.appendChild(simc_subtitle);
     }
 
-
+    /**
+     * Create a new chart data object
+     * @param {HTMLElement} root_element - The element containing chart data
+     */
     constructor(root_element = new HTMLElement()) {
         /**
          * Contains the root html element. Data was extracted from it.
          */
         this.root_element = root_element;
 
-        if (!this.root_element.dataset.hasOwnProperty("loadedData") || (this.root_element.dataset.hasOwnProperty("loadedData") && this.root_element.dataset.loadedData === "")) {
+        if (!this.root_element.dataset.hasOwnProperty("loadedData") ||
+            (this.root_element.dataset.hasOwnProperty("loadedData") &&
+                this.root_element.dataset.loadedData === "")) {
             throw new Error("Data must be loaded in Element before attempting to create the associated chart.");
         }
 
@@ -618,6 +662,7 @@ class BmChartData {
             this._set_subtitle();
             this._extract_data_from_loaded_data("simc_hash", ["metadata", "SimulationCraft"]);
 
+            // Set legend title based on chart type
             if (this.data_type === "races") {
                 this.legend_title = "Race";
             } else if (["trinkets"].includes(this.data_type)) {
@@ -631,12 +676,14 @@ class BmChartData {
             } else {
                 this.legend_title = "legend_title not set";
             }
+
             this._extract_data_from_loaded_data("legend_title", ["legend_title"]);
             this._extract_data_from_loaded_data("data", ["data"]);
             this._set_default_from_data_type("value_calculation");
             this._extract_setting_from_root_element("value_calculation", "valueCalculation");
             this._extract_setting_from_root_element("selected_data_key", "selectedDataKey");
-            // set sole data point as selected data for secondary distributions
+
+            // Set sole data point as selected data for secondary distributions
             if (Object.keys(this.data).indexOf(this.selected_data_key) === -1) {
                 this.selected_data_key = Object.keys(this.data)[0];
             }
@@ -648,17 +695,17 @@ class BmChartData {
             this._extract_data_from_loaded_data("wow_class", ["profile", "character", "class"]);
             this._extract_data_from_loaded_data("secondary_sum", ["secondary_sum"]);
 
-            // optional
+            // Extract series names - optional
             this._extract_data_from_loaded_data("series_names", ["simulated_steps"]);
             if (this.series_names.length === 0) {
                 for (let key_value_object of Object.values(this.data)) {
                     for (let series of Object.keys(key_value_object)) {
                         let parsed_int = Number.parseInt(series);
                         if (this.series_names.indexOf(parsed_int) === -1 && parsed_int.toString() === series) {
-                            // series are numbers, e.g. itemlevels or ranks
+                            // Series are numbers, e.g. itemlevels or ranks
                             this.series_names.push(parsed_int);
                         } else if (this.series_names.indexOf(series) === -1 && parsed_int.toString() !== series) {
-                            // series are words, e.g. like 10_10_10_70 from secondary distribution charts
+                            // Series are words, e.g. 10_10_10_70 from secondary distribution charts
                             this.series_names.push(series);
                         }
                     }
@@ -666,7 +713,7 @@ class BmChartData {
             }
             this.series_names.sort((a, b) => a - b);
 
-            // optional
+            // Extract sorted data keys - optional
             this._extract_data_from_loaded_data("sorted_data_keys", ["sorted_data_keys"])
             if (this.sorted_data_keys.length === 0) {
                 let key_value = {};
@@ -677,31 +724,28 @@ class BmChartData {
             }
             this._extract_data_from_loaded_data("sorted_data_data_keys", ["sorted_data_keys"]);
 
-            // optional - base_values
+            // Handle base values - optional
             // create if no keys
             // extend if number of keys === 1 and number of series_names > 1
             this._extract_data_from_loaded_data("base_values", ["data", "baseline"]);
             if (Object.keys(this.base_values).length === 0) {
-                // console.debug("No base_values found");
+                // No base_values found, default to 0
                 for (let series of this.series_names) {
-                    // we assume 0 dps to be the baseline
                     this.base_values[series] = 0;
                 }
             } else if (Object.keys(this.base_values).length === 1 && this.series_names.length > 1) {
-                // console.debug("1 base_values found but multiple series_names");
+                // One base_value found but multiple series, use same value for all
                 let tmp_value = Object.values(this.base_values)[0];
                 for (let series of this.series_names) {
-                    // we assume 0 dps to be the baseline
                     this.base_values[series] = tmp_value;
                 }
             } else if (Object.keys(this.base_values).length == this.series_names.length) {
-                // console.debug("as many base_values found as series_names");
-                // do nothing
+                // As many base_values as series_names - do nothing
             } else {
                 throw "base_value must be an empty object, have only one key, or the same length and keys as series_names." + this.data_type;
             }
 
-            // optional
+            // Extract optional data
             this._extract_data_from_loaded_data("language_dict", ["translations"]);
             this._extract_data_from_loaded_data("item_id_dict", ["item_ids"]);
             this._extract_data_from_loaded_data("spell_id_dict", ["spell_ids"]);
@@ -715,6 +759,7 @@ class BmChartData {
             this._extract_setting_from_root_element("enable_tooltips", "enableTooltips", this._convert_to_bool);
             this._extract_setting_from_root_element("enable_legend", "enableLegend", this._convert_to_bool);
 
+            // Calculate global max value based on chart type
             if (this.data_type === "races") {
                 this.global_max_value = Math.max(...Object.values(this.data));
             } else if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.data_type) > -1) {
@@ -738,7 +783,11 @@ class BmChartData {
 
                 this.global_max_value = biggest_diff;
             } else {
-                this.global_max_value = Math.max(...Object.values(this.data).map(element => Math.max(...Object.values(element))));
+                this.global_max_value = Math.max(
+                    ...Object.values(this.data).map(element =>
+                        Math.max(...Object.values(element))
+                    )
+                );
             }
         } catch (error) {
             console.error("Error in BmChartData constructor:", error);
@@ -746,54 +795,68 @@ class BmChartData {
         }
     }
 
+    /**
+     * Convert string value to boolean
+     * @param {String} input - Input string
+     * @returns {Boolean} Boolean value
+     */
     _convert_to_bool(input) {
-        return input.toLowerCase() === 'true'
+        return input.toLowerCase() === 'true';
     }
 
     /**
-     * 
-     * @param {String} input 
-     * @returns {Array<String>}
+     * Convert semicolon-separated string to array of strings
+     * @param {String} input - Input string
+     * @returns {Array<String>} Array of strings
      */
     _convert_to_string_list(input) {
         return input.split(";");
     }
 
     /**
-     * 
-     * @param {String} input 
-     * @returns {Array<Number>}
+     * Convert semicolon-separated string to array of numbers
+     * @param {String} input - Input string
+     * @returns {Array<Number>} Array of numbers
      */
     _convert_to_number_list(input) {
-        return input.split(";").map((value) => { return Number.parseInt(value); });
+        return input.split(";").map(value => Number.parseInt(value));
     }
 
+    /**
+     * Convert string to number
+     * @param {String} input - Input string
+     * @returns {Number} Number value
+     */
     _convert_to_number(input) {
         return Number.parseInt(input);
     }
 
     /**
-     * Convert `value` to a local string with a mantissa of `mantissa`.
-     * E.g. 123.567 becomes 123,56 Germany with a set mantissa of 2.
-     * @param {Number} value 
-     * @param {Number} [mantissa=2]
-     * @returns {String}
+     * Format number using locale and precision
+     * @param {Number} value - Value to format
+     * @param {Number} mantissa - Number of decimal places
+     * @returns {String} Formatted number
      */
     convert_number_to_local(value, mantissa = 2) {
-        let removed_rounding_errors = Math.round((value + Number.EPSILON) * (10 ** mantissa)) / (10 ** mantissa);
-        return removed_rounding_errors.toLocaleString(undefined, { minimumFractionDigits: mantissa, maximumFractionDigits: mantissa });
+        return BmUIUtils.formatNumber(value, mantissa);
     }
 
+    /**
+     * Calculate relative value compared to base
+     * @param {Number} changed_value - Changed value
+     * @param {Number} base_value - Base value
+     * @returns {Number} Relative value
+     */
     _get_relative_value(changed_value, base_value) {
         return changed_value * 100 / base_value;
     }
 
     /**
-     * Returns the relative gain of `changed_number` compared to `base_value`.
+     * Calculate relative gain as percentage difference
      * E.g. changed_value=80, base_value=100 => -20 (%)
-     * @param {Number} changed_value 
-     * @param {Number} base_value 
-     * @returns {Number}
+     * @param {Number} changed_value - Changed value
+     * @param {Number} base_value - Base value
+     * @returns {Number} Percentage gain
      */
     get_relative_gain(changed_value, base_value) {
         let relative_gain = this._get_relative_value(changed_value, base_value);
@@ -801,11 +864,10 @@ class BmChartData {
     }
 
     /**
-     * Calculate the absolute gain of `changed_value` compared to `base_value`.
-     * E.g. changed_value = 7 , base_value = 5 , result = 2
-     * @param {Number} changed_value 
-     * @param {Number} base_value 
-     * @returns {Number}
+     * Calculate absolute gain (positive only)
+     * @param {Number} changed_value - Changed value
+     * @param {Number} base_value - Base value
+     * @returns {Number} Absolute gain (minimum 0)
      */
     get_absolute_gain(changed_value, base_value) {
         let value = changed_value - base_value;
@@ -813,9 +875,9 @@ class BmChartData {
     }
 
     /**
-     * Translate `key` using already loaded data.
-     * @param {String} key to be translated `key`
-     * @returns {String}
+     * Get translated name for a key
+     * @param {String} key - Key to translate
+     * @returns {String} Translated name
      */
     get_translated_name(key) {
         if (key in this.language_dict && this.language in this.language_dict[key]) {
@@ -827,37 +889,28 @@ class BmChartData {
 
     /**
      * Build wowhead URL for an item or spell
+     * @param {String} key - Item or spell name
+     * @returns {String|undefined} URL to wowhead or undefined
      */
     _get_wowhead_url(key) {
-        const subdomain = {
-            "en_US": "www",
-            "cn_CN": "cn",
-            "de_DE": "de",
-            "es_ES": "es",
-            "fr_FR": "fr",
-            "it_IT": "it",
-            "ko_KR": "ko",
-            "pt_BR": "pt",
-            "ru_RU": "ru"
-        };
+        const subdomain = BmUIUtils.getWowheadSubdomain(this.language);
+        let base = `https://${subdomain}.wowhead.com/`;
 
-        let base = "https://" + subdomain[this.language] + ".wowhead.com/";
         if (key in this.spell_id_dict) {
-            base += "spell=";
-            base += this.spell_id_dict[key];
+            base += "spell=" + this.spell_id_dict[key];
         } else if (key in this.item_id_dict) {
-            base += "item=";
-            base += this.item_id_dict[key];
+            base += "item=" + this.item_id_dict[key];
         } else {
             return undefined;
         }
+
         return base;
     }
 
     /**
-     * Shorten name but keeping special name addition.
-     * @param {String} name 
-     * @returns {String}
+     * Shorten display name preserving special information in brackets
+     * @param {String} name - Name to shorten
+     * @returns {String} Shortened name
      */
     _shorten_name(name) {
         if (name.length < 20) {
@@ -867,34 +920,32 @@ class BmChartData {
         if (!name.includes("[")) {
             return name;
         }
-        let to_be_shortened = name.split("[")[0];
-        to_be_shortened = to_be_shortened.trim();
-        let specifier = name.split("[")[1];
-        specifier = specifier.split("]")[0];
+
+        let to_be_shortened = name.split("[")[0].trim();
+        let specifier = name.split("[")[1].split("]")[0];
         let name_sections = to_be_shortened.split(":");
         let name_section_parts = [];
+
         for (const name_section of name_sections) {
-            name_section_parts.push(name_section.trim().split(" ").map((part) => part[0]));
+            name_section_parts.push(name_section.trim().split(" ").map(part => part[0]));
         }
 
         let new_name = "";
-        // console.log(name_section_parts);
         for (const characters of name_section_parts) {
-            // console.log(characters);
             if (new_name !== "") {
                 new_name += ":";
             }
             new_name += characters.join("");
         }
-        new_name += " [" + specifier + "]";
 
+        new_name += " [" + specifier + "]";
         return new_name
     }
 
     /**
-     * Get a wowhead link for `key`
-     * @param {String} key base (english) name
-     * @returns {HTMLElement} translated link with tooltip-information
+     * Get a wowhead link for a key
+     * @param {String} key - Base (English) name
+     * @returns {HTMLElement} Translated link with tooltip information
      */
     get_wowhead_link(key) {
         let translated_name = this.get_translated_name(key);
@@ -912,11 +963,11 @@ class BmChartData {
     }
 
     /**
-     * Get the dps value of `key` & `series` using `value_calculation`.
-     * @param {String} key key to find the data (dps) object
-     * @param {String} series key to find the actual dps value of the object
-     * @param {String} value_calculation enum like string to determine how the value should get calculated
-     * @returns {Number} dps value
+     * Get the DPS value based on calculation type
+     * @param {String} key - Data key
+     * @param {String|Number} series - Series key
+     * @param {String} value_calculation - Calculation method (total, absolute, relative)
+     * @returns {Number} Calculated value
      */
     get_value(key, series, value_calculation) {
         if (value_calculation === "total") {
@@ -924,7 +975,7 @@ class BmChartData {
         } else if (value_calculation === "absolute") {
             return this.get_absolute_gain(this.data[key][series], this.base_values[series]);
         } else if (value_calculation === "relative") {
-            // special case for augmentatione vokers to compare the gain to 
+            // Special case for augmentation evokers to compare the gain to 
             // their own base dps without the group dps
             let relative_gain = -1;
             if (this.wow_class === "evoker" && this.wow_spec === "augmentation") {
@@ -940,10 +991,10 @@ class BmChartData {
     }
 
     /**
-     * Add a bm-tooltip to `element` showing `tooltip` in `position`.
-     * @param {HTMLElement} element element gets a tooltip
-     * @param {String} tooltip tooltip string, can contain html as string
-     * @param {String} position options: left, right, top, bottom
+     * Add tooltip to element
+     * @param {HTMLElement} element - Element to add tooltip to
+     * @param {String} tooltip - Tooltip content
+     * @param {String} position - Tooltip position
      */
     add_tooltip(element, tooltip, position = "right") {
         if (!this.enable_tooltips) {
@@ -954,6 +1005,10 @@ class BmChartData {
         element.setAttribute("data-bm-tooltip-placement", position);
     }
 
+
+    /**
+     * Clear content from root element
+     */
     clean_up_root() {
         this.root_element.innerHTML = "";
         // while (this.root_element.hasChildNodes()) {
@@ -967,29 +1022,34 @@ class BmChartData {
  */
 class BmBarChart {
     /**
+     * Chart data
      * @type {BmChartData}
      */
     bm_chart_data;
 
     /**
+     * Vertical comparison line
      * @type {HTMLElement}
      */
     vertical_line;
 
+    /**
+     * Create a new bar chart
+     * @param {BmChartData} chart_data - Chart data
+     */
     constructor(chart_data = new BmChartData()) {
         this.vertical_line = undefined;
         this.bm_chart_data = chart_data;
 
         this.bm_chart_data.clean_up_root();
-
         this.create_chart();
 
         try {
             $WowheadPower.refreshLinks();
         } catch (error) {
-            console.error("Error occured while trying to refresh WowheadPower links.");
-            console.error(error);
+            console.error("Error refreshing WowheadPower links:", error);
         }
+
         add_bm_tooltips_to_dom();
         bm_add_css(BmChartStyleId, BmChartStyleUrl);
 
@@ -1961,7 +2021,8 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /**
- * Utility functions for bloodmallet.com
+ * Utility class for BloodMallet UI operations
+ * Contains helper methods for DOM manipulation and formatting
  */
 class BmUIUtils {
     /**
@@ -2093,6 +2154,21 @@ class BmUIUtils {
                 return text;
         }
     };
+
+    /**
+     * Format a number for display with proper locale formatting
+     * 
+     * @param {number} value - The number to format
+     * @param {number} mantissa - Number of decimal places (default: 2)
+     * @returns {string} Formatted number string
+     */
+    static formatNumber(value, mantissa = 2) {
+        const roundedValue = Math.round((value + Number.EPSILON) * (10 ** mantissa)) / (10 ** mantissa);
+        return roundedValue.toLocaleString(undefined, {
+            minimumFractionDigits: mantissa,
+            maximumFractionDigits: mantissa
+        });
+    }
 
     /**
      * Capitalizes all first letters in a string, preserving underscores
