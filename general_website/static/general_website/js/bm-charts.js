@@ -1963,7 +1963,7 @@ document.addEventListener("DOMContentLoaded", function () {
 /**
  * Utility functions for bloodmallet.com
  */
-class BMUIUtils {
+class BmUIUtils {
     /**
      * Get Wowhead subdomain for a language
      * 
