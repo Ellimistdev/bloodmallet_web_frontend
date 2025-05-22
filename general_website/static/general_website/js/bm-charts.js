@@ -983,23 +983,23 @@ class BmBarChart {
      * Chart data
      * @type {BmChartData}
      */
-    bm_chart_data;
+    bmChartData;
 
     /**
      * Vertical comparison line
      * @type {HTMLElement}
      */
-    vertical_line;
+    verticalLine;
 
     /**
      * Create a new bar chart
      * @param {BmChartData} chart_data - Chart data
      */
     constructor(chart_data = new BmChartData()) {
-        this.vertical_line = undefined;
-        this.bm_chart_data = chart_data;
+        this.verticalLine = undefined;
+        this.bmChartData = chart_data;
 
-        this.bm_chart_data.clean_up_root();
+        this.bmChartData.clean_up_root();
         this.create_chart();
 
         try {
@@ -1013,7 +1013,7 @@ class BmBarChart {
 
         if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
             try {
-                provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
+                provide_meta_data(this.bmChartData, this.bmChartData.loaded_data);
             } catch (error) {
                 console.log("Failed to provide metadata to bloodmallet.com:", error);
             }
@@ -1025,45 +1025,45 @@ class BmBarChart {
      */
     create_chart() {
         // Filter out unwanted data
-        let effective_series_index_names = Array.from(this.bm_chart_data.series_names.entries())
-            .filter(([index, series]) => !this.bm_chart_data.filter_trinket_itemlevels.includes(series));
+        let effective_series_index_names = Array.from(this.bmChartData.series_names.entries())
+            .filter(([index, series]) => !this.bmChartData.filter_trinket_itemlevels.includes(series));
 
         // Process data keys with filters
-        let effective_sorted_data_keys = this.bm_chart_data.sorted_data_keys.slice()
+        let effective_sorted_data_keys = this.bmChartData.sorted_data_keys.slice()
             // Remove "baseline"
             .filter(key => key !== "baseline")
             // Filter by data_source
             .filter(key => {
-                if (this.bm_chart_data.loaded_data.hasOwnProperty("data_sources")) {
-                    return !this.bm_chart_data.filter_trinket_sources.includes(
-                        this.bm_chart_data.loaded_data["data_sources"][key]
+                if (this.bmChartData.loaded_data.hasOwnProperty("data_sources")) {
+                    return !this.bmChartData.filter_trinket_sources.includes(
+                        this.bmChartData.loaded_data["data_sources"][key]
                     );
                 }
                 return true;
             })
             // Filter active trinkets
             .filter(value => {
-                if (this.bm_chart_data.data_type === "trinkets" &&
-                    (this.bm_chart_data.filter_trinket_active_passive.includes("active") ||
-                        this.bm_chart_data.filter_trinket_active_passive.includes("Active"))) {
-                    return this.bm_chart_data.loaded_data["data_active"][value] === false;
+                if (this.bmChartData.data_type === "trinkets" &&
+                    (this.bmChartData.filter_trinket_active_passive.includes("active") ||
+                        this.bmChartData.filter_trinket_active_passive.includes("Active"))) {
+                    return this.bmChartData.loaded_data["data_active"][value] === false;
                 }
                 return true;
             })
             // Filter passive trinkets
             .filter(value => {
-                if (this.bm_chart_data.data_type === "trinkets" &&
-                    (this.bm_chart_data.filter_trinket_active_passive.includes("passive") ||
-                        this.bm_chart_data.filter_trinket_active_passive.includes("Passive"))) {
-                    return this.bm_chart_data.loaded_data["data_active"][value] === true;
+                if (this.bmChartData.data_type === "trinkets" &&
+                    (this.bmChartData.filter_trinket_active_passive.includes("passive") ||
+                        this.bmChartData.filter_trinket_active_passive.includes("Passive"))) {
+                    return this.bmChartData.loaded_data["data_active"][value] === true;
                 }
                 return true;
             })
             // Filter by no-remaining series
             .filter(key => {
-                if (this.bm_chart_data.data_type === "trinkets") {
-                    for (const tmp_series of Object.keys(this.bm_chart_data.data[key])) {
-                        if (!this.bm_chart_data.filter_trinket_itemlevels.includes(
+                if (this.bmChartData.data_type === "trinkets") {
+                    for (const tmp_series of Object.keys(this.bmChartData.data[key])) {
+                        if (!this.bmChartData.filter_trinket_itemlevels.includes(
                             Number.parseInt(tmp_series)
                         )) {
                             return true;
@@ -1075,17 +1075,17 @@ class BmBarChart {
             })
             // Sort by DPS value
             .sort((a, b) => {
-                let a_dps_object = structuredClone(this.bm_chart_data.data[a]);
-                let b_dps_object = structuredClone(this.bm_chart_data.data[b]);
+                let a_dps_object = structuredClone(this.bmChartData.data[a]);
+                let b_dps_object = structuredClone(this.bmChartData.data[b]);
 
                 // Remove filtered item levels
                 for (let key of Object.keys(a_dps_object)) {
-                    if (this.bm_chart_data.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
+                    if (this.bmChartData.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
                         delete a_dps_object[Number.parseInt(key)];
                     }
                 }
                 for (let key of Object.keys(b_dps_object)) {
-                    if (this.bm_chart_data.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
+                    if (this.bmChartData.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
                         delete b_dps_object[Number.parseInt(key)];
                     }
                 }
@@ -1099,15 +1099,15 @@ class BmBarChart {
                 }
 
                 // Special sorting for certain chart types
-                if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bm_chart_data.data_type) > -1) {
-                    a_dps = this.bm_chart_data.data[a] - (this.bm_chart_data.base_values[a] ||
-                        this.bm_chart_data.data["{" + a + "}"]);
-                    b_dps = this.bm_chart_data.data[b] - (this.bm_chart_data.base_values[b] ||
-                        this.bm_chart_data.data["{" + b + "}"]);
+                if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bmChartData.data_type) > -1) {
+                    a_dps = this.bmChartData.data[a] - (this.bmChartData.base_values[a] ||
+                        this.bmChartData.data["{" + a + "}"]);
+                    b_dps = this.bmChartData.data[b] - (this.bmChartData.base_values[b] ||
+                        this.bmChartData.data["{" + b + "}"]);
 
-                    if (this.bm_chart_data.value_calculation === "relative") {
-                        a_dps = a_dps / this.bm_chart_data.data[a];
-                        b_dps = b_dps / this.bm_chart_data.data[b];
+                    if (this.bmChartData.value_calculation === "relative") {
+                        a_dps = a_dps / this.bmChartData.data[a];
+                        b_dps = b_dps / this.bmChartData.data[b];
                     }
                 }
 
@@ -1116,19 +1116,24 @@ class BmBarChart {
 
         // Limit the number of displayed data points
         // If show_top is set to 0, all data points are shown
-        if (this.bm_chart_data.show_top > 0) {
-            effective_sorted_data_keys = effective_sorted_data_keys.slice(0, this.bm_chart_data.show_top);
+        if (this.bmChartData.show_top > 0) {
+            effective_sorted_data_keys = effective_sorted_data_keys.slice(0, this.bmChartData.show_top);
         }
 
         // Setup chart container
-        let root = this.bm_chart_data.root_element;
+        let root = this.bmChartData.root_element;
         root.classList.add("bm-bar-chart");
 
         // Add header elements
-        this.bm_chart_data.add_title(root);
-        this.bm_chart_data.add_subtitle(root);
-        this.bm_chart_data.add_simc_subtitle(root);
-        this._create_legend(root, effective_series_index_names);
+        this.bmChartData.add_title(root);
+        this.bmChartData.add_subtitle(root);
+        this.bmChartData.add_simc_subtitle(root);
+
+        // Add legend
+        const legend = BmChartComponents.createLegend(this.bmChartData, effective_series_index_names);
+        if (legend) {
+            root.appendChild(legend);
+        }
 
         // axis titles
         let axis_titles = document.createElement("div");
@@ -1144,13 +1149,13 @@ class BmBarChart {
         // min value
         let min = document.createElement("span");
         min.classList.add("bm-bar-min")
-        if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
-            let unitTextNode = BmUIUtils.createUnitTextNode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
+        if (["absolute", "relative"].indexOf(this.bmChartData.value_calculation) > -1) {
+            let unitTextNode = BmUIUtils.createUnitTextNode(this.bmChartData.unit[this.bmChartData.value_calculation]);
 
-            if (this.bm_chart_data.value_calculation === "absolute") {
+            if (this.bmChartData.value_calculation === "absolute") {
                 min.appendChild(unitTextNode);
                 min.appendChild(document.createTextNode(0));
-            } else if (this.bm_chart_data.value_calculation === "relative") {
+            } else if (this.bmChartData.value_calculation === "relative") {
                 min.appendChild(document.createTextNode(0));
                 min.appendChild(unitTextNode);
             }
@@ -1159,42 +1164,42 @@ class BmBarChart {
         }
 
         bar_title.appendChild(min);
-        bar_title.appendChild(document.createTextNode(this.bm_chart_data.x_axis_title));
+        bar_title.appendChild(document.createTextNode(this.bmChartData.x_axis_title));
         // max value
         let max = document.createElement("span");
         max.classList.add("bm-bar-max")
-        if (["absolute", "relative"].indexOf(this.bm_chart_data.value_calculation) > -1) {
-            let unitTextNode = BmUIUtils.createUnitTextNode(this.bm_chart_data.unit[this.bm_chart_data.value_calculation]);
+        if (["absolute", "relative"].indexOf(this.bmChartData.value_calculation) > -1) {
+            let unitTextNode = BmUIUtils.createUnitTextNode(this.bmChartData.unit[this.bmChartData.value_calculation]);
 
-            let base_value = this.bm_chart_data.base_values[this.bm_chart_data.series_names[this.bm_chart_data.series_names.length - 1]];
+            let base_value = this.bmChartData.base_values[this.bmChartData.series_names[this.bmChartData.series_names.length - 1]];
 
-            if (this.bm_chart_data.value_calculation === "absolute") {
+            if (this.bmChartData.value_calculation === "absolute") {
                 max.appendChild(unitTextNode);
-                if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bm_chart_data.data_type) > -1) {
-                    max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.global_max_value)));
+                if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bmChartData.data_type) > -1) {
+                    max.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(this.bmChartData.global_max_value)));
                 } else {
-                    max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value))));
+                    max.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(this.bmChartData.get_absolute_gain(this.bmChartData.global_max_value, base_value))));
                 }
-            } else if (this.bm_chart_data.value_calculation === "relative") {
+            } else if (this.bmChartData.value_calculation === "relative") {
                 let relative_gain = -1;
-                if (this.bm_chart_data.wow_class === "evoker" && this.bm_chart_data.wow_spec === "augmentation") {
-                    let aug_base_value = this.bm_chart_data.loaded_data["profile"]["metadata"]["base_dps"];
-                    let raw_gain = this.bm_chart_data.get_absolute_gain(this.bm_chart_data.global_max_value, base_value);
+                if (this.bmChartData.wow_class === "evoker" && this.bmChartData.wow_spec === "augmentation") {
+                    let aug_base_value = this.bmChartData.loaded_data["profile"]["metadata"]["base_dps"];
+                    let raw_gain = this.bmChartData.get_absolute_gain(this.bmChartData.global_max_value, base_value);
                     // console.log("augmentation had a raw gain of", raw_gain, "dps compared to its own max dps of", aug_base_value);
-                    relative_gain = this.bm_chart_data.get_relative_gain(aug_base_value + raw_gain, aug_base_value);
+                    relative_gain = this.bmChartData.get_relative_gain(aug_base_value + raw_gain, aug_base_value);
                 } else {
-                    if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bm_chart_data.data_type) > -1) {
-                        relative_gain = this.bm_chart_data.global_max_value;
+                    if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bmChartData.data_type) > -1) {
+                        relative_gain = this.bmChartData.global_max_value;
                     } else {
-                        relative_gain = this.bm_chart_data.get_relative_gain(this.bm_chart_data.global_max_value, base_value);
+                        relative_gain = this.bmChartData.get_relative_gain(this.bmChartData.global_max_value, base_value);
                     }
                 }
 
-                max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(relative_gain)));
+                max.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(relative_gain)));
                 max.appendChild(unit);
             }
         } else {
-            max.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(this.bm_chart_data.global_max_value, 0)));
+            max.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(this.bmChartData.global_max_value, 0)));
         }
         bar_title.appendChild(max);
         axis_titles.appendChild(bar_title);
@@ -1206,7 +1211,7 @@ class BmBarChart {
             row.classList.add("bm-row");
             let key_div = document.createElement("div");
             key_div.classList.add("bm-key");
-            key_div.appendChild(this.bm_chart_data.get_wowhead_link(key));
+            key_div.appendChild(this.bmChartData.get_wowhead_link(key));
             row.appendChild(key_div);
             let bar = document.createElement("div");
             bar.classList.add("bm-bar");
@@ -1214,9 +1219,9 @@ class BmBarChart {
             let steps = [];
             let previous_value = 0;
             // chart types without multiple series
-            if (this.bm_chart_data.data_type === "races") {
+            if (this.bmChartData.data_type === "races") {
                 // absolute calc
-                let relative_value = (this.bm_chart_data.data[key]) * 100 / (this.bm_chart_data.global_max_value);
+                let relative_value = (this.bmChartData.data[key]) * 100 / (this.bmChartData.global_max_value);
                 if (relative_value - previous_value >= 0.0) {
                     steps.push(relative_value - previous_value);
                     previous_value = relative_value;
@@ -1227,18 +1232,18 @@ class BmBarChart {
                 bar_part.classList.add("bm-bar-element", "bm-bar-group-1");
                 bar.appendChild(bar_part);
                 bar_part.addEventListener("click", (ev) => {
-                    this.create_vertical_line(ev);
+                    BmChartComponents.createVerticalLine(ev);
                 });
-            } else if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bm_chart_data.data_type) > -1) {
+            } else if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bmChartData.data_type) > -1) {
                 let value = 0;
-                let base_value = this.bm_chart_data.base_values[key] || this.bm_chart_data.data["{" + key + "}"];
+                let base_value = this.bmChartData.base_values[key] || this.bmChartData.data["{" + key + "}"];
 
-                if (this.bm_chart_data.value_calculation === "relative") {
+                if (this.bmChartData.value_calculation === "relative") {
                     //  relative
-                    value = ((this.bm_chart_data.data[key] - base_value) * 100 / this.bm_chart_data.data[key]) * 100 / this.bm_chart_data.global_max_value;
+                    value = ((this.bmChartData.data[key] - base_value) * 100 / this.bmChartData.data[key]) * 100 / this.bmChartData.global_max_value;
                 } else {
                     // absolute calc
-                    value = (this.bm_chart_data.data[key] - base_value) * 100 / this.bm_chart_data.global_max_value;
+                    value = (this.bmChartData.data[key] - base_value) * 100 / this.bmChartData.global_max_value;
                 }
                 if (value - previous_value >= 0.0) {
                     steps.push(value - previous_value);
@@ -1250,16 +1255,16 @@ class BmBarChart {
                 bar_part.classList.add("bm-bar-element", "bm-bar-group-1");
                 bar.appendChild(bar_part);
                 bar_part.addEventListener("click", (ev) => {
-                    this.create_vertical_line(ev);
+                    BmChartComponents.createVerticalLine(ev);
                 });
             }
             for (let [index, series] of effective_series_index_names) {
-                if (!this.bm_chart_data.data[key].hasOwnProperty(series)) {
+                if (!this.bmChartData.data[key].hasOwnProperty(series)) {
                     // data doesn't have series element, skipping
                     continue;
                 }
                 // relative calc
-                let relative_value = (this.bm_chart_data.data[key][series] - this.bm_chart_data.base_values[series]) * 100 / (this.bm_chart_data.global_max_value - this.bm_chart_data.base_values[series]);
+                let relative_value = (this.bmChartData.data[key][series] - this.bmChartData.base_values[series]) * 100 / (this.bmChartData.global_max_value - this.bmChartData.base_values[series]);
                 if (relative_value - previous_value >= 0.0) {
                     steps.push(relative_value - previous_value);
                     previous_value = relative_value;
@@ -1270,10 +1275,10 @@ class BmBarChart {
                 bar_part.classList.add("bm-bar-element", "bm-bar-group-" + (index + 1));
 
                 // add final stack value as readable text
-                if (this.bm_chart_data.enable_end_of_bar_values) {
-                    let key_available_series = Object.keys(this.bm_chart_data.data[key]);
+                if (this.bmChartData.enable_end_of_bar_values) {
+                    let key_available_series = Object.keys(this.bmChartData.data[key]);
                     let filtered_available_series = key_available_series.filter((value) => {
-                        return !this.bm_chart_data.filter_trinket_itemlevels.includes(value);
+                        return !this.bmChartData.filter_trinket_itemlevels.includes(value);
                     }).map((value) => {
                         return Number.parseInt(value);
                     });
@@ -1284,15 +1289,15 @@ class BmBarChart {
                         final_stack_value.classList.add("bm-bar-final-value");
                         final_stack_value.appendChild(
                             document.createTextNode(
-                                this.bm_chart_data.convert_number_to_local(
-                                    this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation)
+                                this.bmChartData.convert_number_to_local(
+                                    this.bmChartData.get_value(key, series, this.bmChartData.value_calculation)
                                 )
                             )
                         );
-                        if (this.bm_chart_data.unit[this.bm_chart_data.value_calculation].length > 0) {
+                        if (this.bmChartData.unit[this.bmChartData.value_calculation].length > 0) {
                             final_stack_value.appendChild(
                                 BmUIUtils.createUnitTextNode(
-                                    this.bm_chart_data.unit[this.bm_chart_data.value_calculation]
+                                    this.bmChartData.unit[this.bmChartData.value_calculation]
                                 )
                             );
                         }
@@ -1309,7 +1314,7 @@ class BmBarChart {
                 // bar_part.dataset.value = this.data[key][series];
 
                 bar_part.addEventListener("click", (ev) => {
-                    this.create_vertical_line(ev);
+                    BmChartComponents.createVerticalLine(ev);
                 });
             }
             // add grid template
@@ -1319,9 +1324,9 @@ class BmBarChart {
             // bar.dataset.toggle = "tooltip";
             // bar.dataset.placement = "left";
             // bar.dataset.html = "true";
-            // bar.title = this.create_tooltip(key);
+            // bar.title = BmChartComponents.createTooltip(key);
             // bm-tooltips
-            this.bm_chart_data.add_tooltip(bar, this.create_tooltip(key, effective_series_index_names), "left");
+            this.bmChartData.add_tooltip(bar, BmChartComponents.createTooltip(this.bmChartData, key, effective_series_index_names), "left");
 
             row.appendChild(bar);
             root.appendChild(row);
@@ -1342,12 +1347,12 @@ class BmRadarChart {
     /**
      * @type {BmChartData}
      */
-    bm_chart_data;
+    bmChartData;
 
     constructor(chart_data = new BmChartData()) {
-        this.bm_chart_data = chart_data;
+        this.bmChartData = chart_data;
 
-        this.bm_chart_data.clean_up_root();
+        this.bmChartData.clean_up_root();
 
         this.create_chart();
 
@@ -1361,21 +1366,21 @@ class BmRadarChart {
         BmUIUtils.addCSS(BmChartStyleId, BmChartStyleUrl);
 
         if (["bloodmallet.com", "127.0.0.1:8000"].includes(window.location.host)) {
-            provide_meta_data(this.bm_chart_data, this.bm_chart_data.loaded_data);
+            provide_meta_data(this.bmChartData, this.bmChartData.loaded_data);
         }
     }
 
     create_chart() {
         let size = 200;
         let zoom = 1 / 5;
-        let c_h_m_v = this.bm_chart_data.sorted_data_data_keys[this.bm_chart_data.selected_data_key][0].split("_");
+        let c_h_m_v = this.bmChartData.sorted_data_data_keys[this.bmChartData.selected_data_key][0].split("_");
         let v_crit = parseInt(c_h_m_v[0]);
         let v_haste = parseInt(c_h_m_v[1]);
         let v_mastery = parseInt(c_h_m_v[2]);
         let v_vers = parseInt(c_h_m_v[3]);
-        let dps = this.bm_chart_data.data[this.bm_chart_data.selected_data_key][this.bm_chart_data.sorted_data_data_keys[this.bm_chart_data.selected_data_key][0]];
+        let dps = this.bmChartData.data[this.bmChartData.selected_data_key][this.bmChartData.sorted_data_data_keys[this.bmChartData.selected_data_key][0]];
 
-        let root = this.bm_chart_data.root_element;
+        let root = this.bmChartData.root_element;
         root.classList.add("bm-radar-root");
 
         root.appendChild(this.create_top());
@@ -1407,9 +1412,9 @@ class BmRadarChart {
         let top = document.createElement("div");
         top.classList.add("bm-radar-top");
 
-        this.bm_chart_data.add_title(top);
-        this.bm_chart_data.add_subtitle(top);
-        this.bm_chart_data.add_simc_subtitle(top);
+        this.bmChartData.add_title(top);
+        this.bmChartData.add_subtitle(top);
+        this.bmChartData.add_simc_subtitle(top);
 
         return top;
     }
@@ -1435,7 +1440,7 @@ class BmRadarChart {
         // distribution.appendChild(document.createTextNode("Ratio"));
         let best_ratio = document.createElement("div");
         best_ratio.classList.add("bm-stat-cell");
-        best_ratio.appendChild(document.createTextNode("Best Ratio: " + this.bm_chart_data.convert_number_to_local(dps, 0)));
+        best_ratio.appendChild(document.createTextNode("Best Ratio: " + this.bmChartData.convert_number_to_local(dps, 0)));
         best_ratio.appendChild(BmUIUtils.createUnitTextNode("dps"));
         // let ingame_value = document.createElement("div");
         // ingame_value.classList.add("bm-stat-cell");
@@ -1502,10 +1507,10 @@ class BmRadarChart {
             return value
         }
 
-        floater.appendChild(add_row("Critical Strike", crit, get_rating(crit, this.bm_chart_data.secondary_sum), get_ingame(crit, this.bm_chart_data.secondary_sum, "Critical Strike")));
-        floater.appendChild(add_row("Haste", haste, get_rating(haste, this.bm_chart_data.secondary_sum), get_ingame(haste, this.bm_chart_data.secondary_sum, "Haste")));
-        floater.appendChild(add_row("Mastery", mastery, get_rating(mastery, this.bm_chart_data.secondary_sum), get_ingame(mastery, this.bm_chart_data.secondary_sum, "Mastery")));
-        floater.appendChild(add_row("Versatility", vers, get_rating(vers, this.bm_chart_data.secondary_sum), get_ingame(vers, this.bm_chart_data.secondary_sum, "Versatility")));
+        floater.appendChild(add_row("Critical Strike", crit, get_rating(crit, this.bmChartData.secondary_sum), get_ingame(crit, this.bmChartData.secondary_sum, "Critical Strike")));
+        floater.appendChild(add_row("Haste", haste, get_rating(haste, this.bmChartData.secondary_sum), get_ingame(haste, this.bmChartData.secondary_sum, "Haste")));
+        floater.appendChild(add_row("Mastery", mastery, get_rating(mastery, this.bmChartData.secondary_sum), get_ingame(mastery, this.bmChartData.secondary_sum, "Mastery")));
+        floater.appendChild(add_row("Versatility", vers, get_rating(vers, this.bmChartData.secondary_sum), get_ingame(vers, this.bmChartData.secondary_sum, "Versatility")));
 
         return table;
     }
@@ -1513,8 +1518,8 @@ class BmRadarChart {
     create_mini_radar_row(crit, haste, mastery, vers, dps, size, zoom, dps_gain_mantissa = 1) {
         let cap = 70;
         let secondary_string = [crit, haste, mastery, vers].join("_");
-        let abs_dps = this.bm_chart_data.data[this.bm_chart_data.selected_data_key][secondary_string];
-        let rel_dps = this.bm_chart_data.get_relative_gain(abs_dps, dps) + 100.0;
+        let abs_dps = this.bmChartData.data[this.bmChartData.selected_data_key][secondary_string];
+        let rel_dps = this.bmChartData.get_relative_gain(abs_dps, dps) + 100.0;
 
         let row = document.createElement("div");
         row.style.display = "table-row";
@@ -1544,15 +1549,15 @@ class BmRadarChart {
 
 
         let value = document.createElement("div");
-        value.textContent = this.bm_chart_data.convert_number_to_local(rel_dps, dps_gain_mantissa);
+        value.textContent = this.bmChartData.convert_number_to_local(rel_dps, dps_gain_mantissa);
         value.classList.add("bm-radar-mini-table-value");
         row.appendChild(value);
 
-        value.appendChild(BmUIUtils.createUnitTextNode(this.bm_chart_data.unit["relative"]));
+        value.appendChild(BmUIUtils.createUnitTextNode(this.bmChartData.unit["relative"]));
 
         // add dps as tooltip
         let container = document.createElement("div");
-        container.appendChild(document.createTextNode(this.bm_chart_data.convert_number_to_local(abs_dps, 0)));
+        container.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(abs_dps, 0)));
         container.appendChild(BmUIUtils.createUnitTextNode("dps"));
 
         value.setAttribute("data-bm-tooltip-text", container.outerHTML);
