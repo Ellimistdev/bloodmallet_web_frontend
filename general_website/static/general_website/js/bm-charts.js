@@ -12,6 +12,24 @@ const BmChartStyleUrl = "/static/general_website/css/bm-charts.css";
 const BmTooltipJsId = "bm-tooltip-javascript";
 const BmTooltipJsUrl = "/static/general_website/js/bm-tooltips.js";
 
+const BmTooltipClass = {
+    TOOLTIP: "bm-tooltip",
+    ARROW: "bm-tooltip-arrow",
+    INNER: "bm-tooltip-inner",
+    TOP: "bm-tooltip-top",
+    BOTTOM: "bm-tooltip-bottom",
+    LEFT: "bm-tooltip-left",
+    RIGHT: "bm-tooltip-right",
+}
+
+const BmTooltipAttribute = {
+    ID: "data-bm-tooltip-id",
+    TEXT: "data-bm-tooltip-text",
+    PLACEMENT: "data-bm-tooltip-placement"
+}
+const BmTooltipStyleId = "bm-tooltip-styles";
+const BmTooltipStyleUrl = "/static/general_website/css/bm-tooltips.css";
+
 let trinketDataCache = {};
 const TRINKET_DATA_CACHE_KEY = 'trinketData';
 const TRINKET_DATA_CACHE_EXPIRY = 30 * 60 * 1000;  // 30 minutes in milliseconds
@@ -233,6 +251,124 @@ const sortData = (data) => {
     }
     return sortedData;
 };
+
+/**
+ * Register all tooltip-events.
+ * @param {Element} element 
+ */
+function bm_register_tooltip(element) {
+
+    if (element.hasAttribute(BmTooltipAttribute.ID)) {
+        // console.log(BmTooltipAttribute.ID + " found. Tooltip was already registered. Skipping registration of tooltip.");
+        return;
+    }
+
+    /**
+     * Generate a random int.
+     * Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+     * @param {number} max 
+     * @returns 
+     */
+    function get_random_int(max) {
+        return Math.floor(Math.random() * max);
+    }
+
+    function get_unique_random_int() {
+        let max = 999999;
+        let random_id = get_random_int(max);
+        while (document.querySelectorAll(`[${BmTooltipAttribute.ID}='bm-tooltip-${random_id}']`).length !== 0) {
+            console.debug(`We won! Somehow ID ${random_id} was already in use. Regenerating a new ID.`);
+            random_id = get_random_int(max);
+        }
+        return random_id;
+    }
+
+    /**
+     * Remove tooltip-div
+     * @param {Element} element 
+     */
+    function remove_tooltip_div(element) {
+        let id = element.getAttribute(BmTooltipAttribute.ID);
+        if (!document.getElementById(id)) {
+            return;
+        }
+        document.getElementById(id).remove();
+    }
+
+    // /**
+    //  * Create a tooltip-div
+    //  * @param {Event} event 
+    //  * @param {Element} element 
+    //  * @param {number} random_id 
+    //  */
+    function injectTooltip(event, element) {
+        // console.log(event);
+         if (!element.hasAttribute(BmTooltipAttribute.TEXT)) {
+            console.warn(`${BmTooltipAttribute.TEXT} not found. Skipping tooltip.`);
+            return;
+        }
+
+        remove_tooltip_div(element); // Clear existing tooltip
+
+        const id = element.getAttribute(BmTooltipAttribute.ID);
+        const tooltipHTML = element.getAttribute(BmTooltipAttribute.TEXT);
+        const placementAttr = element.getAttribute(BmTooltipAttribute.PLACEMENT);
+
+        const placement = BmUIUtils.getTooltipPlacementClass(placementAttr);
+        const tooltipContent = BmUIUtils.htmlToElement(tooltipHTML);
+
+        const root = document.createElement("div");
+        root.id = id;
+        root.classList.add(BmTooltipClass.TOOLTIP, placement);
+
+        const arrow = document.createElement("div");
+        arrow.classList.add(BmTooltipClass.ARROW);
+        root.appendChild(arrow);
+
+        const inner = document.createElement("div");
+        inner.classList.add(BmTooltipClass.INNER);
+        inner.appendChild(tooltipContent);
+        root.appendChild(inner);
+
+        document.body.appendChild(root);
+
+        const { x, y } = BmUIUtils.getTooltipPosition(element, root, placement);
+        root.style = `transform: translate(${x}px, ${y}px);`;
+    }
+
+    /**
+     * 
+     * @param {Element} element 
+     */
+    function set_tooltip_id(element) {
+        let random_id = get_unique_random_int();
+        let id = "bm-tooltip-" + random_id.toString();
+        element.setAttribute(BmTooltipAttribute.ID, id);
+    }
+
+    BmUIUtils.addCSS(BmTooltipStyleId, BmTooltipStyleUrl);
+
+    set_tooltip_id(element);
+    element.addEventListener("mouseover", (event) => {
+        injectTooltip(event, element);
+    });
+
+    // remove tooltip again
+    element.addEventListener("mouseleave", (event) => {
+        remove_tooltip_div(element);
+    });
+}
+
+/**
+ * Ensures environment is prepared for bm-tooltips then registers all 
+ * discovered tooltip targets.
+ */
+function bm_register_tooltips() {
+    let tooltip_elements = document.querySelectorAll("[data-type='bm-tooltip']");
+    for (const element of tooltip_elements) {
+        bm_register_tooltip(element);
+    }
+}
 
 /**
  * Add bloodmallet tooltip js to page and execute `bm_register_tooltips`.
@@ -1196,7 +1332,7 @@ class BmBarChart {
                 }
 
                 max.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(relative_gain)));
-                max.appendChild(unit);
+                max.appendChild(unitTextNode);
             }
         } else {
             max.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(this.bmChartData.global_max_value, 0)));
@@ -2079,7 +2215,85 @@ class BmUIUtils {
         });
 
         return element;
-    }
+    };
+
+    /**
+     * Source: https://stackoverflow.com/a/35385518
+     * @param {String} HTML representing a single element
+     * @return {Element}
+     */
+    static htmlToElement(html) {
+        const template = document.createElement('template');
+        template.innerHTML = html.trim();
+
+        return template.content.firstChild;
+    };
+
+    
+    /**
+     * Convert attribute input to class name.
+     * @param {string} placement user input from the element attribute
+     * @returns string
+     */
+    static getTooltipPlacementClass(placement) {
+        if (!placement) {
+            return BmTooltipClass.BOTTOM;
+        }
+
+        switch (placement) {
+            case "top":
+                return BmTooltipClass.TOP;
+            case "bottom":
+                return BmTooltipClass.BOTTOM;
+            case "left":
+                return BmTooltipClass.LEFT;
+            case "right":
+                return BmTooltipClass.RIGHT;
+            default:
+                console.warn(`Unknown placement '${placement}'. Falling back to 'bottom'.`);
+                return BmTooltipClass.BOTTOM;
+        }
+    };
+
+    /**
+     * 
+     * @param {Element} element 
+     * @param {Element} tooltip 
+     * @param {String} placement 
+     * @returns Coordinate
+     */
+    static getTooltipPosition(element, tooltip, placement) {
+        const elementBox = element.getBoundingClientRect();
+        const tooltipBox = tooltip.getBoundingClientRect();
+
+        switch (placement) {
+            case BmTooltipClass.TOP:
+                return {
+                    x: elementBox.x + elementBox.width / 2 - tooltipBox.width / 2,
+                    y: elementBox.y - tooltipBox.height
+                };
+            case BmTooltipClass.BOTTOM:
+                return {
+                    x: elementBox.x + elementBox.width / 2 - tooltipBox.width / 2,
+                    y: elementBox.y + elementBox.height
+                };
+            case BmTooltipClass.LEFT:
+                return {
+                    x: elementBox.x - tooltipBox.width,
+                    y: elementBox.y + elementBox.height / 2 - tooltipBox.height / 2
+                };
+            case BmTooltipClass.RIGHT:
+                return {
+                    x: elementBox.x + elementBox.width,
+                    y: elementBox.y + elementBox.height / 2 - tooltipBox.height / 2
+                };
+            default:
+                return {
+                    x: elementBox.x,
+                    y: elementBox.y + elementBox.height
+                };
+        }
+    };
 }
 
 class BmChartComponents {
