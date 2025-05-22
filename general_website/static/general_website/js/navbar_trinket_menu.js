@@ -1,6 +1,6 @@
 /**
  * Navbar trinket menu functionality for bloodmallet.com
- * Requires bm-utils.js to be loaded first
+ * Requires bm-charts.js to be loaded first
  */
 
 // ==========================
@@ -68,14 +68,14 @@
   
     try {
       // Detect user language
-      const userLanguage = window.bmUtils?.detectUserLanguage() || 'en_US';
+      const userLanguage = window.BmUIUtils?.detectUserLanguage() || 'en_US';
   
       for (const trinketKey in data.items) {
         if (trinketKey === "baseline") {
           continue;
         }
 
-        let trinketName = formatText(trinketKey, "item_name"); // Default formatting
+        let trinketName = window.BmUIUtils?.formatText(trinketKey, window.BmUIUtils.FormatTypes.item_name); // Default formatting
   
         // Try to get localized name if available
         if (data.items[trinketKey].translations) {
@@ -104,7 +104,7 @@
    */
   const getStateFromChart = async () => {
     const chart = document.getElementById("chart");
-    const data = window.bmUtils.getChartData(chart);
+    const data = window.BmUIUtils.getChartData(chart);
     if (!data) return createInitialState();
     
     const fightStyle = data.simc_settings?.fight_style || 'castingpatchwerk';
@@ -142,7 +142,7 @@
    */
   const createDropdownMenuEntries = (items, id, state) => {
     console.debug("Creating dropdown menu entries for", id, items);
-    const dropdownMenu = window.bmUtils.createElement('div', { 
+    const dropdownMenu = window.BmUIUtils.createElement('div', { 
       className: `dropdown-menu ${state.wow_class}-border-top`,
       'aria-labelledby': `navbar_${id}_selection`
     });
@@ -150,7 +150,7 @@
     // Handle different types of items
     if (!items) {
       // Add a placeholder when items is undefined or null
-      const placeholder = window.bmUtils.createElement('a', {
+      const placeholder = window.BmUIUtils.createElement('a', {
         className: `dropdown-item ${state.wow_class}-button disabled`,
         innerText: "Loading..."
       });
@@ -168,9 +168,9 @@
     if (id === "fight_style" && !Array.isArray(items)) {
       // Handle the fight_style dictionary case
       Object.keys(items).forEach(key => {
-        const menuItem = window.bmUtils.createElement('a', {
+        const menuItem = window.BmUIUtils.createElement('a', {
           className: `dropdown-item ${state.wow_class}-button`,
-          id: `navbar_${window.bmUtils.formatText(key, "slug")}_selector`,
+          id: `navbar_${window.BmUIUtils.formatText(key, "slug")}_selector`,
           innerText: items[key],
           href: "#",
           events: {
@@ -188,9 +188,9 @@
         const itemValue = typeof item === 'object' ? item.key : item;
         const itemDisplay = typeof item === 'object' ? item.name : item;
         
-        const menuItem = window.bmUtils.createElement('a', {
+        const menuItem = window.BmUIUtils.createElement('a', {
           className: `dropdown-item ${state.wow_class}-button`,
-          id: `navbar_${window.bmUtils.formatText(itemValue, "slug")}_selector`,
+          id: `navbar_${window.BmUIUtils.formatText(itemValue, "slug")}_selector`,
           innerText: itemDisplay,
           href: "#",
           events: {
@@ -203,9 +203,9 @@
     }
   
     // Default case - single item
-    const menuItem = window.bmUtils.createElement('a', {
+    const menuItem = window.BmUIUtils.createElement('a', {
       className: `dropdown-item ${state.wow_class}-button`,
-      id: `navbar_${window.bmUtils.formatText(items, "slug")}_selector`,
+      id: `navbar_${window.BmUIUtils.formatText(items, "slug")}_selector`,
       innerText: items,
       href: "#"
     });
@@ -218,17 +218,17 @@
    * Create a dropdown menu in the navbar
    */
   const createDropdownMenu = (label, id, items, state, parentElement) => {
-    const li = window.bmUtils.createElement('li', { 
+    const li = window.BmUIUtils.createElement('li', { 
       className: "nav-item dropdown" 
     });
     
-    const a = window.bmUtils.createElement('a', {
+    const a = window.BmUIUtils.createElement('a', {
       className: `nav-link dropdown-toggle ${state.wow_class}-color ${state.wow_class}-menu-border`,
       href: "#",
       role: "button",
       'data-bs-toggle': "dropdown",
       'aria-expanded': "false",
-      id: `navbar_${window.bmUtils.formatText(id, "slug")}_selection`,
+      id: `navbar_${window.BmUIUtils.formatText(id, "slug")}_selection`,
       innerText: label
     });
     
@@ -252,7 +252,7 @@
     navbarTrinketMenu.innerHTML = '';
     
     // Create the navigation list
-    const navList = window.bmUtils.createElement('ul', { className: 'navbar-nav' });
+    const navList = window.BmUIUtils.createElement('ul', { className: 'navbar-nav' });
     
     // Find the localized name for the currently selected trinket
     let selectedTrinketLocalizedName = state.item_name; // Default
@@ -269,9 +269,9 @@
     
     // Add the fight style dropdown
     createDropdownMenu(
-      window.bmUtils.formatText(state.fight_style, "fight_style"), 
+      window.BmUIUtils.formatText(state.fight_style, "fight_style"), 
       "fight_style", 
-      window.bmUtils.fightStyles, 
+      window.BmUIUtils.fightStyles, 
       state, 
       navList
     );
@@ -326,7 +326,7 @@
       await window.updateTrinketChartAsync(currentSelection);
   
       // Get the updated data from the chart
-      const chartData = window.bmUtils.getChartData(chart);
+      const chartData = window.BmUIUtils.getChartData(chart);
       if (!chartData) {
         console.error("No chart data found after update");
         return;
@@ -362,7 +362,7 @@
     }
   
     try {
-      const chartData = window.bmUtils.getChartData(chart);
+      const chartData = window.BmUIUtils.getChartData(chart);
       console.debug("Initializing trinket menu with data:", chartData);
   
       // Get the current fight style from the chart
@@ -388,7 +388,7 @@
       const observer = new MutationObserver(async (mutations) => {
         for (const mutation of mutations) {
           if (mutation.type === 'attributes' && mutation.attributeName === 'data-loaded-data') {
-            const newChartData = window.bmUtils.getChartData(chart);
+            const newChartData = window.BmUIUtils.getChartData(chart);
             if (!newChartData || !newChartData.item_name || !newChartData.item_level) continue;
             
             // If fight style changed, fetch new trinket list

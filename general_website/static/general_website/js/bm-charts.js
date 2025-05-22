@@ -59,7 +59,6 @@ const getTrinketDataAsync = async (itemName, itemLevel, fightStyle) => {
             .map(level => parseInt(level))
             .sort((a, b) => b - a); // Sort descending
 
-
         const firstItemLevelKey = availableLevels[0].toString();
         const { sorted_data_keys, ...itemLevelData } = itemData.itemLevels[itemLevel] || itemData.itemLevels[firstItemLevelKey];
 
@@ -610,7 +609,7 @@ class BmChartData {
             this._extract_data_from_loaded_data("data_type", ["data_type"]);
             this._extract_data_from_loaded_data("element_id", ["element_id"]);
             this._extract_setting_from_root_element("language", "language");
-            this.language = window.bmUtils.detectUserLanguage(this.root_element);
+            this.language = BmUIUtils.detectUserLanguage(this.root_element);
 
             if (this.data_type === "trinket_compare") {
                 this._setTrinketCompareTitle();
@@ -1022,42 +1021,6 @@ class BmBarChart {
     }
 
     /**
-     * Create legend for the chart
-     * @param {HTMLElement} root_element - Root element
-     * @param {Array<[Number, String]>} series_index_names - Series data
-     */
-    _create_legend(root_element, series_index_names) {
-        if (!this.bm_chart_data.enable_legend) {
-            return;
-        }
-
-        const legend = BmUIUtils.createElement("div", { className: "bm-legend" });
-
-        const legend_title = BmUIUtils.createElement("div", {
-            className: "bm-legend-title",
-            innerText: this.bm_chart_data.legend_title
-        });
-
-        legend.appendChild(legend_title);
-
-        const legend_items = BmUIUtils.createElement("div", { className: "bm-legend-items" });
-
-        for (let [index, series] of series_index_names) {
-            const legend_item = BmUIUtils.createElement("div", {
-                className: `bm-legend-item bm-bar-group-${index + 1}`,
-                innerText: series
-            });
-
-            legend_items.appendChild(legend_item);
-            // Required to space the legend items
-            legend_items.appendChild(document.createTextNode(" "));
-        }
-
-        legend.appendChild(legend_items);
-        root_element.appendChild(legend);
-    }
-
-    /**
      * Create the complete chart
      */
     create_chart() {
@@ -1366,180 +1329,11 @@ class BmBarChart {
 
     }
 
-    /**
-     * Create the string representation of a html structured tooltip.
-     * @param {String} key 
-     * @param {Array<[Number, String]>} index_series
-     * @returns {String}
-     */
-    create_tooltip(key, indexed_series) {
-        // use own local copy
-        indexed_series = indexed_series.slice();
-        let container = document.createElement("div");
-        container.classList.add("bm-tooltip-container");
-
-        let title = document.createElement("div");
-        title.classList.add("bm-tooltip-title");
-        let translated_name = this.bm_chart_data.get_translated_name(key);
-        // translated_name = this._shorten_name(translated_name);
-        title.appendChild(document.createTextNode(translated_name));
-        container.appendChild(title);
-
-        // inverse sort to have the table start with the highest value
-        for (let [index, series] of indexed_series.reverse()) {
-            if (!this.bm_chart_data.data[key].hasOwnProperty(series)) {
-                // data doesn't have series element, skipping
-                continue;
-            }
-            let row = document.createElement("div");
-            row.classList.add("bm-tooltip-row");
-
-            let key_div = document.createElement("div");
-            key_div.classList.add("bm-tooltip-key", "bm-bar-group-" + (index + 1));
-            key_div.appendChild(document.createTextNode(series));
-            row.appendChild(key_div);
-
-            let value_div = document.createElement("div");
-            value_div.classList.add("bm-tooltip-value");
-            let mantissa = 2;
-            if (this.bm_chart_data.value_calculation === "total") {
-                mantissa = 0;
-            }
-            let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation), mantissa);
-
-            // Add unit in proper position
-            const unit = this.bm_chart_data.unit[this.bm_chart_data.value_calculation];
-            if (this.bm_chart_data.value_calculation === "absolute" && unit.length > 0) {
-                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
-            }
-
-            value_div.appendChild(document.createTextNode(value));
-
-            if (this.bm_chart_data.value_calculation === "relative" && unit.length > 0) {
-                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
-            }
-            row.appendChild(value_div);
-
-            container.appendChild(row);
-        }
-        // chart types without multiple series
-        if (this.bm_chart_data.data_type === "races") {
-            let row = document.createElement("div");
-            row.classList.add("bm-tooltip-row");
-
-            let key_div = document.createElement("div");
-            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
-            key_div.appendChild(document.createTextNode(key));
-            row.appendChild(key_div);
-
-            let value_div = document.createElement("div");
-            value_div.classList.add("bm-tooltip-value");
-            let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.data[key]);
-            // let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
-            value_div.appendChild(document.createTextNode(value));
-
-            // Add unit if applicable
-            const unit = this.bm_chart_data.unit[this.bm_chart_data.value_calculation];
-            if (unit.length > 0) {
-                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
-            }
-            row.appendChild(value_div);
-
-            container.appendChild(row);
-        } else if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bm_chart_data.data_type) > -1) {
-            let row = document.createElement("div");
-            row.classList.add("bm-tooltip-row");
-
-            let key_div = document.createElement("div");
-            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
-            let abbreviation = {
-                "power_infusion": "PI",
-                "windfury_totem": "WFT",
-                "trinket_compare": "Trinket"
-            }
-            key_div.appendChild(document.createTextNode(abbreviation[this.bm_chart_data.data_type]));
-            row.appendChild(key_div);
-
-            let value_div = document.createElement("div");
-            value_div.classList.add("bm-tooltip-value");
-            let value = -1;
-            let base_value = this.bm_chart_data.base_values[key] || this.bm_chart_data.data["{" + key + "}"];
-
-            if (this.bm_chart_data.value_calculation === "relative") {
-                value = this.bm_chart_data.convert_number_to_local((this.bm_chart_data.data[key] - base_value) * 100 / this.bm_chart_data.data[key]);
-            } else {
-                value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.data[key] - base_value);
-            }
-            // let value = this.bm_chart_data.convert_number_to_local(this.bm_chart_data.get_value(key, series, this.bm_chart_data.value_calculation));
-            value_div.appendChild(document.createTextNode(value));
-            // Add unit if applicable
-            const unit = this.bm_chart_data.unit[this.bm_chart_data.value_calculation];
-            if (unit.length > 0) {
-                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
-            }
-            row.appendChild(value_div);
-
-            container.appendChild(row);
-        }
-
-
-        let legend = document.createElement("div");
-        legend.classList.add("bm-tooltip-row");
-
-        let key_title = document.createElement("div");
-        key_title.classList.add("bm-tooltip-key-title", "bm-tooltip-width-marker-top");
-        key_title.appendChild(document.createTextNode(this.bm_chart_data.legend_title));
-        legend.appendChild(key_title);
-
-        let value_title = document.createElement("div");
-        value_title.classList.add("bm-tooltip-value-title", "bm-tooltip-width-marker-top");
-        value_title.appendChild(document.createTextNode(this.bm_chart_data.x_axis_title));
-        legend.appendChild(value_title);
-
-        container.appendChild(legend);
-
-        return container.outerHTML;
-    }
 
     remove_vertical_line() {
-        if (this.vertical_line !== undefined) {
-            this.vertical_line.remove();
-            this.vertical_line = undefined;
-        }
-    }
-
-    /**
-     * Creates a vertical line to more easily compare values. 
-     * In case a line exists, the old line is removed. 
-     * In case the same element was clicked for the second time, the old line is removed.
-     * @param {Event} event click event
-     */
-    create_vertical_line(event) {
-        let vertical_line_box = undefined;
-        if (this.vertical_line !== undefined) {
-            vertical_line_box = this.vertical_line.getBoundingClientRect();
-            this.remove_vertical_line();
-        }
-
-        let root = this.bm_chart_data.root_element;
-
-        let parent_box = root.getBoundingClientRect();
-        let event_box = event.target.getBoundingClientRect();
-        let left = event_box.right + window.scrollX;
-
-        let line = document.createElement("div");
-        line.style.position = "absolute";
-        line.style.width = "0px";
-        line.style.border = "1px solid white";
-        line.style.height = parent_box.height + "px";
-        line.style.left = left + "px";
-        root.appendChild(line);
-        this.vertical_line = line;
-
-        // in case the user clicked on the same element twice, the line shall get removed
-        let line_box = line.getBoundingClientRect();
-        if (vertical_line_box !== undefined && vertical_line_box.x == line_box.x) {
-            this.remove_vertical_line();
+        if (this.verticalLine !== undefined) {
+            this.verticalLine.remove();
+            this.verticalLine = undefined;
         }
     }
 }
@@ -2109,8 +1903,8 @@ class BmUIUtils {
      * @returns {string} The full language code (e.g., "en_US")
      */
     static detectUserLanguage = (element = null) => {
-        let langCode = getLanguageFromDataset(element) || getLanguageFromCookie() || getLanguageFromBrowser();
-        return normalizeLanguageCode(langCode || "en_US");
+        let langCode = this.getLanguageFromDataset(element) || this.getLanguageFromCookie() || this.getLanguageFromBrowser();
+        return this.normalizeLanguageCode(langCode || "en_US");
     };
 
     /**
@@ -2135,11 +1929,11 @@ class BmUIUtils {
         if (!text) return "Loading...";
 
         switch (type) {
-            case FormatTypes.SLUG:
+            case this.FormatTypes.SLUG:
                 return text.replaceAll(" ", "_").toLowerCase();
-            case FormatTypes.ITEM_LEVEL:
+            case this.FormatTypes.ITEM_LEVEL:
                 return text;
-            case FormatTypes.FIGHT_STYLE:
+            case this.FormatTypes.FIGHT_STYLE:
                 const fightStyles = {
                     "castingpatchwerk": "Casting Patchwerk 1 target",
                     "castingpatchwerk3": "Casting Patchwerk 3 targets",
@@ -2147,7 +1941,7 @@ class BmUIUtils {
                 };
 
                 return fightStyles[text] || text;
-            case FormatTypes.ITEM_NAME:
+            case this.FormatTypes.ITEM_NAME:
                 return text.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
             default:
                 return text;
@@ -2212,7 +2006,7 @@ class BmUIUtils {
      */
     static getChartData = (chart) => {
         if (!chart || !chart.dataset.loadedData) return null;
-        return safeJsonParse(chart.dataset.loadedData);
+        return this.safeJsonParse(chart.dataset.loadedData);
     }
 
     /**
@@ -2282,3 +2076,217 @@ class BmUIUtils {
         return element;
     }
 }
+
+class BmChartComponents {
+    /**
+     * Create a legend for the chart
+     * 
+     * @param {BmChartData} chartData - Chart data and configuration
+     * @param {Array<[Number, String]>} series_index_names - Series data with indices
+     * @returns {HTMLElement} Legend element
+     */
+    static createLegend(chartData, series_index_names) {
+        if (!chartData.enable_legend) {
+            return null;
+        }
+
+        const legend = BmUIUtils.createElement("div", { className: "bm-legend" });
+        
+        const legend_title = BmUIUtils.createElement("div", {
+            className: "bm-legend-title",
+            innerText: chartData.legend_title
+        });
+        
+        legend.appendChild(legend_title);
+        
+        const legend_items = BmUIUtils.createElement("div", { className: "bm-legend-items" });
+        
+        for (let [index, series] of series_index_names) {
+            const legend_item = BmUIUtils.createElement("div", {
+                className: `bm-legend-item bm-bar-group-${index + 1}`,
+                innerText: series
+            });
+            
+            legend_items.appendChild(legend_item);
+            // Required to space the legend items
+            legend_items.appendChild(document.createTextNode(" "));
+        }
+        
+        legend.appendChild(legend_items);
+        return legend;
+    }
+
+    /**
+     * Creates a vertical line to more easily compare values. 
+     * In case a line exists, the old line is removed. 
+     * In case the same element was clicked for the second time, the old line is removed.
+     * @param {Event} event click event
+     */
+    static createVerticalLine(bmChartData, event) {
+        let vertical_line_box = undefined;
+        if (this.vertical_line !== undefined) {
+            vertical_line_box = this.vertical_line.getBoundingClientRect();
+            this.remove_vertical_line();
+        }
+
+        let root = bmChartData.root_element;
+
+        let parent_box = root.getBoundingClientRect();
+        let event_box = event.target.getBoundingClientRect();
+        let left = event_box.right + window.scrollX;
+
+        let line = document.createElement("div");
+        line.style.position = "absolute";
+        line.style.width = "0px";
+        line.style.border = "1px solid white";
+        line.style.height = parent_box.height + "px";
+        line.style.left = left + "px";
+        root.appendChild(line);
+        this.vertical_line = line;
+
+        // in case the user clicked on the same element twice, the line shall get removed
+        let line_box = line.getBoundingClientRect();
+        if (vertical_line_box !== undefined && vertical_line_box.x == line_box.x) {
+            this.remove_vertical_line();
+        }
+    }
+
+    /**
+     * Create the string representation of a html structured tooltip.
+     * @param {String} key 
+     * @param {Array<[Number, String]>} index_series
+     * @returns {String}
+     */
+    static createTooltip(bmChartData, key, indexed_series) {
+        // use own local copy
+        indexed_series = indexed_series.slice();
+        let container = document.createElement("div");
+        container.classList.add("bm-tooltip-container");
+
+        let title = document.createElement("div");
+        title.classList.add("bm-tooltip-title");
+        let translated_name = bmChartData.get_translated_name(key);
+        // translated_name = this._shorten_name(translated_name);
+        title.appendChild(document.createTextNode(translated_name));
+        container.appendChild(title);
+
+        // inverse sort to have the table start with the highest value
+        for (let [index, series] of indexed_series.reverse()) {
+            if (!bmChartData.data[key].hasOwnProperty(series)) {
+                // data doesn't have series element, skipping
+                continue;
+            }
+            let row = document.createElement("div");
+            row.classList.add("bm-tooltip-row");
+
+            let key_div = document.createElement("div");
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-" + (index + 1));
+            key_div.appendChild(document.createTextNode(series));
+            row.appendChild(key_div);
+
+            let value_div = document.createElement("div");
+            value_div.classList.add("bm-tooltip-value");
+            let mantissa = 2;
+            if (bmChartData.value_calculation === "total") {
+                mantissa = 0;
+            }
+            let value = bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation), mantissa);
+
+            // Add unit in proper position
+            const unit = bmChartData.unit[bmChartData.value_calculation];
+            if (bmChartData.value_calculation === "absolute" && unit.length > 0) {
+                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
+            }
+
+            value_div.appendChild(document.createTextNode(value));
+
+            if (bmChartData.value_calculation === "relative" && unit.length > 0) {
+                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
+            }
+            row.appendChild(value_div);
+
+            container.appendChild(row);
+        }
+        // chart types without multiple series
+        if (bmChartData.data_type === "races") {
+            let row = document.createElement("div");
+            row.classList.add("bm-tooltip-row");
+
+            let key_div = document.createElement("div");
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
+            key_div.appendChild(document.createTextNode(key));
+            row.appendChild(key_div);
+
+            let value_div = document.createElement("div");
+            value_div.classList.add("bm-tooltip-value");
+            let value = bmChartData.convert_number_to_local(bmChartData.data[key]);
+            // let value = bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation));
+            value_div.appendChild(document.createTextNode(value));
+
+            // Add unit if applicable
+            const unit = bmChartData.unit[bmChartData.value_calculation];
+            if (unit.length > 0) {
+                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
+            }
+            row.appendChild(value_div);
+
+            container.appendChild(row);
+        } else if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(bmChartData.data_type) > -1) {
+            let row = document.createElement("div");
+            row.classList.add("bm-tooltip-row");
+
+            let key_div = document.createElement("div");
+            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
+            let abbreviation = {
+                "power_infusion": "PI",
+                "windfury_totem": "WFT",
+                "trinket_compare": "Trinket"
+            }
+            key_div.appendChild(document.createTextNode(abbreviation[bmChartData.data_type]));
+            row.appendChild(key_div);
+
+            let value_div = document.createElement("div");
+            value_div.classList.add("bm-tooltip-value");
+            let value = -1;
+            let base_value = bmChartData.base_values[key] || bmChartData.data["{" + key + "}"];
+
+            if (bmChartData.value_calculation === "relative") {
+                value = bmChartData.convert_number_to_local((bmChartData.data[key] - base_value) * 100 / bmChartData.data[key]);
+            } else {
+                value = bmChartData.convert_number_to_local(bmChartData.data[key] - base_value);
+            }
+            // let value = bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation));
+            value_div.appendChild(document.createTextNode(value));
+            // Add unit if applicable
+            const unit = bmChartData.unit[bmChartData.value_calculation];
+            if (unit.length > 0) {
+                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
+            }
+            row.appendChild(value_div);
+
+            container.appendChild(row);
+        }
+
+
+        let legend = document.createElement("div");
+        legend.classList.add("bm-tooltip-row");
+
+        let key_title = document.createElement("div");
+        key_title.classList.add("bm-tooltip-key-title", "bm-tooltip-width-marker-top");
+        key_title.appendChild(document.createTextNode(bmChartData.legend_title));
+        legend.appendChild(key_title);
+
+        let value_title = document.createElement("div");
+        value_title.classList.add("bm-tooltip-value-title", "bm-tooltip-width-marker-top");
+        value_title.appendChild(document.createTextNode(bmChartData.x_axis_title));
+        legend.appendChild(value_title);
+
+        container.appendChild(legend);
+
+        return container.outerHTML;
+    }
+}
+
+// Export utils for use in other modules
+window.BmUIUtils = BmUIUtils;
+window.BmChartComponents = BmChartComponents;
