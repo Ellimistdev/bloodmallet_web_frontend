@@ -1994,7 +1994,7 @@ class BmUIUtils {
      * Get language from Django cookie 
      * @returns {string|null} Language code or null if not found
      */
-    static getLanguageFromCookie = () => {
+    static getLanguageFromCookie() {
         const cookies = document.cookie.split(';');
         for (const cookie of cookies) {
             const trimmedCookie = cookie.trim();
@@ -2010,7 +2010,7 @@ class BmUIUtils {
      * @param {HTMLElement} element The element to check for language attribute
      * @returns {string|null} Language code or null if not found
      */
-    static getLanguageFromDataset = (element) => {
+    static getLanguageFromDataset(element) {
         return element?.dataset?.language || null;
     };
 
@@ -2018,7 +2018,7 @@ class BmUIUtils {
      * Get language from browser settings
      * @returns {string|null} Language code or null if not found
      */
-    static getLanguageFromBrowser = () => {
+    static getLanguageFromBrowser() {
         return navigator.language ? navigator.language.split('-')[0] : null;
     };
 
@@ -2027,7 +2027,7 @@ class BmUIUtils {
      * @param {string} langCode The language code to convert
      * @returns {string} The full language code
      */
-    static normalizeLanguageCode = (langCode) => {
+    static normalizeLanguageCode(langCode) {
         /**
          * Language mapping from short to long form
          */
@@ -2052,7 +2052,7 @@ class BmUIUtils {
      * @param {HTMLElement} element Optional element to check for language attribute
      * @returns {string} The full language code (e.g., "en_US")
      */
-    static detectUserLanguage = (element = null) => {
+    static detectUserLanguage(element = null) {
         let langCode = this.getLanguageFromDataset(element) || this.getLanguageFromCookie() || this.getLanguageFromBrowser();
         return this.normalizeLanguageCode(langCode || "en_US");
     };
@@ -2075,7 +2075,7 @@ class BmUIUtils {
      * @param {FormatTypes} type The type of formatting to apply (e.g., "SLUG", "FIGHT_STYLE")
      * @returns {string} The formatted text
      */
-    static formatText = (text, type) => {
+    static formatText(text, type) {
         if (!text) return "Loading...";
 
         switch (type) {
@@ -2125,7 +2125,7 @@ class BmUIUtils {
         let newString = string.charAt(0).toUpperCase();
         if (string.includes("_")) {
             newString += string.slice(1, string.indexOf("_") + 1);
-            newString += capitalizeFirstLetters(string.slice(string.indexOf("_") + 1));
+            newString += this.capitalizeFirstLetters(string.slice(string.indexOf("_") + 1));
         } else {
             newString += string.slice(1);
         }
@@ -2139,7 +2139,7 @@ class BmUIUtils {
      * @param {*} defaultValue - Default value to return if parsing fails
      * @returns {Object} Parsed object or default value
      */
-    static safeJsonParse = (jsonString, defaultValue = null) => {
+    static safeJsonParse(jsonString, defaultValue = null) {
         if (!jsonString) return defaultValue;
         try {
             return JSON.parse(jsonString);
@@ -2154,7 +2154,7 @@ class BmUIUtils {
      * @param {HTMLElement} chart - Chart element
      * @returns {Object|null} Chart data or null if not available
      */
-    static getChartData = (chart) => {
+    static getChartData(chart) {
         if (!chart || !chart.dataset.loadedData) return null;
         return this.safeJsonParse(chart.dataset.loadedData);
     }
@@ -2184,7 +2184,7 @@ class BmUIUtils {
      * @param {string} unit The unit to display (e.g., "%")
      * @returns {HTMLSpanElement} A span element containing the unit
      */
-    static createUnitTextNode = (unit) => {
+    static createUnitTextNode(unit) {
         const span = document.createElement("span");
         span.classList.add("bm-unit");
         span.appendChild(document.createTextNode(unit));
@@ -2196,11 +2196,13 @@ class BmUIUtils {
      * 
      * @param {string} tag - The HTML tag name
      * @param {Object} attributes - Element attributes and properties
-     * @param {Array} children - Element children (strings or nodes)
+     * @param {Array|string|HTMLElement} children - Element children (strings, nodes, or array of either)
      * @returns {HTMLElement} The created element
      */
-    static createElement = (tag, attributes = {}, children = []) => {
+    static createElement(tag, attributes = {}, children = []) {
         const element = document.createElement(tag);
+
+        // Handle attributes and properties
         Object.entries(attributes).forEach(([key, value]) => {
             if (key === 'className') {
                 element.className = value;
@@ -2215,15 +2217,32 @@ class BmUIUtils {
             }
         });
 
-        children.forEach(child => {
+        // Handle children - normalize to array
+        const childArray = Array.isArray(children) ? children : [children];
+
+        childArray.forEach(child => {
             if (typeof child === 'string') {
                 element.appendChild(document.createTextNode(child));
-            } else {
+            } else if (child instanceof HTMLElement) {
                 element.appendChild(child);
+            } else if (child !== null && child !== undefined) {
+                // Handle other types by converting to string (dates, numbers, etc)
+                element.appendChild(document.createTextNode(String(child)));
             }
         });
 
         return element;
+    };
+
+    /**
+     * Creates a div element with specified classes and children
+     * @param {string|Array<string>} classNames - CSS class names
+     * @param {Array|string|HTMLElement} children - Element children
+     * @returns {HTMLElement} The created div element
+     */
+    static createDiv(classNames = '', children = []) {
+        const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
+        return this.createElement('div', { className }, children);
     };
 
     /**
