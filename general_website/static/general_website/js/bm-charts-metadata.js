@@ -81,6 +81,11 @@ function provide_meta_data(state, data) {
         }
 
         // character profile - items
+        let item_ids = [];
+        for (let item_key in data["profile"]["items"]) {
+            item_ids.push(data["profile"]["items"][item_key]["id"]);
+        }
+        item_ids = item_ids.join(":");
         for (let item_key in data["profile"]["items"]) {
             let icon = document.createElement("a");
             icon.href = "";
@@ -88,13 +93,35 @@ function provide_meta_data(state, data) {
             icon.href += "item=" + data["profile"]["items"][item_key]["id"];
             let boni = [];
             try {
-                boni.push("bonus=" + data["profile"]["items"][item_key]["bonus_id"].split("/").join(":"));
+                if (data["profile"]["items"][item_key].hasOwnProperty("bonus_id")) {
+                    let bonus_ids = data["profile"]["items"][item_key]["bonus_id"].toString().split("/").join(":")
+                    boni.push("bonus=" + bonus_ids);
+                }
             } catch (error) { }
             try {
                 if (data["profile"]["items"][item_key].hasOwnProperty("ilevel")) {
                     boni.push("ilvl=" + data["profile"]["items"][item_key]["ilevel"]);
                 }
             } catch (error) { }
+            try {
+                if (data["profile"]["items"][item_key].hasOwnProperty("gem_id")) {
+                    let gem_ids = data["profile"]["items"][item_key]["gem_id"].split("/").join(":");
+                    boni.push("gems=" + gem_ids);
+                }
+            } catch (error) { }
+            try {
+                if (data["profile"]["items"][item_key].hasOwnProperty("enchant_id")) {
+                    let enchant_ids = data["profile"]["items"][item_key]["enchant_id"].split("/").join(":");
+                    boni.push("ench=" + enchant_ids);
+                }
+            } catch (error) { }
+            try {
+                if (data["profile"]["items"][item_key].hasOwnProperty("crafted_stats")) {
+                    let crafted_stats = data["profile"]["items"][item_key]["crafted_stats"].split("/").join(":");
+                    boni.push("crafted-stats=" + crafted_stats);
+                }
+            } catch (error) { }
+            boni.push("pcs=" + item_ids);
             if (boni.length > 0) {
                 icon.href += "?" + boni.join("&");
             }
@@ -106,6 +133,12 @@ function provide_meta_data(state, data) {
                 item.innerHTML = "";
                 item.appendChild(icon);
             }
+        }
+
+        // Set profile source
+        document.getElementById("character-profile-source").innerHTML = "";
+        if (data["profile"]["character"].hasOwnProperty("# source")) {
+            document.getElementById("character-profile-source").appendChild(document.createTextNode("(Source: " + data["profile"]["character"]["# source"] + ")"));
         }
     } else {
         let element = document.getElementById("character-profile-label");

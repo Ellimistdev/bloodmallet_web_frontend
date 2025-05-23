@@ -236,7 +236,7 @@ class SimulationCreationForm(forms.ModelForm):
                 _("An illegal input was detected."), code="illegal input"
             )
 
-        MAX_LENGTH = 2048
+        MAX_LENGTH = 65536
         if len(data) > MAX_LENGTH:
             error_message = _(
                 "Fight style input was too long. Input can have a max-length of %(MAX_LENGTH)s characters."

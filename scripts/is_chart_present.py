@@ -14,7 +14,7 @@ CHART_TYPES = [
     "races",
     "secondary_distributions",
     "talent_target_scaling",
-    "tier_set",
+    # "tier_set",
     "trinkets",
     "weapon_enchantments",
 ]
@@ -33,6 +33,7 @@ SPECS = [
     ("druid", "balance"),
     ("druid", "feral"),
     ("druid", "guardian"),
+    # ("evoker", "augmentation"),
     ("evoker", "devastation"),
     # ("evoker", "preservation"),
     ("hunter", "beast_mastery"),
@@ -94,7 +95,10 @@ async def does_data_exist_for(chart: ChartData) -> None | ChartData:
         return None
     return chart
 
-async def is_data_outdated_for(chart: ChartData, age_hours: int = 24 * 4) -> None | ChartData:
+
+async def is_data_outdated_for(
+    chart: ChartData, age_hours: int = 24 * 4
+) -> None | ChartData:
     # print(f"start {chart}")
     async with aiohttp.ClientSession() as session:
         async with session.get(chart.bloodmallet_endpoint) as response:
@@ -118,13 +122,16 @@ async def is_data_outdated_for(chart: ChartData, age_hours: int = 24 * 4) -> Non
     if creation_string:
         creation_time = datetime.datetime.strptime(creation_string, time_format)
     else:
-        creation_time = datetime.datetime.strptime("2000-01-01 00:00:00.000000", time_format)
-    
+        creation_time = datetime.datetime.strptime(
+            "2000-01-01 00:00:00.000000", time_format
+        )
+
     if response.status == 200 and (now - creation_time).seconds < age_hours * 60 * 60:
         return None
     return chart
 
-def analyze_charts(charts: list[ChartData], title: str)->None:
+
+def analyze_charts(charts: list[ChartData], title: str) -> None:
     charts = sorted(
         charts,
         key=lambda chart: f"{chart.wow_class}{chart.wow_spec}{chart.simulation_type}{chart.fight_style}",
@@ -165,7 +172,6 @@ async def main():
         for c in combinations
     ]
 
-
     charts = [chart for chart in charts]
     tasks = [does_data_exist_for(chart) for chart in charts]
     broken_charts: list[ChartData] = []
@@ -177,7 +183,6 @@ async def main():
         if missing_chart := await task:
             broken_charts.append(missing_chart)
     analyze_charts(broken_charts, "Broken charts")
-
 
     tasks = [is_data_outdated_for(chart) for chart in charts]
     outdated_charts: list[ChartData] = []
