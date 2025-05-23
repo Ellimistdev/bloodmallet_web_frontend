@@ -161,22 +161,20 @@
                             </tr>
                         </tbody>
                     </table>
-                    {% if chart %}
                     <div class="form-group">
                         <label for="custom_fight_style">{% translate "Custom fight style" %}</label>
                         <textarea class="form-control" id="custom_fight_style"
-                            rows="3">{{ chart.custom_fight_style }}</textarea>
+                            rows="3">{% if chart %}{{ chart.custom_fight_style }}{% endif %}</textarea>
                     </div>
                     <div class="form-group">
                         <label for="custom_apl">{% translate "Custom APL" %}</label>
-                        <textarea class="form-control" id="custom_apl" rows="3">{{ chart.custom_apl }}</textarea>
+                        <textarea class="form-control" id="custom_apl" rows="3">{% if chart %}{{ chart.custom_apl }}{% endif %}</textarea>
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
         {% endif %}
-        {% if chart.simulation_type.command == "trinkets" %}
+        {% if simulation_type == "trinkets" %}
         <div class="accordion-item">
             <div class="accordion-header bg-dark" id="advanced_options-label">
                 <h2 class="mb-0">
@@ -190,7 +188,6 @@
             <div id="advanced_options" class="collapse" aria-labelledby="advanced_options-label"
                 data-parent="#meta-info">
                 <div class="accordion-body row">
-                    {% if chart.simulation_type.command == "trinkets" %}
                     <div class="col-md-4" id="filter-itemlevels">
                         {% translate "Itemlevels" %}:<br />
                         <div id="filter-itemlevels-options"></div>
@@ -212,7 +209,6 @@
                             <label class="form-check-label" for="step_passive">{% translate "Passive" %}</label>
                         </div>
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
