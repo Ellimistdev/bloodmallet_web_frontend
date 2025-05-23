@@ -303,7 +303,7 @@ function bm_register_tooltip(element) {
     //  */
     function injectTooltip(event, element) {
         // console.log(event);
-         if (!element.hasAttribute(BmTooltipAttribute.TEXT)) {
+        if (!element.hasAttribute(BmTooltipAttribute.TEXT)) {
             console.warn(`${BmTooltipAttribute.TEXT} not found. Skipping tooltip.`);
             return;
         }
@@ -1165,90 +1165,7 @@ class BmBarChart {
             .filter(([index, series]) => !this.bmChartData.filter_trinket_itemlevels.includes(series));
 
         // Process data keys with filters
-        let effective_sorted_data_keys = this.bmChartData.sorted_data_keys.slice()
-            // Remove "baseline"
-            .filter(key => key !== "baseline")
-            // Filter by data_source
-            .filter(key => {
-                if (this.bmChartData.loaded_data.hasOwnProperty("data_sources")) {
-                    return !this.bmChartData.filter_trinket_sources.includes(
-                        this.bmChartData.loaded_data["data_sources"][key]
-                    );
-                }
-                return true;
-            })
-            // Filter active trinkets
-            .filter(value => {
-                if (this.bmChartData.data_type === "trinkets" &&
-                    (this.bmChartData.filter_trinket_active_passive.includes("active") ||
-                        this.bmChartData.filter_trinket_active_passive.includes("Active"))) {
-                    return this.bmChartData.loaded_data["data_active"][value] === false;
-                }
-                return true;
-            })
-            // Filter passive trinkets
-            .filter(value => {
-                if (this.bmChartData.data_type === "trinkets" &&
-                    (this.bmChartData.filter_trinket_active_passive.includes("passive") ||
-                        this.bmChartData.filter_trinket_active_passive.includes("Passive"))) {
-                    return this.bmChartData.loaded_data["data_active"][value] === true;
-                }
-                return true;
-            })
-            // Filter by no-remaining series
-            .filter(key => {
-                if (this.bmChartData.data_type === "trinkets") {
-                    for (const tmp_series of Object.keys(this.bmChartData.data[key])) {
-                        if (!this.bmChartData.filter_trinket_itemlevels.includes(
-                            Number.parseInt(tmp_series)
-                        )) {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-                return true;
-            })
-            // Sort by DPS value
-            .sort((a, b) => {
-                let a_dps_object = structuredClone(this.bmChartData.data[a]);
-                let b_dps_object = structuredClone(this.bmChartData.data[b]);
-
-                // Remove filtered item levels
-                for (let key of Object.keys(a_dps_object)) {
-                    if (this.bmChartData.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
-                        delete a_dps_object[Number.parseInt(key)];
-                    }
-                }
-                for (let key of Object.keys(b_dps_object)) {
-                    if (this.bmChartData.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
-                        delete b_dps_object[Number.parseInt(key)];
-                    }
-                }
-
-                let a_dps = Math.max(...Object.values(a_dps_object));
-                let b_dps = Math.max(...Object.values(b_dps_object));
-
-                if (Number.isInteger(a_dps_object) && Number.isInteger(b_dps_object)) {
-                    a_dps = a_dps_object;
-                    b_dps = b_dps_object;
-                }
-
-                // Special sorting for certain chart types
-                if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bmChartData.data_type) > -1) {
-                    a_dps = this.bmChartData.data[a] - (this.bmChartData.base_values[a] ||
-                        this.bmChartData.data["{" + a + "}"]);
-                    b_dps = this.bmChartData.data[b] - (this.bmChartData.base_values[b] ||
-                        this.bmChartData.data["{" + b + "}"]);
-
-                    if (this.bmChartData.value_calculation === "relative") {
-                        a_dps = a_dps / this.bmChartData.data[a];
-                        b_dps = b_dps / this.bmChartData.data[b];
-                    }
-                }
-
-                return b_dps - a_dps;
-            });
+        let effective_sorted_data_keys = this.processDataKeys();
 
         // Limit the number of displayed data points
         // If show_top is set to 0, all data points are shown
@@ -1470,6 +1387,98 @@ class BmBarChart {
 
     }
 
+    /**
+     * Process and filter data keys
+     * @returns {Array} Filtered and sorted data keys
+     */
+    processDataKeys() {
+        return this.bmChartData.sorted_data_keys.slice()
+            // Remove "baseline"
+            .filter(key => key !== "baseline")
+            // Filter by data_source
+            .filter(key => {
+                if (this.bmChartData.loaded_data.hasOwnProperty("data_sources")) {
+                    return !this.bmChartData.filter_trinket_sources.includes(
+                        this.bmChartData.loaded_data["data_sources"][key]
+                    );
+                }
+                return true;
+            })
+            // Filter active/passive trinkets
+            .filter(key => this.passesActivePassiveFilter(key))
+            // Filter by no-remaining series
+            .filter(key => this.passesItemLevelFilter(key))
+            // Sort by DPS value
+            .sort((a, b) => this.compareDPSValues(a, b))
+            // Limit results
+            .slice(0, this.bmChartData.show_top > 0 ? this.bmChartData.show_top : undefined);
+    }
+
+    // Helper methods for filtering and calculations (keeping existing logic)
+
+    passesActivePassiveFilter(key) {
+        if (this.bmChartData.data_type === "trinkets" &&
+            (this.bmChartData.filter_trinket_active_passive.includes("active") ||
+                this.bmChartData.filter_trinket_active_passive.includes("Active"))) {
+            return this.bmChartData.loaded_data["data_active"][key] === false;
+        }
+        if (this.bmChartData.data_type === "trinkets" &&
+            (this.bmChartData.filter_trinket_active_passive.includes("passive") ||
+                this.bmChartData.filter_trinket_active_passive.includes("Passive"))) {
+            return this.bmChartData.loaded_data["data_active"][key] === true;
+        }
+        return true;
+    }
+
+    passesItemLevelFilter(key) {
+        if (this.bmChartData.data_type === "trinkets") {
+            for (const tmp_series of Object.keys(this.bmChartData.data[key])) {
+                if (!this.bmChartData.filter_trinket_itemlevels.includes(Number.parseInt(tmp_series))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    compareDPSValues(a, b) {
+        let a_dps_object = structuredClone(this.bmChartData.data[a]);
+        let b_dps_object = structuredClone(this.bmChartData.data[b]);
+
+        // Remove filtered item levels
+        for (let key of Object.keys(a_dps_object)) {
+            if (this.bmChartData.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
+                delete a_dps_object[Number.parseInt(key)];
+            }
+        }
+        for (let key of Object.keys(b_dps_object)) {
+            if (this.bmChartData.filter_trinket_itemlevels.includes(Number.parseInt(key))) {
+                delete b_dps_object[Number.parseInt(key)];
+            }
+        }
+
+        let a_dps = Math.max(...Object.values(a_dps_object));
+        let b_dps = Math.max(...Object.values(b_dps_object));
+
+        if (Number.isInteger(a_dps_object) && Number.isInteger(b_dps_object)) {
+            a_dps = a_dps_object;
+            b_dps = b_dps_object;
+        }
+
+        // Special sorting for certain chart types
+        if (["power_infusion", "windfury_totem", "trinket_compare"].includes(this.bmChartData.data_type)) {
+            a_dps = this.bmChartData.data[a] - (this.bmChartData.base_values[a] || this.bmChartData.data["{" + a + "}"]);
+            b_dps = this.bmChartData.data[b] - (this.bmChartData.base_values[b] || this.bmChartData.data["{" + b + "}"]);
+
+            if (this.bmChartData.value_calculation === "relative") {
+                a_dps = a_dps / this.bmChartData.data[a];
+                b_dps = b_dps / this.bmChartData.data[b];
+            }
+        }
+
+        return b_dps - a_dps;
+    }
 
     remove_vertical_line() {
         if (this.verticalLine !== undefined) {
@@ -2229,7 +2238,7 @@ class BmUIUtils {
         return template.content.firstChild;
     };
 
-    
+
     /**
      * Convert attribute input to class name.
      * @param {string} placement user input from the element attribute
@@ -2310,27 +2319,27 @@ class BmChartComponents {
         }
 
         const legend = BmUIUtils.createElement("div", { className: "bm-legend" });
-        
+
         const legend_title = BmUIUtils.createElement("div", {
             className: "bm-legend-title",
             innerText: chartData.legend_title
         });
-        
+
         legend.appendChild(legend_title);
-        
+
         const legend_items = BmUIUtils.createElement("div", { className: "bm-legend-items" });
-        
+
         for (let [index, series] of series_index_names) {
             const legend_item = BmUIUtils.createElement("div", {
                 className: `bm-legend-item bm-bar-group-${index + 1}`,
                 innerText: series
             });
-            
+
             legend_items.appendChild(legend_item);
             // Required to space the legend items
             legend_items.appendChild(document.createTextNode(" "));
         }
-        
+
         legend.appendChild(legend_items);
         return legend;
     }
