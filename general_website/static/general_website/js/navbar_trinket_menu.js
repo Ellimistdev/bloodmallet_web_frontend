@@ -268,10 +268,16 @@
     createDropdownMenu(state.item_level, "item_level", state.item_levels, state, navList);
     
     // Add the fight style dropdown
+    const fightStyles = {
+        "castingpatchwerk": "Casting Patchwerk 1 target",
+        "castingpatchwerk3": "Casting Patchwerk 3 targets", 
+        "castingpatchwerk5": "Casting Patchwerk 5 targets",
+    };
+    
     createDropdownMenu(
       window.BmUIUtils.formatText(state.fight_style, "fight_style"), 
       "fight_style", 
-      window.BmUIUtils.fightStyles, 
+      fightStyles, 
       state, 
       navList
     );
