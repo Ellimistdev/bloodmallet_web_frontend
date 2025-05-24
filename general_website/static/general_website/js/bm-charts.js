@@ -2203,7 +2203,7 @@ class BmUIUtils {
         const element = document.createElement(tag);
 
         // Ensure attributes is always an object
-        const safeAttributes = attributes && typeof attributes === 'object' ? attributes : {};
+        const safeAttributes = attributes && typeof attributes === 'object' && !Array.isArray(attributes) ? attributes : {};
 
         // Handle special cases, everything else gets set directly
         const { events, style, dataset, ...attrs } = safeAttributes;
@@ -2236,7 +2236,7 @@ class BmUIUtils {
             if (child instanceof Node) {
                 element.appendChild(child);
             } else if (typeof child === 'string' || typeof child === 'number' || typeof child === 'boolean') {
-                // Handle primitives that make sense as text) {
+                // Handle primitives that make sense as text
                 element.appendChild(document.createTextNode(String(child)));
             } else if (child !== null && child !== undefined) {
                 // Log warning for unexpected types
