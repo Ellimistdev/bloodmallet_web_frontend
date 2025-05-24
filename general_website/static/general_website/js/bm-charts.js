@@ -1181,8 +1181,7 @@ class BmBarChart {
         // bar title
         let bar_title = BmUIUtils.createDiv("bm-bar-title");
         // min value
-        let min = document.createElement("span");
-        min.classList.add("bm-bar-min")
+        let min = BmUIUtils.createSpan('bm-bar-min');
         if (["absolute", "relative"].indexOf(this.bmChartData.value_calculation) > -1) {
             let unitTextNode = BmUIUtils.createUnitTextNode(this.bmChartData.unit[this.bmChartData.value_calculation]);
 
@@ -1200,8 +1199,7 @@ class BmBarChart {
         bar_title.appendChild(min);
         bar_title.appendChild(document.createTextNode(this.bmChartData.x_axis_title));
         // max value
-        let max = document.createElement("span");
-        max.classList.add("bm-bar-max")
+        let max = BmUIUtils.createSpan('bm-bar-max');
         if (["absolute", "relative"].indexOf(this.bmChartData.value_calculation) > -1) {
             let unitTextNode = BmUIUtils.createUnitTextNode(this.bmChartData.unit[this.bmChartData.value_calculation]);
 
@@ -1318,13 +1316,9 @@ class BmBarChart {
                     let highest_available_series_of_key = Math.max(...filtered_available_series);
                     console.log(key_available_series, filtered_available_series, highest_available_series_of_key, series);
                     if (series === highest_available_series_of_key) {
-                        let final_stack_value = document.createElement("span");
-                        final_stack_value.classList.add("bm-bar-final-value");
-                        final_stack_value.appendChild(
-                            document.createTextNode(
-                                this.bmChartData.convert_number_to_local(
-                                    this.bmChartData.get_value(key, series, this.bmChartData.value_calculation)
-                                )
+                        let final_stack_value = BmUIUtils.createSpan('bm-bar-final-value',
+                            this.bmChartData.convert_number_to_local(
+                                this.bmChartData.get_value(key, series, this.bmChartData.value_calculation)
                             )
                         );
                         if (this.bmChartData.unit[this.bmChartData.value_calculation].length > 0) {
@@ -2148,10 +2142,7 @@ class BmUIUtils {
      * @returns {HTMLSpanElement} A span element containing the unit
      */
     static createUnitTextNode(unit) {
-        const span = document.createElement("span");
-        span.classList.add("bm-unit");
-        span.appendChild(document.createTextNode(unit));
-        return span;
+        return BmUIUtils.createSpan("bm-unit", unit);
     };
 
     /**
@@ -2206,7 +2197,7 @@ class BmUIUtils {
         const safeAttributes = attributes && typeof attributes === 'object' && !Array.isArray(attributes) ? attributes : {};
 
         // Handle special cases, everything else gets set directly
-        const { events, style, dataset, ...attrs } = safeAttributes;
+        const { events, style, dataset, ...options } = safeAttributes;
 
         if (events) {
             Object.entries(events).forEach(([event, handler]) => element.addEventListener(event, handler));
@@ -2221,7 +2212,7 @@ class BmUIUtils {
         }
 
         // Set all other attributes/properties - className, innerText, etc.)
-        Object.entries(attrs).forEach(([key, value]) => {
+        Object.entries(options).forEach(([key, value]) => {
             if (key in element) {
                 element[key] = value; // Set standard DOM Properties
             } else {
@@ -2308,6 +2299,18 @@ class BmUIUtils {
 
         return this.createElement('div', options, children || []);
     };
+
+    /**
+     * Creates a span element with specified classes and children
+     * @param {string|Array<string>} classNames - CSS class names
+     * @param {Array|string|HTMLElement} children - Element children
+     * @returns {HTMLElement} The created span element
+     */
+    static createSpan(classNames = '', children = []) {
+        const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
+        return this.createElement('span', { className }, children);
+    };
+
 
     /**
      * Source: https://stackoverflow.com/a/35385518
