@@ -2157,16 +2157,56 @@ class BmUIUtils {
     /**
      * Creates a DOM element with specified attributes and children
      * 
-     * @param {string} tag - The HTML tag name
-     * @param {Object} attributes - Element attributes and properties
-     * @param {Array|string|HTMLElement} children - Element children (strings, nodes, or array of either)
-     * @returns {HTMLElement} The created element
+     * This method intelligently handles different types of element properties:
+     * - Standard DOM properties (className, innerText, etc.) are set directly as properties
+     * - Custom attributes (data-*, aria-*, etc.) are set using setAttribute()
+     * - Event handlers are registered using addEventListener()
+     * - Style objects are merged with existing styles
+     * - Dataset objects are merged with existing dataset properties
+     * 
+     * @param {string} tag - The HTML tag name (e.g., 'div', 'span', 'button')
+     * @param {Object} attributes - Element configuration object with the following supported properties:
+     *   @param {Object} attributes.events - Event handlers as { eventName: handlerFunction } pairs
+     *   @param {Object} attributes.style - CSS styles as { property: value } pairs (merged with existing styles)
+     *   @param {Object} attributes.dataset - Data attributes as { key: value } pairs (merged with existing dataset)
+     *   @param {string} attributes.className - CSS class names (space-separated string)
+     *   @param {string} attributes.innerText - Text content of the element
+     *   @param {string} attributes.innerHTML - HTML content of the element
+     *   @param {string} attributes.id - Element ID
+     *   @param {string} attributes.yourCustomAttribute - Any other property/attribute
+     * @param {Array<string|HTMLElement>|string|HTMLElement} children - Child elements or content:
+     *   - Array: Multiple mixed strings or HTMLElements (strings are converted to text nodes)
+     *   - String/Number/Boolean: Single text content (converted to text node)
+     *   - HTMLElement: Single DOM element
+     *   - null/undefined: Ignored
+     * @returns {HTMLElement} The created and configured DOM element
+     * 
+     * @example
+     * // Create a button with click handler and styling
+     * const button = createElement('button', {
+     *   className: 'btn btn-primary',
+     *   innerText: 'Click me',
+     *   events: { click: () => alert('Clicked!') },
+     *   style: { marginTop: '10px' },
+     *   dataset: { action: 'submit' }
+     * });
+     * 
+     * @example
+     * // Create a div with multiple children
+     * const container = createElement('div', { className: 'container' }, [
+     *   'Hello ',
+     *   createElement('strong', {}, 'World'),
+     *   '!'
+     * ]);
      */
     static createElement(tag, attributes = {}, children = []) {
         const element = document.createElement(tag);
 
+        // Ensure attributes is always an object
+        const safeAttributes = attributes && typeof attributes === 'object' ? attributes : {};
+
         // Handle special cases, everything else gets set directly
-        const { events, style, dataset, ...attrs } = attributes;
+        const { events, style, dataset, ...attrs } = safeAttributes;
 
         if (events) {
             Object.entries(events).forEach(([event, handler]) => element.addEventListener(event, handler));
@@ -2179,11 +2219,11 @@ class BmUIUtils {
         if (dataset) {
             Object.assign(element.dataset, dataset);
         }
-        
+
         // Set all other attributes/properties - className, innerText, etc.)
         Object.entries(attrs).forEach(([key, value]) => {
-if (key in element) {
-            element[key] = value; // Set standard DOM Properties
+            if (key in element) {
+                element[key] = value; // Set standard DOM Properties
             } else {
                 element.setAttribute(key, value); // Set custom attributes
             }
@@ -2209,22 +2249,60 @@ if (key in element) {
     };
 
     /**
-     * Creates a div element with specified classes and children
-     * @param {string|Array<string>} classNames - CSS class names
-     * @param {Array|string|HTMLElement} children - Element children
-     * @returns {HTMLElement} The created div element
+     * Creates a div element with CSS classes and optional children - a convenient wrapper around createElement
+     * 
+     * This is a specialized version of createElement optimized for the common case of creating div elements
+     * with CSS classes. It handles class name normalization and provides a clean API for the most common
+     * div creation scenarios.
+     * 
+     * @param {string|Array<string>} classNames - CSS class names to apply to the div:
+     *   - String: Space-separated class names (e.g., 'container fluid')
+     *   - Array: Array of class names (e.g., ['container', 'fluid'])
+     *   - Empty string or falsy: No classes applied
+     * @param {Array<string|HTMLElement>|string|HTMLElement} children - Child elements or content:
+     *   - Array: Multiple mixed strings or HTMLElements (strings are converted to text nodes)
+     *   - String/Number/Boolean: Single text content (converted to text node)
+     *   - HTMLElement: Single DOM element
+     *   - null/undefined: Ignored
+     * @param {Object} attributes - Element configuration object with the following supported properties:
+     *   @param {Object} attributes.events - Event handlers as { eventName: handlerFunction } pairs
+     *   @param {Object} attributes.style - CSS styles as { property: value } pairs (merged with existing styles)
+     *   @param {Object} attributes.dataset - Data attributes as { key: value } pairs (merged with existing dataset)
+     *   @param {string} attributes.innerText - Text content of the element
+     *   @param {string} attributes.innerHTML - HTML content of the element
+     *   @param {string} attributes.id - Element ID
+     *   @param {string} attributes.yourCustomAttribute - Any other property/attribute
+     * @returns {HTMLElement} A div element with the specified classes, children, and attributes
+     * 
+     * @example
+     * // Create a simple div with classes
+     * const container = createDiv('container fluid');
+     * 
+     * @example
+     * // Create a div with classes and text content
+     * const wrapper = createDiv(['wrapper', 'highlight'], 'Hello World');
+     * 
+     * @example
+     * // Create a div with classes, children, and additional attributes
+     * const section = createDiv('section', [
+     *   createElement('h2', {}, 'Title'),
+     *   createDiv('container', createElement('p', null, 'Hello!'), {id: 'ContentDiv'}),
+     * ], {
+     *   id: 'main-section',
+     *   'data-section': 'primary'
+     * });
      */
     static createDiv(classNames = '', children = [], attributes = {}) {
         const options = {};
 
         // Only add className if provided and not empty
-        if (classNames && classNames.trim()) {
-        const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
+        if (classNames && (typeof classNames === 'string' || Array.isArray(classNames)) && classNames.trim()) {
+            const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
             options.className = className;
         }
 
-        // Merge any additional attributes
-        if (attributes) {
+        // Merge any additional attributes as long as attributes is actually an object
+        if (attributes && typeof attributes === 'object' && !Array.isArray(attributes)) {
             Object.assign(options, attributes);
         }
 
@@ -2397,9 +2475,9 @@ class BmChartComponents {
         indexed_series = indexed_series.slice();
         let container = BmUIUtils.createDiv("bm-tooltip-container");
 
-                let translated_name = bmChartData.get_translated_name(key);
+        let translated_name = bmChartData.get_translated_name(key);
         let title = BmUIUtils.createDiv("bm-tooltip-title", translated_name);
-                container.appendChild(title);
+        container.appendChild(title);
 
         // inverse sort to have the table start with the highest value
         for (let [index, series] of indexed_series.reverse()) {
@@ -2407,7 +2485,7 @@ class BmChartComponents {
                 // data doesn't have series element, skipping
                 continue;
             }
-            
+
             let row = BmUIUtils.createDiv("bm-tooltip-row",
                 BmUIUtils.createDiv(`bm-tooltip-key bm-bar-group-${index + 1}`, series)
             );
@@ -2441,7 +2519,7 @@ class BmChartComponents {
             );
 
             // let value = bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation));
-let value = bmChartData.convert_number_to_local(bmChartData.data[key]);
+            let value = bmChartData.convert_number_to_local(bmChartData.data[key]);
             let value_div = BmUIUtils.createDiv("bm-tooltip-value", value);
 
             // Add unit if applicable
@@ -2453,17 +2531,17 @@ let value = bmChartData.convert_number_to_local(bmChartData.data[key]);
 
             container.appendChild(row);
         } else if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(bmChartData.data_type) > -1) {
-            
-                        let abbreviation = {
+
+            let abbreviation = {
                 "power_infusion": "PI",
                 "windfury_totem": "WFT",
                 "trinket_compare": "Trinket"
             }
             let row = BmUIUtils.createDiv("bm-tooltip-row",
                 BmUIUtils.createDiv("bm-tooltip-key bm-bar-group-1", document.createTextNode(abbreviation[bmChartData.data_type]))
-);
+            );
 
-                        let value = -1;
+            let value = -1;
             let base_value = bmChartData.base_values[key] || bmChartData.data["{" + key + "}"];
 
             if (bmChartData.value_calculation === "relative") {
