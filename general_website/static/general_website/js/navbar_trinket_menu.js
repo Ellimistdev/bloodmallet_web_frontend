@@ -46,12 +46,12 @@
       const data = await fetchFunction?.(fightStyle);
 
       if (!data) {
-        throw new Error("No data returned from fetchAndProcessDataAsync");
+        throw new Error('No data returned from fetchAndProcessDataAsync');
       }
 
       return processTrinketsFromData(data);
     } catch (error) {
-      console.error("Error fetching available trinkets:", error);
+      console.error('Error fetching available trinkets:', error);
       return [];
     }
   };
@@ -62,7 +62,7 @@
   const processTrinketsFromData = (data) => {
     const availableTrinkets = [];
     if (!data || !data.items) {
-      console.warn("No trinket data available to process");
+      console.warn('No trinket data available to process');
       return availableTrinkets;
     }
   
@@ -71,7 +71,7 @@
       const userLanguage = window.BmUIUtils?.detectUserLanguage() || 'en_US';
   
       for (const trinketKey in data.items) {
-        if (trinketKey === "baseline") {
+        if (trinketKey === 'baseline') {
           continue;
         }
 
@@ -94,7 +94,7 @@
   
       return availableTrinkets.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
-      console.error("Error processing trinket data:", error);
+      console.error('Error processing trinket data:', error);
       return [];
     }
   };
@@ -103,7 +103,7 @@
    * Get state from the chart
    */
   const getStateFromChart = async () => {
-    const chart = document.getElementById("chart");
+    const chart = document.getElementById('chart');
     const data = window.BmUIUtils.getChartData(chart);
     if (!data) return createInitialState();
     
@@ -141,7 +141,7 @@
    * Create menu items for the dropdown
    */
   const createDropdownMenuEntries = (items, id, state) => {
-    console.debug("Creating dropdown menu entries for", id, items);
+    console.debug('Creating dropdown menu entries for', id, items);
     const dropdownMenu = window.BmUIUtils.createElement('div', { 
       className: `dropdown-menu ${state.wow_class}-border-top`,
       'aria-labelledby': `navbar_${id}_selection`
@@ -152,7 +152,7 @@
       // Add a placeholder when items is undefined or null
       const placeholder = window.BmUIUtils.createElement('a', {
         className: `dropdown-item ${state.wow_class}-button disabled`,
-        innerText: "Loading..."
+        innerText: 'Loading...'
       });
       dropdownMenu.appendChild(placeholder);
       return dropdownMenu;
@@ -160,19 +160,19 @@
   
     // Set maximum height for long lists
     if (Array.isArray(items) && items.length > 10) {
-      dropdownMenu.style.maxHeight = "400px";
-      dropdownMenu.style.overflowY = "scroll";
+      dropdownMenu.style.maxHeight = '400px';
+      dropdownMenu.style.overflowY = 'scroll';
     }
   
     // Object containing fight style mappings
-    if (id === "fight_style" && !Array.isArray(items)) {
+    if (id === 'fight_style' && !Array.isArray(items)) {
       // Handle the fight_style dictionary case
       Object.keys(items).forEach(key => {
         const menuItem = window.BmUIUtils.createElement('a', {
           className: `dropdown-item ${state.wow_class}-button`,
-          id: `navbar_${window.BmUIUtils.formatText(key, "slug")}_selector`,
+          id: `navbar_${window.BmUIUtils.formatText(key, 'slug')}_selector`,
           innerText: items[key],
-          href: "#",
+          href: '#',
           events: {
             click: createItemClickHandler('fight_style', key, state)
           }
@@ -190,9 +190,9 @@
         
         const menuItem = window.BmUIUtils.createElement('a', {
           className: `dropdown-item ${state.wow_class}-button`,
-          id: `navbar_${window.BmUIUtils.formatText(itemValue, "slug")}_selector`,
+          id: `navbar_${window.BmUIUtils.formatText(itemValue, 'slug')}_selector`,
           innerText: itemDisplay,
-          href: "#",
+          href: '#',
           events: {
             click: createItemClickHandler(id, itemValue, state)
           }
@@ -205,9 +205,9 @@
     // Default case - single item
     const menuItem = window.BmUIUtils.createElement('a', {
       className: `dropdown-item ${state.wow_class}-button`,
-      id: `navbar_${window.BmUIUtils.formatText(items, "slug")}_selector`,
+      id: `navbar_${window.BmUIUtils.formatText(items, 'slug')}_selector`,
       innerText: items,
-      href: "#"
+      href: '#'
     });
     dropdownMenu.appendChild(menuItem);
   
@@ -219,16 +219,16 @@
    */
   const createDropdownMenu = (label, id, items, state, parentElement) => {
     const li = window.BmUIUtils.createElement('li', { 
-      className: "nav-item dropdown" 
+      className: 'nav-item dropdown' 
     });
     
     const a = window.BmUIUtils.createElement('a', {
       className: `nav-link dropdown-toggle ${state.wow_class}-color ${state.wow_class}-menu-border`,
-      href: "#",
-      role: "button",
-      'data-bs-toggle': "dropdown",
-      'aria-expanded': "false",
-      id: `navbar_${window.BmUIUtils.formatText(id, "slug")}_selection`,
+      href: '#',
+      role: 'button',
+      'data-bs-toggle': 'dropdown',
+      'aria-expanded': 'false',
+      id: `navbar_${window.BmUIUtils.formatText(id, 'slug')}_selection`,
       innerText: label
     });
     
@@ -245,7 +245,7 @@
    * Render the navbar menu
    */
   const renderNavbarMenu = (state) => {
-    const navbarTrinketMenu = document.getElementById("navbarTrinketMenu");
+    const navbarTrinketMenu = document.getElementById('navbarTrinketMenu');
     if (!navbarTrinketMenu) return;
     
     // Clear existing content
@@ -262,21 +262,21 @@
     }
     
     // Add the trinket dropdown
-    createDropdownMenu(selectedTrinketLocalizedName, "item_name", state.available_trinkets, state, navList);
+    createDropdownMenu(selectedTrinketLocalizedName, 'item_name', state.available_trinkets, state, navList);
     
     // Add the item level dropdown
-    createDropdownMenu(state.item_level, "item_level", state.item_levels, state, navList);
+    createDropdownMenu(state.item_level, 'item_level', state.item_levels, state, navList);
     
     // Add the fight style dropdown
     const fightStyles = {
-        "castingpatchwerk": "Casting Patchwerk 1 target",
-        "castingpatchwerk3": "Casting Patchwerk 3 targets", 
-        "castingpatchwerk5": "Casting Patchwerk 5 targets",
+        'castingpatchwerk': 'Casting Patchwerk 1 target',
+        'castingpatchwerk3': 'Casting Patchwerk 3 targets', 
+        'castingpatchwerk5': 'Casting Patchwerk 5 targets',
     };
     
     createDropdownMenu(
-      window.BmUIUtils.formatText(state.fight_style, "fight_style"), 
-      "fight_style", 
+      window.BmUIUtils.formatText(state.fight_style, 'fight_style'), 
+      'fight_style', 
       fightStyles, 
       state, 
       navList
@@ -289,7 +289,7 @@
    * Update the navbar menu with a given state
    */
   const update_navbarTrinketMenu = async (state = {}) => {
-    console.debug("update_navbarTrinketMenu", state);
+    console.debug('update_navbarTrinketMenu', state);
     
     // Get current state or use provided state
     const finalState = Object.keys(state).length === 0 
@@ -308,7 +308,7 @@
    * Update the trinket chart when menu options are changed
    */
   const updateTrinketChartViaMenu = async (state) => {
-    const chart = document.getElementById("chart");
+    const chart = document.getElementById('chart');
   
     // Store current selected values
     const currentSelection = {
@@ -334,7 +334,7 @@
       // Get the updated data from the chart
       const chartData = window.BmUIUtils.getChartData(chart);
       if (!chartData) {
-        console.error("No chart data found after update");
+        console.error('No chart data found after update');
         return;
       }
   
@@ -353,7 +353,7 @@
       await update_navbarTrinketMenu(updatedState);
   
     } catch (error) {
-      console.error("Error updating trinket chart:", error);
+      console.error('Error updating trinket chart:', error);
     }
   };
   
@@ -363,13 +363,13 @@
   const initializeNavbarTrinketMenu = async () => {
     const chart = document.querySelector('.bloodmallet_chart');
     if (!chart || !chart.dataset.loadedData) {
-      console.error("Chart data not available for menu initialization");
+      console.error('Chart data not available for menu initialization');
       return;
     }
   
     try {
       const chartData = window.BmUIUtils.getChartData(chart);
-      console.debug("Initializing trinket menu with data:", chartData);
+      console.debug('Initializing trinket menu with data:', chartData);
   
       // Get the current fight style from the chart
       const currentFightStyle = chartData.simc_settings?.fight_style || 'castingpatchwerk';
@@ -424,7 +424,7 @@
         attributeFilter: ['data-loaded-data']
       });
     } catch (error) {
-      console.error("Error initializing trinket menu:", error);
+      console.error('Error initializing trinket menu:', error);
     }
   };
   
@@ -432,8 +432,8 @@
   // Initialization
   // ==========================
   
-  document.addEventListener("DOMContentLoaded", () => {
-    console.debug("DOMContentLoaded - Trinket Menu");
+  document.addEventListener('DOMContentLoaded', () => {
+    console.debug('DOMContentLoaded - Trinket Menu');
     
     // Get the chart and set up initial state
     const chart = document.querySelector('.bloodmallet_chart');
@@ -450,7 +450,7 @@
             chart.dataset.loadedData) {
   
           // Data is now loaded, safe to initialize
-          console.debug("Chart data loaded, initializing trinket menu");
+          console.debug('Chart data loaded, initializing trinket menu');
           observer.disconnect();
           initializeNavbarTrinketMenu();
           return;
@@ -465,7 +465,7 @@
   
     // Fallback - if chart already has data
     if (chart.dataset.loadedData) {
-      console.debug("Chart data already loaded, initializing immediately");
+      console.debug('Chart data already loaded, initializing immediately');
       initializeNavbarTrinketMenu();
     }
   });
