@@ -2165,12 +2165,11 @@ class BmUIUtils {
     static createElement(tag, attributes = {}, children = []) {
         const element = document.createElement(tag);
 
-        // Handle special cases, everything else gets setAttribute
+        // Handle special cases, everything else gets set directly
         const { events, style, dataset, ...attrs } = attributes;
 
         if (events) {
-            Object.entries(events)
-            .forEach(([event, handler]) => element.addEventListener(event, handler));
+            Object.entries(events).forEach(([event, handler]) => element.addEventListener(event, handler));
         }
 
         if (style) {
@@ -2183,7 +2182,11 @@ class BmUIUtils {
         
         // Set all other attributes/properties - className, innerText, etc.)
         Object.entries(attrs).forEach(([key, value]) => {
-            element[key] = value; 
+if (key in element) {
+            element[key] = value; // Set standard DOM Properties
+            } else {
+                element.setAttribute(key, value); // Set custom attributes
+            }
         });
 
         // Handle children - normalize to array
