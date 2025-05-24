@@ -317,18 +317,12 @@ function bm_register_tooltip(element) {
         const placement = BmUIUtils.getTooltipPlacementClass(placementAttr);
         const tooltipContent = BmUIUtils.htmlToElement(tooltipHTML);
 
-        const root = document.createElement("div");
-        root.id = id;
-        root.classList.add(BmTooltipClass.TOOLTIP, placement);
-
-        const arrow = document.createElement("div");
-        arrow.classList.add(BmTooltipClass.ARROW);
-        root.appendChild(arrow);
-
-        const inner = document.createElement("div");
-        inner.classList.add(BmTooltipClass.INNER);
-        inner.appendChild(tooltipContent);
-        root.appendChild(inner);
+        const root = BmUIUtils.createDiv(`${BmTooltipClass.TOOLTIP} ${placement}`, [
+            BmUIUtils.createDiv(BmTooltipClass.ARROW),
+            BmUIUtils.createDiv(BmTooltipClass.INNER, tooltipContent)
+        ], {
+            id: id,
+        });
 
         document.body.appendChild(root);
 
@@ -676,9 +670,8 @@ class BmChartData {
         if (!this.enable_title) {
             return;
         }
-        let title = document.createElement("div");
-        title.classList.add("bm-title");
-        title.appendChild(document.createTextNode(this.title));
+
+        const title = BmUIUtils.createDiv("bm-title", this.title);
         element.appendChild(title);
     }
 
@@ -690,9 +683,8 @@ class BmChartData {
         if (!this.enable_subtitle) {
             return;
         }
-        let subtitle = document.createElement("div");
-        subtitle.classList.add("bm-subtitle");
-        subtitle.appendChild(document.createTextNode(this.subtitle));
+
+        const subtitle = BmUIUtils.createDiv("bm-subtitle", this.subtitle);
         element.appendChild(subtitle);
     }
 
@@ -704,11 +696,7 @@ class BmChartData {
         if (!this.enable_simc_subtitle) {
             return;
         }
-        let simc_subtitle = document.createElement("div");
-        simc_subtitle.classList.add("bm-subtitle");
-
-        let prefix = document.createTextNode("SimulationCraft hash: ");
-        simc_subtitle.appendChild(prefix);
+        let simc_subtitle = BmUIUtils.createDiv("bm-subtitle", "SimulationCraft hash: ");
 
         let link = document.createElement("a");
         link.href = "https://github.com/simulationcraft/simc/commit/" + this.simc_hash;
@@ -1189,16 +1177,9 @@ class BmBarChart {
         }
 
         // axis titles
-        let axis_titles = document.createElement("div");
-        axis_titles.classList.add("bm-axis", "bm-row");
-
-        let key_title = document.createElement("div");
-        key_title.classList.add("bm-key-title");
-        // key_title.appendChild(document.createTextNode(this.y_axis_title));
-        axis_titles.appendChild(key_title);
-        // axis title
-        let bar_title = document.createElement("div");
-        bar_title.classList.add("bm-bar-title");
+        let axis_titles = BmUIUtils.createDiv("bm-axis bm-row", BmUIUtils.createDiv("bm-key-title"));
+        // bar title
+        let bar_title = BmUIUtils.createDiv("bm-bar-title");
         // min value
         let min = document.createElement("span");
         min.classList.add("bm-bar-min")
@@ -1260,14 +1241,12 @@ class BmBarChart {
 
         // actual data / bars
         for (let key of effective_sorted_data_keys) {
-            let row = document.createElement("div");
-            row.classList.add("bm-row");
-            let key_div = document.createElement("div");
-            key_div.classList.add("bm-key");
-            key_div.appendChild(this.bmChartData.get_wowhead_link(key));
-            row.appendChild(key_div);
-            let bar = document.createElement("div");
-            bar.classList.add("bm-bar");
+            let row = BmUIUtils.createDiv("bm-row", BmUIUtils.createDiv(
+                "bm-key",
+                this.bmChartData.get_wowhead_link(key)
+            ));
+
+            let bar = BmUIUtils.createDiv("bm-bar");
             // add bar elements
             let steps = [];
             let previous_value = 0;
@@ -1281,12 +1260,13 @@ class BmBarChart {
                 } else {
                     steps.push(0);
                 }
-                let bar_part = document.createElement("div");
-                bar_part.classList.add("bm-bar-element", "bm-bar-group-1");
-                bar.appendChild(bar_part);
+
+                let bar_part = BmUIUtils.createDiv("bm-bar-element bm-bar-group-1");
                 bar_part.addEventListener("click", (ev) => {
                     BmChartComponents.createVerticalLine(ev);
                 });
+
+                bar.appendChild(bar_part);
             } else if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(this.bmChartData.data_type) > -1) {
                 let value = 0;
                 let base_value = this.bmChartData.base_values[key] || this.bmChartData.data["{" + key + "}"];
@@ -1304,12 +1284,13 @@ class BmBarChart {
                 } else {
                     steps.push(0);
                 }
-                let bar_part = document.createElement("div");
-                bar_part.classList.add("bm-bar-element", "bm-bar-group-1");
-                bar.appendChild(bar_part);
+
+                let bar_part = BmUIUtils.createDiv("bm-bar-element bm-bar-group-1");
                 bar_part.addEventListener("click", (ev) => {
                     BmChartComponents.createVerticalLine(ev);
                 });
+
+                bar.appendChild(bar_part);
             }
             for (let [index, series] of effective_series_index_names) {
                 if (!this.bmChartData.data[key].hasOwnProperty(series)) {
@@ -1324,8 +1305,7 @@ class BmBarChart {
                 } else {
                     steps.push(0);
                 }
-                let bar_part = document.createElement("div");
-                bar_part.classList.add("bm-bar-element", "bm-bar-group-" + (index + 1));
+                let bar_part = BmUIUtils.createDiv(`bm-bar-element bm-bar-group-${index + 1}`);
 
                 // add final stack value as readable text
                 if (this.bmChartData.enable_end_of_bar_values) {
@@ -1530,22 +1510,21 @@ class BmRadarChart {
 
         root.appendChild(this.create_top());
 
-        let table = document.createElement("div");
-        table.classList.add("bm-radar-center");
+        let stacked_overview_table = BmUIUtils.createDiv(null, [
+            this.create_mini_radar_row(v_crit, v_haste, v_mastery, v_vers, dps, size, zoom, 0),
+            this.create_mini_radar_row(70, 10, 10, 10, dps, size, zoom),
+            this.create_mini_radar_row(10, 70, 10, 10, dps, size, zoom),
+            this.create_mini_radar_row(10, 10, 70, 10, dps, size, zoom),
+            this.create_mini_radar_row(10, 10, 10, 70, dps, size, zoom),
+        ]);
+
+        let table = BmUIUtils.createDiv("bm-radar-center", [
+            this.create_distribution_table(v_crit, v_haste, v_mastery, v_vers, dps),
+            this.create_main_radar(v_crit, v_haste, v_mastery, v_vers, dps, size),
+            stacked_overview_table,
+        ]);
+
         root.appendChild(table);
-
-        table.appendChild(this.create_distribution_table(v_crit, v_haste, v_mastery, v_vers, dps));
-
-        table.appendChild(this.create_main_radar(v_crit, v_haste, v_mastery, v_vers, dps, size));
-
-        let stacked_overview_table = document.createElement("div");
-        // stacked_overview_table.style.display = "table";
-        stacked_overview_table.appendChild(this.create_mini_radar_row(v_crit, v_haste, v_mastery, v_vers, dps, size, zoom, 0));
-        stacked_overview_table.appendChild(this.create_mini_radar_row(70, 10, 10, 10, dps, size, zoom));
-        stacked_overview_table.appendChild(this.create_mini_radar_row(10, 70, 10, 10, dps, size, zoom));
-        stacked_overview_table.appendChild(this.create_mini_radar_row(10, 10, 70, 10, dps, size, zoom));
-        stacked_overview_table.appendChild(this.create_mini_radar_row(10, 10, 10, 70, dps, size, zoom));
-        table.appendChild(stacked_overview_table);
     }
 
     /**
@@ -1554,8 +1533,7 @@ class BmRadarChart {
      */
     create_top() {
 
-        let top = document.createElement("div");
-        top.classList.add("bm-radar-top");
+        let top = BmUIUtils.createDiv("bm-radar-top");
 
         this.bmChartData.add_title(top);
         this.bmChartData.add_subtitle(top);
@@ -1565,50 +1543,17 @@ class BmRadarChart {
     }
 
     create_distribution_table(crit, haste, mastery, vers, dps) {
-        let table = document.createElement("div");
-        table.classList.add("bm-stat-table");
-
-        let floater = document.createElement("div");
-        floater.classList.add("bm-stat-floater");
-        table.appendChild(floater);
-
-        // header
-        let header = document.createElement("div");
-        header.classList.add("bm-stat-header");
-        floater.appendChild(header);
-
-        // let stat = document.createElement("div");
-        // stat.classList.add("bm-stat-cell");
-        // stat.appendChild(document.createTextNode("Best Distribution"));
-        // let distribution = document.createElement("div");
-        // distribution.classList.add("bm-stat-cell");
-        // distribution.appendChild(document.createTextNode("Ratio"));
-        let best_ratio = document.createElement("div");
-        best_ratio.classList.add("bm-stat-cell");
-        best_ratio.appendChild(document.createTextNode("Best Ratio: " + this.bmChartData.convert_number_to_local(dps, 0)));
-        best_ratio.appendChild(BmUIUtils.createUnitTextNode("dps"));
-        // let ingame_value = document.createElement("div");
-        // ingame_value.classList.add("bm-stat-cell");
-        // ingame_value.appendChild(document.createTextNode("Ingame"));
-
-        // header.appendChild(stat);
-        // header.appendChild(distribution);
-        header.appendChild(best_ratio);
-        // header.appendChild(ingame_value);
 
         function add_row(description, ratio, rating, ingame) {
             function add_cell(text, suffix = undefined) {
-                let element = document.createElement("div");
-                element.appendChild(document.createTextNode(text));
-                element.classList.add("bm-stat-cell");
+                let element = BmUIUtils.createDiv("bm-stat-cell", text);
                 if (suffix !== undefined) {
                     element.appendChild(BmUIUtils.createUnitTextNode(suffix));
                 }
                 return element;
             }
 
-            let row = document.createElement("div");
-            row.classList.add("bm-stat-row");
+            let row = BmUIUtils.createDiv("bm-stat-row");
 
             let description_div = add_cell(description);
             description_div.classList.add("bm-stat-cell-stat");
@@ -1620,6 +1565,7 @@ class BmRadarChart {
 
             return row;
         }
+
         function get_rating(fraction, sum) {
             return Math.round(sum * fraction / 100);
         }
@@ -1652,10 +1598,29 @@ class BmRadarChart {
             return value
         }
 
-        floater.appendChild(add_row("Critical Strike", crit, get_rating(crit, this.bmChartData.secondary_sum), get_ingame(crit, this.bmChartData.secondary_sum, "Critical Strike")));
-        floater.appendChild(add_row("Haste", haste, get_rating(haste, this.bmChartData.secondary_sum), get_ingame(haste, this.bmChartData.secondary_sum, "Haste")));
-        floater.appendChild(add_row("Mastery", mastery, get_rating(mastery, this.bmChartData.secondary_sum), get_ingame(mastery, this.bmChartData.secondary_sum, "Mastery")));
-        floater.appendChild(add_row("Versatility", vers, get_rating(vers, this.bmChartData.secondary_sum), get_ingame(vers, this.bmChartData.secondary_sum, "Versatility")));
+        // let stat = BmUIUtils.createDiv("bm-stat-cell", "Best Distribution");
+        // let distribution = BmUIUtils.createDiv("bm-stat-cell", "Ratio");
+        // let ingame_value = BmUIUtils.createDiv("bm-stat-cell", "Ingame");
+        let best_ratio = BmUIUtils.createDiv("bm-stat-cell", [
+            `Best Ratio: ${this.bmChartData.convert_number_to_local(dps, 0)}`,
+            BmUIUtils.createUnitTextNode("dps")
+        ]);
+        // let crit/haste/mastery/versatility
+
+        let floater = BmUIUtils.createDiv("bm-stat-floater",
+            BmUIUtils.createDiv("bm-stat-header", [
+                // stat,
+                // distribution,
+                best_ratio,
+                // ingame_value,
+                add_row("Critical Strike", crit, get_rating(crit, this.bmChartData.secondary_sum), get_ingame(crit, this.bmChartData.secondary_sum, "Critical Strike")),
+                add_row("Haste", haste, get_rating(haste, this.bmChartData.secondary_sum), get_ingame(haste, this.bmChartData.secondary_sum, "Haste")),
+                add_row("Mastery", mastery, get_rating(mastery, this.bmChartData.secondary_sum), get_ingame(mastery, this.bmChartData.secondary_sum, "Mastery")),
+                add_row("Versatility", vers, get_rating(vers, this.bmChartData.secondary_sum), get_ingame(vers, this.bmChartData.secondary_sum, "Versatility")),
+            ])
+        );
+
+        let table = BmUIUtils.createDiv("bm-stat-table", floater);
 
         return table;
     }
@@ -1666,17 +1631,21 @@ class BmRadarChart {
         let abs_dps = this.bmChartData.data[this.bmChartData.selected_data_key][secondary_string];
         let rel_dps = this.bmChartData.get_relative_gain(abs_dps, dps) + 100.0;
 
-        let row = document.createElement("div");
-        row.style.display = "table-row";
+        let svg_container = BmUIUtils.createDiv("",
+            this.create_radar_chart(crit, haste, mastery, vers, dps, false, false, size, zoom), {
+            style: {
+                display: 'table-cell'
+            }
+        });
 
-        let svg_container = document.createElement("div");
-        svg_container.style.display = "table-cell";
-        svg_container.appendChild(this.create_radar_chart(crit, haste, mastery, vers, dps, false, false, size, zoom));
-        row.appendChild(svg_container);
+        let row = BmUIUtils.createDiv("", svg_container, {
+            style: {
+                display: 'table-row'
+            }
+        });
 
         // add svg name as tooltip to capped value-rows
         if (secondary_string.indexOf(cap) !== -1) {
-            let description = document.createElement("div");
             let text = "Critical Strike";
             if (haste === cap) {
                 text = "Haste";
@@ -1686,24 +1655,22 @@ class BmRadarChart {
                 text = "Versatility";
             }
 
-            description.appendChild(document.createTextNode(text));
-            svg_container.setAttribute("data-bm-tooltip-text", description.outerHTML);
+            svg_container.setAttribute("data-bm-tooltip-text", text);
             svg_container.setAttribute("data-bm-tooltip-placement", "left");
             svg_container.setAttribute("data-type", "bm-tooltip");
         }
 
+        let value = BmUIUtils.createDiv("bm-radar-mini-table-value", this.bmChartData.convert_number_to_local(rel_dps, dps_gain_mantissa));
 
-        let value = document.createElement("div");
-        value.textContent = this.bmChartData.convert_number_to_local(rel_dps, dps_gain_mantissa);
-        value.classList.add("bm-radar-mini-table-value");
         row.appendChild(value);
 
         value.appendChild(BmUIUtils.createUnitTextNode(this.bmChartData.unit["relative"]));
 
         // add dps as tooltip
-        let container = document.createElement("div");
-        container.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(abs_dps, 0)));
-        container.appendChild(BmUIUtils.createUnitTextNode("dps"));
+        let container = BmUIUtils.createDiv('', [
+            this.bmChartData.convert_number_to_local(abs_dps, 0),
+            BmUIUtils.createUnitTextNode("dps"),
+        ]);
 
         value.setAttribute("data-bm-tooltip-text", container.outerHTML);
         value.setAttribute("data-bm-tooltip-placement", "right");
@@ -1713,13 +1680,9 @@ class BmRadarChart {
     }
 
     create_main_radar(crit, haste, mastery, vers, dps, size) {
-        let floater = document.createElement("div");
-        floater.classList.add("bm-radar-main-radar");
-
         let radar = this.create_radar_chart(crit, haste, mastery, vers, dps, true, false, size);
-        floater.appendChild(radar);
 
-        return floater;
+        return BmUIUtils.createDiv("bm-radar-main-radar", radar);
     }
 
     /**
@@ -2202,31 +2165,39 @@ class BmUIUtils {
     static createElement(tag, attributes = {}, children = []) {
         const element = document.createElement(tag);
 
-        // Handle attributes and properties
-        Object.entries(attributes).forEach(([key, value]) => {
-            if (key === 'className') {
-                element.className = value;
-            } else if (key === 'innerText') {
-                element.innerText = value;
-            } else if (key === 'events') {
-                Object.entries(value).forEach(([event, handler]) => {
-                    element.addEventListener(event, handler);
-                });
-            } else {
-                element.setAttribute(key, value);
-            }
+        // Handle special cases, everything else gets setAttribute
+        const { events, style, dataset, ...attrs } = attributes;
+
+        if (events) {
+            Object.entries(events)
+            .forEach(([event, handler]) => element.addEventListener(event, handler));
+        }
+
+        if (style) {
+            Object.assign(element.style, style);
+        }
+
+        if (dataset) {
+            Object.assign(element.dataset, dataset);
+        }
+        
+        // Set all other attributes/properties - className, innerText, etc.)
+        Object.entries(attrs).forEach(([key, value]) => {
+            element[key] = value; 
         });
 
         // Handle children - normalize to array
         const childArray = Array.isArray(children) ? children : [children];
 
         childArray.forEach(child => {
-            if (typeof child === 'string') {
-                element.appendChild(document.createTextNode(child));
-            } else if (child instanceof HTMLElement) {
+            if (child instanceof Node) {
                 element.appendChild(child);
+            } else if (typeof child === 'string' || typeof child === 'number' || typeof child === 'boolean') {
+                // Handle primitives that make sense as text) {
+                element.appendChild(document.createTextNode(String(child)));
             } else if (child !== null && child !== undefined) {
-                // Handle other types by converting to string (dates, numbers, etc)
+                // Log warning for unexpected types
+                console.warn('Unexpected child type in createElement:', typeof child, child);
                 element.appendChild(document.createTextNode(String(child)));
             }
         });
@@ -2240,9 +2211,21 @@ class BmUIUtils {
      * @param {Array|string|HTMLElement} children - Element children
      * @returns {HTMLElement} The created div element
      */
-    static createDiv(classNames = '', children = []) {
+    static createDiv(classNames = '', children = [], attributes = {}) {
+        const options = {};
+
+        // Only add className if provided and not empty
+        if (classNames && classNames.trim()) {
         const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
-        return this.createElement('div', { className }, children);
+            options.className = className;
+        }
+
+        // Merge any additional attributes
+        if (attributes) {
+            Object.assign(options, attributes);
+        }
+
+        return this.createElement('div', options, children || []);
     };
 
     /**
@@ -2337,20 +2320,18 @@ class BmChartComponents {
             return null;
         }
 
-        const legend = BmUIUtils.createElement("div", { className: "bm-legend" });
+        const legend = BmUIUtils.createDiv("bm-legend");
 
-        const legend_title = BmUIUtils.createElement("div", {
-            className: "bm-legend-title",
+        const legend_title = BmUIUtils.createDiv("bm-legend-title", {
             innerText: chartData.legend_title
         });
 
         legend.appendChild(legend_title);
 
-        const legend_items = BmUIUtils.createElement("div", { className: "bm-legend-items" });
+        const legend_items = BmUIUtils.createDiv("bm-legend-items");
 
         for (let [index, series] of series_index_names) {
-            const legend_item = BmUIUtils.createElement("div", {
-                className: `bm-legend-item bm-bar-group-${index + 1}`,
+            const legend_item = BmUIUtils.createDiv(`bm-legend-item bm-bar-group-${index + 1}`, {
                 innerText: series
             });
 
@@ -2382,12 +2363,16 @@ class BmChartComponents {
         let event_box = event.target.getBoundingClientRect();
         let left = event_box.right + window.scrollX;
 
-        let line = document.createElement("div");
-        line.style.position = "absolute";
-        line.style.width = "0px";
-        line.style.border = "1px solid white";
-        line.style.height = parent_box.height + "px";
-        line.style.left = left + "px";
+        let line = BmUIUtils.createDiv('', null, {
+            style: {
+                position: 'absolute',
+                width: '0px',
+                border: '1px solid white',
+                height: `${parent_box.height}px`,
+                left: `${left}px`,
+            }
+        });
+
         root.appendChild(line);
         this.vertical_line = line;
 
@@ -2407,15 +2392,11 @@ class BmChartComponents {
     static createTooltip(bmChartData, key, indexed_series) {
         // use own local copy
         indexed_series = indexed_series.slice();
-        let container = document.createElement("div");
-        container.classList.add("bm-tooltip-container");
+        let container = BmUIUtils.createDiv("bm-tooltip-container");
 
-        let title = document.createElement("div");
-        title.classList.add("bm-tooltip-title");
-        let translated_name = bmChartData.get_translated_name(key);
-        // translated_name = this._shorten_name(translated_name);
-        title.appendChild(document.createTextNode(translated_name));
-        container.appendChild(title);
+                let translated_name = bmChartData.get_translated_name(key);
+        let title = BmUIUtils.createDiv("bm-tooltip-title", translated_name);
+                container.appendChild(title);
 
         // inverse sort to have the table start with the highest value
         for (let [index, series] of indexed_series.reverse()) {
@@ -2423,16 +2404,12 @@ class BmChartComponents {
                 // data doesn't have series element, skipping
                 continue;
             }
-            let row = document.createElement("div");
-            row.classList.add("bm-tooltip-row");
+            
+            let row = BmUIUtils.createDiv("bm-tooltip-row",
+                BmUIUtils.createDiv(`bm-tooltip-key bm-bar-group-${index + 1}`, series)
+            );
 
-            let key_div = document.createElement("div");
-            key_div.classList.add("bm-tooltip-key", "bm-bar-group-" + (index + 1));
-            key_div.appendChild(document.createTextNode(series));
-            row.appendChild(key_div);
-
-            let value_div = document.createElement("div");
-            value_div.classList.add("bm-tooltip-value");
+            let value_div = BmUIUtils.createDiv("bm-tooltip-value");
             let mantissa = 2;
             if (bmChartData.value_calculation === "total") {
                 mantissa = 0;
@@ -2456,19 +2433,13 @@ class BmChartComponents {
         }
         // chart types without multiple series
         if (bmChartData.data_type === "races") {
-            let row = document.createElement("div");
-            row.classList.add("bm-tooltip-row");
+            let row = BmUIUtils.createDiv("bm-tooltip-row",
+                BmUIUtils.createDiv("bm-tooltip-key bm-bar-group-1", key)
+            );
 
-            let key_div = document.createElement("div");
-            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
-            key_div.appendChild(document.createTextNode(key));
-            row.appendChild(key_div);
-
-            let value_div = document.createElement("div");
-            value_div.classList.add("bm-tooltip-value");
-            let value = bmChartData.convert_number_to_local(bmChartData.data[key]);
             // let value = bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation));
-            value_div.appendChild(document.createTextNode(value));
+let value = bmChartData.convert_number_to_local(bmChartData.data[key]);
+            let value_div = BmUIUtils.createDiv("bm-tooltip-value", value);
 
             // Add unit if applicable
             const unit = bmChartData.unit[bmChartData.value_calculation];
@@ -2479,22 +2450,17 @@ class BmChartComponents {
 
             container.appendChild(row);
         } else if (["power_infusion", "windfury_totem", "trinket_compare"].indexOf(bmChartData.data_type) > -1) {
-            let row = document.createElement("div");
-            row.classList.add("bm-tooltip-row");
-
-            let key_div = document.createElement("div");
-            key_div.classList.add("bm-tooltip-key", "bm-bar-group-1");
-            let abbreviation = {
+            
+                        let abbreviation = {
                 "power_infusion": "PI",
                 "windfury_totem": "WFT",
                 "trinket_compare": "Trinket"
             }
-            key_div.appendChild(document.createTextNode(abbreviation[bmChartData.data_type]));
-            row.appendChild(key_div);
+            let row = BmUIUtils.createDiv("bm-tooltip-row",
+                BmUIUtils.createDiv("bm-tooltip-key bm-bar-group-1", document.createTextNode(abbreviation[bmChartData.data_type]))
+);
 
-            let value_div = document.createElement("div");
-            value_div.classList.add("bm-tooltip-value");
-            let value = -1;
+                        let value = -1;
             let base_value = bmChartData.base_values[key] || bmChartData.data["{" + key + "}"];
 
             if (bmChartData.value_calculation === "relative") {
@@ -2502,8 +2468,9 @@ class BmChartComponents {
             } else {
                 value = bmChartData.convert_number_to_local(bmChartData.data[key] - base_value);
             }
+
             // let value = bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation));
-            value_div.appendChild(document.createTextNode(value));
+            let value_div = BmUIUtils.createDiv("bm-tooltip-value", value);
             // Add unit if applicable
             const unit = bmChartData.unit[bmChartData.value_calculation];
             if (unit.length > 0) {
@@ -2515,18 +2482,10 @@ class BmChartComponents {
         }
 
 
-        let legend = document.createElement("div");
-        legend.classList.add("bm-tooltip-row");
-
-        let key_title = document.createElement("div");
-        key_title.classList.add("bm-tooltip-key-title", "bm-tooltip-width-marker-top");
-        key_title.appendChild(document.createTextNode(bmChartData.legend_title));
-        legend.appendChild(key_title);
-
-        let value_title = document.createElement("div");
-        value_title.classList.add("bm-tooltip-value-title", "bm-tooltip-width-marker-top");
-        value_title.appendChild(document.createTextNode(bmChartData.x_axis_title));
-        legend.appendChild(value_title);
+        let legend = BmUIUtils.createDiv("bm-tooltip-row", [
+            BmUIUtils.createDiv("bm-tooltip-key-title bm-tooltip-width-marker-top", bmChartData.legend_title),
+            BmUIUtils.createDiv("bm-tooltip-value-title bm-tooltip-width-marker-top", bmChartData.x_axis_title),
+        ]);
 
         container.appendChild(legend);
 
