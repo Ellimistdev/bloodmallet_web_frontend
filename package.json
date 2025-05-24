@@ -1,0 +1,30 @@
+{
+  "name": "bloodmallet",
+  "version": "1.0.0",
+  "description": "> You're seeing the code that runs bloodmallet.com.",
+  "main": "index.js",
+  "scripts": {
+    "lint": "npx eslint general_website/static/general_website/js/bm-charts.js general_website/static/general_website/js/navbar_trinket_menu.js",
+    "lint:fix": "npx eslint --fix general_website/static/general_website/js/bm-charts.js general_website/static/general_website/js/navbar_trinket_menu.js"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ellimistdev/bloodmallet_web_frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Ellimistdev/bloodmallet_web_frontend/issues"
+  },
+  "homepage": "https://github.com/Ellimistdev/bloodmallet_web_frontend#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "eslint": "^9.27.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.0",
+    "globals": "^16.1.0",
+    "prettier": "^3.5.3"
+  }
+}
