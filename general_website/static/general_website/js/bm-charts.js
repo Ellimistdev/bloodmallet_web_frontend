@@ -2521,9 +2521,9 @@ class BmChartComponents {
             return null;
         }
 
-        const legend_items = [];
+        const legendItems = [];
         for (let [index, series] of series_index_names) {
-            legend_items.push(
+            legendItems.push(
                 BmUIUtils.createDiv(`bm-legend-item bm-bar-group-${index + 1}`, series),
                 ' ' // Space between items
             );
@@ -2531,7 +2531,7 @@ class BmChartComponents {
 
         return BmUIUtils.createDiv('bm-legend', [
             BmUIUtils.createDiv('bm-legend-title', chartData.legend_title),
-            BmUIUtils.createDiv('bm-legend-items', legend_items),
+            BmUIUtils.createDiv('bm-legend-items', legendItems),
         ]);
     }
 
@@ -2539,38 +2539,48 @@ class BmChartComponents {
      * Creates a vertical line to more easily compare values.
      * In case a line exists, the old line is removed.
      * In case the same element was clicked for the second time, the old line is removed.
+     * @param {BmChartData} bmChartData - Chart data object
      * @param {Event} event click event
      */
     static createVerticalLine(bmChartData, event) {
-        let vertical_line_box = undefined;
-        if (this.vertical_line !== undefined) {
-            vertical_line_box = this.vertical_line.getBoundingClientRect();
-            this.remove_vertical_line();
+        let verticalLineBox = undefined;
+        if (this.verticalLine !== undefined) {
+            verticalLineBox = this.verticalLine.getBoundingClientRect();
+            this.removeVerticalLine();
         }
 
         const root = bmChartData.root_element;
-
-        const parent_box = root.getBoundingClientRect();
-        const event_box = event.target.getBoundingClientRect();
-        const left = event_box.right + window.scrollX;
+        const parentBox = root.getBoundingClientRect();
+        const eventBox = event.target.getBoundingClientRect();
+        const left = eventBox.right + window.scrollX;
 
         const line = BmUIUtils.createDiv('', null, {
             style: {
                 position: 'absolute',
                 width: '0px',
                 border: '1px solid white',
-                height: `${parent_box.height}px`,
+                height: `${parentBox.height}px`,
                 left: `${left}px`,
             },
         });
 
         root.appendChild(line);
-        this.vertical_line = line;
+        this.verticalLine = line;
 
-        // in case the user clicked on the same element twice, the line shall get removed
-        const line_box = line.getBoundingClientRect();
-        if (vertical_line_box !== undefined && vertical_line_box.x == line_box.x) {
-            this.remove_vertical_line();
+        // Remove line if user clicked on the same element twice
+        const lineBox = line.getBoundingClientRect();
+        if (verticalLineBox !== undefined && verticalLineBox.x == lineBox.x) {
+            this.removeVerticalLine();
+        }
+    }
+
+    /**
+     * Remove the vertical comparison line
+     */
+    static removeVerticalLine() {
+        if (this.verticalLine !== undefined) {
+            this.verticalLine.remove();
+            this.verticalLine = undefined;
         }
     }
 
