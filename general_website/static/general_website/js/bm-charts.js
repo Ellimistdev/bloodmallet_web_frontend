@@ -2150,18 +2150,18 @@ class BmUIUtils {
     static formatText(text, type) {
         if (!text) return 'Loading...';
 
+        const fightStyles = {
+            castingpatchwerk: 'Casting Patchwerk 1 target',
+            castingpatchwerk3: 'Casting Patchwerk 3 targets',
+            castingpatchwerk5: 'Casting Patchwerk 5 targets',
+        };
+
         switch (type) {
             case this.FormatTypes.SLUG:
                 return text.replaceAll(' ', '_').toLowerCase();
             case this.FormatTypes.ITEM_LEVEL:
                 return text;
             case this.FormatTypes.FIGHT_STYLE:
-                const fightStyles = {
-                    castingpatchwerk: 'Casting Patchwerk 1 target',
-                    castingpatchwerk3: 'Casting Patchwerk 3 targets',
-                    castingpatchwerk5: 'Casting Patchwerk 5 targets',
-                };
-
                 return fightStyles[text] || text;
             case this.FormatTypes.ITEM_NAME:
                 return text
@@ -2429,8 +2429,6 @@ class BmUIUtils {
         const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
         return this.createElement('span', { className }, children);
     }
-    };
-
 
     /**
      * Source: https://stackoverflow.com/a/35385518
