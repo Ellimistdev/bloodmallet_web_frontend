@@ -2521,28 +2521,18 @@ class BmChartComponents {
             return null;
         }
 
-        const legend = BmUIUtils.createDiv('bm-legend');
-
-        const legend_title = BmUIUtils.createDiv('bm-legend-title', {
-            innerText: chartData.legend_title,
-        });
-
-        legend.appendChild(legend_title);
-
-        const legend_items = BmUIUtils.createDiv('bm-legend-items');
-
-        for (const [index, series] of series_index_names) {
-            const legend_item = BmUIUtils.createDiv(`bm-legend-item bm-bar-group-${index + 1}`, {
-                innerText: series,
-            });
-
-            legend_items.appendChild(legend_item);
-            // Required to space the legend items
-            legend_items.appendChild(document.createTextNode(' '));
+        const legend_items = [];
+        for (let [index, series] of series_index_names) {
+            legend_items.push(
+                BmUIUtils.createDiv(`bm-legend-item bm-bar-group-${index + 1}`, series),
+                ' ' // Space between items
+            );
         }
 
-        legend.appendChild(legend_items);
-        return legend;
+        return BmUIUtils.createDiv('bm-legend', [
+            BmUIUtils.createDiv('bm-legend-title', chartData.legend_title),
+            BmUIUtils.createDiv('bm-legend-items', legend_items),
+        ]);
     }
 
     /**
