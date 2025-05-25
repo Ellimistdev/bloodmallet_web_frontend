@@ -1177,17 +1177,17 @@ class BmBarChart {
      */
     create_chart() {
         // Filter out unwanted data
-        const effective_series_index_names = Array.from(this.bmChartData.series_names.entries()).filter(
-            ([index, series]) => !this.bmChartData.filter_trinket_itemlevels.includes(series)
+        const series = Array.from(this.bmChartData.series_names.entries()).filter(
+            ([_, series]) => !this.bmChartData.filter_trinket_itemlevels.includes(series)
         );
 
         // Process data keys with filters
-        let effective_sorted_data_keys = this.processDataKeys();
+        let sortedDataKeys = this.processDataKeys();
 
         // Limit the number of displayed data points
         // If show_top is set to 0, all data points are shown
         if (this.bmChartData.show_top > 0) {
-            effective_sorted_data_keys = effective_sorted_data_keys.slice(0, this.bmChartData.show_top);
+            sortedDataKeys = sortedDataKeys.slice(0, this.bmChartData.show_top);
         }
 
         // Setup chart container
@@ -1200,7 +1200,7 @@ class BmBarChart {
         this.bmChartData.add_simc_subtitle(root);
 
         // Add legend
-        const legend = BmChartComponents.createLegend(this.bmChartData, effective_series_index_names);
+        const legend = BmChartComponents.createLegend(this.bmChartData, series);
         if (legend) {
             root.appendChild(legend);
         }
@@ -1209,141 +1209,9 @@ class BmBarChart {
         const axis_titles = BmChartComponents.createAxisTitles(this.bmChartData);
         root.appendChild(axis_titles);
 
-        // actual data / bars
-        for (const key of effective_sorted_data_keys) {
-            const row = BmUIUtils.createDiv(
-                'bm-row',
-                BmUIUtils.createDiv('bm-key', this.bmChartData.get_wowhead_link(key))
-            );
-
-            const bar = BmUIUtils.createDiv('bm-bar');
-            // add bar elements
-            const steps = [];
-            let previous_value = 0;
-            // chart types without multiple series
-            if (this.bmChartData.data_type === 'races') {
-                // absolute calc
-                const relative_value = (this.bmChartData.data[key] * 100) / this.bmChartData.global_max_value;
-                if (relative_value - previous_value >= 0.0) {
-                    steps.push(relative_value - previous_value);
-                    previous_value = relative_value;
-                } else {
-                    steps.push(0);
-                }
-
-                const bar_part = BmUIUtils.createDiv('bm-bar-element bm-bar-group-1');
-                bar_part.addEventListener('click', (ev) => {
-                    BmChartComponents.createVerticalLine(ev);
-                });
-
-                bar.appendChild(bar_part);
-            } else if (
-                ['power_infusion', 'windfury_totem', 'trinket_compare'].indexOf(this.bmChartData.data_type) > -1
-            ) {
-                let value = 0;
-                const base_value = this.bmChartData.base_values[key] || this.bmChartData.data['{' + key + '}'];
-
-                if (this.bmChartData.value_calculation === 'relative') {
-                    //  relative
-                    value =
-                        ((((this.bmChartData.data[key] - base_value) * 100) / this.bmChartData.data[key]) * 100) /
-                        this.bmChartData.global_max_value;
-                } else {
-                    // absolute calc
-                    value = ((this.bmChartData.data[key] - base_value) * 100) / this.bmChartData.global_max_value;
-                }
-                if (value - previous_value >= 0.0) {
-                    steps.push(value - previous_value);
-                    previous_value = value;
-                } else {
-                    steps.push(0);
-                }
-
-                const bar_part = BmUIUtils.createDiv('bm-bar-element bm-bar-group-1');
-                bar_part.addEventListener('click', (ev) => {
-                    BmChartComponents.createVerticalLine(ev);
-                });
-
-                bar.appendChild(bar_part);
-            }
-            for (const [index, series] of effective_series_index_names) {
-                if (!this.bmChartData.data[key].hasOwnProperty(series)) {
-                    // data doesn't have series element, skipping
-                    continue;
-                }
-                // relative calc
-                const relative_value =
-                    ((this.bmChartData.data[key][series] - this.bmChartData.base_values[series]) * 100) /
-                    (this.bmChartData.global_max_value - this.bmChartData.base_values[series]);
-                if (relative_value - previous_value >= 0.0) {
-                    steps.push(relative_value - previous_value);
-                    previous_value = relative_value;
-                } else {
-                    steps.push(0);
-                }
-                const bar_part = BmUIUtils.createDiv(`bm-bar-element bm-bar-group-${index + 1}`);
-
-                // add final stack value as readable text
-                if (this.bmChartData.enable_end_of_bar_values) {
-                    const key_available_series = Object.keys(this.bmChartData.data[key]);
-                    const filtered_available_series = key_available_series
-                        .filter((value) => {
-                            return !this.bmChartData.filter_trinket_itemlevels.includes(value);
-                        })
-                        .map((value) => {
-                            return Number.parseInt(value);
-                        });
-                    const highest_available_series_of_key = Math.max(...filtered_available_series);
-                    console.log(
-                        key_available_series,
-                        filtered_available_series,
-                        highest_available_series_of_key,
-                        series
-                    );
-                    if (series === highest_available_series_of_key) {
-                        const final_stack_value = BmUIUtils.createSpan(
-                            'bm-bar-final-value',
-                            this.bmChartData.convert_number_to_local(
-                                this.bmChartData.get_value(key, series, this.bmChartData.value_calculation)
-                            )
-                        );
-                        if (this.bmChartData.unit[this.bmChartData.value_calculation].length > 0) {
-                            final_stack_value.appendChild(
-                                BmUIUtils.createUnitTextNode(this.bmChartData.unit[this.bmChartData.value_calculation])
-                            );
-                        }
-                        bar_part.appendChild(final_stack_value);
-                    }
-                }
-
-                bar.appendChild(bar_part);
-                // add more information for debugging
-                // bar_part.dataset.end = previous_value;
-                // bar_part.dataset.index = index;
-                // bar_part.dataset.key = key;
-                // bar_part.dataset.series = series;
-                // bar_part.dataset.value = this.data[key][series];
-
-                bar_part.addEventListener('click', (ev) => {
-                    BmChartComponents.createVerticalLine(ev);
-                });
-            }
-            // add grid template
-            bar.style.gridTemplateColumns = [...steps, 'auto'].join('% ');
-            // add tooltip
-            // bootstrap
-            // bar.dataset.toggle = "tooltip";
-            // bar.dataset.placement = "left";
-            // bar.dataset.html = "true";
-            // bar.title = BmChartComponents.createTooltip(key);
-            // bm-tooltips
-            this.bmChartData.add_tooltip(
-                bar,
-                BmChartComponents.createTooltip(this.bmChartData, key, effective_series_index_names),
-                'left'
-            );
-
-            row.appendChild(bar);
+        // Create chart rows
+        for (const key of sortedDataKeys) {
+            const row = BmChartComponents.createChartRow(this.bmChartData, key, series);
             root.appendChild(row);
         }
     }
@@ -2696,6 +2564,174 @@ class BmChartComponents {
             } else {
                 return bmChartData.get_relative_gain(bmChartData.global_max_value, baseValue);
             }
+        }
+    }
+
+    /**
+     * Create a complete chart row with key and bar
+     * @param {BmChartData} bmChartData - Chart data
+     * @param {String} key - Data key
+     * @param {Array} series - Series data
+     * @returns {HTMLElement} Chart row element
+     */
+
+    static createChartRow(bmChartData, key, series) {
+        return BmUIUtils.createDiv('bm-row', [
+            BmUIUtils.createDiv('bm-key', bmChartData.get_wowhead_link(key)),
+            this.createBarElement(bmChartData, key, series),
+        ]);
+    }
+
+    /**
+     * Create a bar element for charts
+     * @param {BmChartData} bmChartData - Chart data
+     * @param {String} key - Data key
+     * @param {Array} series - Series data
+     * @returns {HTMLElement} Bar element
+     */
+    static createBarElement(bmChartData, key, series) {
+        const bar = BmUIUtils.createDiv('bm-bar');
+        // add bar elements
+        const steps = [];
+        // bar types without multiple series
+        if (bmChartData.data_type === 'races') {
+            this.addRaceBarPart(bmChartData, key, steps, bar);
+        } else if (['power_infusion', 'windfury_totem', 'trinket_compare'].includes(bmChartData.data_type)) {
+            this.addSpecialBarPart(bmChartData, key, steps, bar);
+        } else {
+            // bars with multiple series
+            this.addSeriesBarParts(bmChartData, key, series, steps, bar);
+        }
+
+        // add grid template
+        bar.style.gridTemplateColumns = [...steps, 'auto'].join('% ');
+
+        // add tooltip
+        bmChartData.add_tooltip(bar, BmChartComponents.createTooltip(bmChartData, key, series), 'left');
+
+        return bar;
+    }
+
+    /**
+     * Add bar part for race chart type
+     * @param {BmChartData} bmChartData - Chart data
+     * @param {String} key - Data key
+     * @param {Array} steps - Steps array
+     * @param {HTMLElement} bar - Bar element
+     */
+    static addRaceBarPart(bmChartData, key, steps, bar) {
+        const relativeValue = (bmChartData.data[key] * 100) / bmChartData.global_max_value;
+        steps.push(relativeValue >= 0.0 ? relativeValue : 0);
+
+        const barPart = BmUIUtils.createDiv('bm-bar-element bm-bar-group-1', null, {
+            events: {
+                click: (event) => this.createVerticalLine(bmChartData, event),
+            },
+        });
+        bar.appendChild(barPart);
+    }
+
+    /**
+     * Add bar part for special chart types (power_infusion, windfury_totem, trinket_compare)
+     * @param {BmChartData} bmChartData - Chart data
+     * @param {String} key - Data key
+     * @param {Array} steps - Steps array
+     * @param {HTMLElement} bar - Bar element
+     */
+    static addSpecialBarPart(bmChartData, key, steps, bar) {
+        let value = 0;
+        const baseValue = bmChartData.base_values[key] || bmChartData.data['{' + key + '}'];
+
+        if (bmChartData.value_calculation === 'relative') {
+            value =
+                ((((bmChartData.data[key] - baseValue) * 100) / bmChartData.data[key]) * 100) /
+                bmChartData.global_max_value;
+        } else {
+            value = ((bmChartData.data[key] - baseValue) * 100) / bmChartData.global_max_value;
+        }
+
+        steps.push(value >= 0.0 ? value : 0);
+
+        const barPart = BmUIUtils.createDiv('bm-bar-element bm-bar-group-1', null, {
+            events: {
+                click: (ev) => this.createVerticalLine(bmChartData, ev),
+            },
+        });
+        bar.appendChild(barPart);
+    }
+
+    /**
+     * Add bar parts for series-based chart types
+     * @param {BmChartData} bmChartData - Chart data
+     * @param {String} key - Data key
+     * @param {Array} seriesIndexNames - Series data
+     * @param {Array} steps - Steps array
+     * @param {HTMLElement} bar - Bar element
+     */
+    static addSeriesBarParts(bmChartData, key, seriesIndexNames, steps, bar) {
+        let previousValue = 0;
+
+        for (let [index, series] of seriesIndexNames) {
+            if (!bmChartData.data[key].hasOwnProperty(series)) {
+                // data doesn't have series element, skipping
+                continue;
+            }
+
+            const relativeValue =
+                ((bmChartData.data[key][series] - bmChartData.base_values[series]) * 100) /
+                (bmChartData.global_max_value - bmChartData.base_values[series]);
+
+            if (relativeValue - previousValue >= 0.0) {
+                steps.push(relativeValue - previousValue);
+                previousValue = relativeValue;
+            } else {
+                steps.push(0);
+            }
+
+            const barPart = BmUIUtils.createDiv(`bm-bar-element bm-bar-group-${index + 1}`, null, {
+                events: {
+                    click: (ev) => this.createVerticalLine(bmChartData, ev),
+                },
+            });
+
+            // Add final stack value if enabled
+            if (bmChartData.enable_end_of_bar_values) {
+                this.addFinalStackValue(bmChartData, key, series, barPart);
+            }
+
+            bar.appendChild(barPart);
+        }
+    }
+
+    /**
+     * Add final stack value to bar part
+     * @param {BmChartData} bmChartData - Chart data
+     * @param {String} key - Data key
+     * @param {String} series - Series key
+     * @param {HTMLElement} barPart - Bar part element
+     */
+    static addFinalStackValue(bmChartData, key, series, barPart) {
+        const availableSeries = Object.keys(bmChartData.data[key]);
+        const filteredSeries = availableSeries
+            .filter((value) => {
+                return !bmChartData.filter_trinket_itemlevels.includes(value);
+            })
+            .map((value) => {
+                return Number.parseInt(value);
+            });
+        const highestAvailableSeries = Math.max(...filteredSeries);
+
+        if (series === highestAvailableSeries) {
+            const valueContent = [
+                bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation)),
+            ];
+
+            if (bmChartData.unit[bmChartData.value_calculation].length > 0) {
+                valueContent.push(BmUIUtils.createUnitTextNode(bmChartData.unit[bmChartData.value_calculation]));
+            }
+
+            const finalStackValue = BmUIUtils.createSpan('bm-bar-final-value', valueContent);
+            barPart.appendChild(finalStackValue);
         }
     }
 }
