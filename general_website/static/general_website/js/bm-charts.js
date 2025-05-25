@@ -1205,87 +1205,8 @@ class BmBarChart {
             root.appendChild(legend);
         }
 
-        // axis titles
-        const axis_titles = BmUIUtils.createDiv('bm-axis bm-row', BmUIUtils.createDiv('bm-key-title'));
-        // bar title
-        const bar_title = BmUIUtils.createDiv('bm-bar-title');
-        // min value
-        const min = BmUIUtils.createSpan('bm-bar-min');
-        if (['absolute', 'relative'].indexOf(this.bmChartData.value_calculation) > -1) {
-            const unitTextNode = BmUIUtils.createUnitTextNode(
-                this.bmChartData.unit[this.bmChartData.value_calculation]
-            );
-
-            if (this.bmChartData.value_calculation === 'absolute') {
-                min.appendChild(unitTextNode);
-                min.appendChild(document.createTextNode(0));
-            } else if (this.bmChartData.value_calculation === 'relative') {
-                min.appendChild(document.createTextNode(0));
-                min.appendChild(unitTextNode);
-            }
-        } else {
-            min.appendChild(document.createTextNode(0));
-        }
-
-        bar_title.appendChild(min);
-        bar_title.appendChild(document.createTextNode(this.bmChartData.x_axis_title));
-        // max value
-        const max = BmUIUtils.createSpan('bm-bar-max');
-        if (['absolute', 'relative'].indexOf(this.bmChartData.value_calculation) > -1) {
-            const unitTextNode = BmUIUtils.createUnitTextNode(
-                this.bmChartData.unit[this.bmChartData.value_calculation]
-            );
-
-            const base_value =
-                this.bmChartData.base_values[this.bmChartData.series_names[this.bmChartData.series_names.length - 1]];
-
-            if (this.bmChartData.value_calculation === 'absolute') {
-                max.appendChild(unitTextNode);
-                if (['power_infusion', 'windfury_totem', 'trinket_compare'].indexOf(this.bmChartData.data_type) > -1) {
-                    max.appendChild(
-                        document.createTextNode(
-                            this.bmChartData.convert_number_to_local(this.bmChartData.global_max_value)
-                        )
-                    );
-                } else {
-                    max.appendChild(
-                        document.createTextNode(
-                            this.bmChartData.convert_number_to_local(
-                                this.bmChartData.get_absolute_gain(this.bmChartData.global_max_value, base_value)
-                            )
-                        )
-                    );
-                }
-            } else if (this.bmChartData.value_calculation === 'relative') {
-                let relative_gain = -1;
-                if (this.bmChartData.wow_class === 'evoker' && this.bmChartData.wow_spec === 'augmentation') {
-                    const aug_base_value = this.bmChartData.loaded_data['profile']['metadata']['base_dps'];
-                    const raw_gain = this.bmChartData.get_absolute_gain(this.bmChartData.global_max_value, base_value);
-                    // console.log("augmentation had a raw gain of", raw_gain, "dps compared to its own max dps of", aug_base_value);
-                    relative_gain = this.bmChartData.get_relative_gain(aug_base_value + raw_gain, aug_base_value);
-                } else {
-                    if (
-                        ['power_infusion', 'windfury_totem', 'trinket_compare'].indexOf(this.bmChartData.data_type) > -1
-                    ) {
-                        relative_gain = this.bmChartData.global_max_value;
-                    } else {
-                        relative_gain = this.bmChartData.get_relative_gain(
-                            this.bmChartData.global_max_value,
-                            base_value
-                        );
-                    }
-                }
-
-                max.appendChild(document.createTextNode(this.bmChartData.convert_number_to_local(relative_gain)));
-                max.appendChild(unitTextNode);
-            }
-        } else {
-            max.appendChild(
-                document.createTextNode(this.bmChartData.convert_number_to_local(this.bmChartData.global_max_value, 0))
-            );
-        }
-        bar_title.appendChild(max);
-        axis_titles.appendChild(bar_title);
+        // Add axis titles
+        const axis_titles = BmChartComponents.createAxisTitles(this.bmChartData);
         root.appendChild(axis_titles);
 
         // actual data / bars
@@ -2700,6 +2621,82 @@ class BmChartComponents {
 
         const container = BmUIUtils.createDiv('bm-tooltip-container', rows);
         return container.outerHTML;
+    }
+
+    /**
+     * Create axis titles section for bar charts
+     * @param {BmChartData} bmChartData - Chart data
+     * @returns {HTMLElement} Axis titles element
+     */
+    static createAxisTitles(bmChartData) {
+        // Create min value
+        const minContent = [];
+        if (['absolute', 'relative'].indexOf(bmChartData.value_calculation) > -1) {
+            const unitTextNode = BmUIUtils.createUnitTextNode(bmChartData.unit[bmChartData.value_calculation]);
+
+            if (bmChartData.value_calculation === 'absolute') {
+                minContent.push(unitTextNode, 0);
+            } else if (bmChartData.value_calculation === 'relative') {
+                minContent.push(0, unitTextNode);
+            }
+        } else {
+            minContent.push(0);
+        }
+
+        // Create max value
+        const maxContent = [];
+        if (['absolute', 'relative'].includes(bmChartData.value_calculation)) {
+            const unitTextNode = BmUIUtils.createUnitTextNode(bmChartData.unit[bmChartData.value_calculation]);
+            const baseValue = bmChartData.base_values[bmChartData.series_names[bmChartData.series_names.length - 1]];
+
+            if (bmChartData.value_calculation === 'absolute') {
+                maxContent.push(unitTextNode);
+                if (['power_infusion', 'windfury_totem', 'trinket_compare'].includes(bmChartData.data_type)) {
+                    maxContent.push(bmChartData.convert_number_to_local(bmChartData.global_max_value));
+                } else {
+                    maxContent.push(
+                        bmChartData.convert_number_to_local(
+                            bmChartData.get_absolute_gain(bmChartData.global_max_value, baseValue)
+                        )
+                    );
+                }
+            } else if (bmChartData.value_calculation === 'relative') {
+                const relativeGain = this.calculateRelativeGain(bmChartData, baseValue);
+                maxContent.push(bmChartData.convert_number_to_local(relativeGain), unitTextNode);
+            }
+        } else {
+            maxContent.push(bmChartData.convert_number_to_local(bmChartData.global_max_value, 0));
+        }
+
+        return BmUIUtils.createDiv('bm-axis bm-row', [
+            BmUIUtils.createDiv('bm-key-title'),
+            BmUIUtils.createDiv('bm-bar-title', [
+                BmUIUtils.createSpan('bm-bar-min', minContent),
+                bmChartData.x_axis_title,
+                BmUIUtils.createSpan('bm-bar-max', maxContent),
+            ]),
+        ]);
+    }
+
+    /**
+     * Helper method to calculate relative gain for different chart types
+     * @param {BmChartData} bmChartData - Chart data
+     * @param {Number} baseValue - Base value for calculation
+     * @returns {Number} Calculated relative gain
+     */
+    static calculateRelativeGain(bmChartData, baseValue) {
+        if (bmChartData.wow_class === 'evoker' && bmChartData.wow_spec === 'augmentation') {
+            const augBaseValue = bmChartData.loaded_data['profile']['metadata']['base_dps'];
+            const rawGain = bmChartData.get_absolute_gain(bmChartData.global_max_value, baseValue);
+            // console.log("augmentation had a raw gain of", raw_gain, "dps compared to its own max dps of", aug_base_value);
+            return bmChartData.get_relative_gain(augBaseValue + rawGain, augBaseValue);
+        } else {
+            if (['power_infusion', 'windfury_totem', 'trinket_compare'].indexOf(bmChartData.data_type) > -1) {
+                return bmChartData.global_max_value;
+            } else {
+                return bmChartData.get_relative_gain(bmChartData.global_max_value, baseValue);
+            }
+        }
     }
 }
 
