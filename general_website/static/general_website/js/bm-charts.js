@@ -2586,91 +2586,82 @@ class BmChartComponents {
 
     /**
      * Create the string representation of a html structured tooltip.
-     * @param {String} key
-     * @param {Array<[Number, String]>} index_series
-     * @returns {String}
+     * @param {BmChartData} bmChartData - Chart data object
+     * @param {String} key - Data key
+     * @param {Array<[Number, String]>} indexedSeries - Series data with indices
+     * @returns {String} HTML string for tooltip
      */
-    static createTooltip(bmChartData, key, indexed_series) {
+    static createTooltip(bmChartData, key, indexedSeries) {
         // use own local copy
-        indexed_series = indexed_series.slice();
-        const container = BmUIUtils.createDiv('bm-tooltip-container');
+        indexedSeries = indexedSeries.slice();
 
         const translated_name = bmChartData.get_translated_name(key);
-        const title = BmUIUtils.createDiv('bm-tooltip-title', translated_name);
-        container.appendChild(title);
+        const rows = [];
 
-        // inverse sort to have the table start with the highest value
-        for (const [index, series] of indexed_series.reverse()) {
+        // Add title
+        rows.push(BmUIUtils.createDiv('bm-tooltip-title', translated_name));
+
+        // Add series data (inverse sort to have the table start with the highest value)
+        for (const [index, series] of indexedSeries.reverse()) {
             if (!bmChartData.data[key].hasOwnProperty(series)) {
                 // data doesn't have series element, skipping
                 continue;
             }
 
-            const row = BmUIUtils.createDiv(
-                'bm-tooltip-row',
-                BmUIUtils.createDiv(`bm-tooltip-key bm-bar-group-${index + 1}`, series)
-            );
-
-            const value_div = BmUIUtils.createDiv('bm-tooltip-value');
-            let mantissa = 2;
-            if (bmChartData.value_calculation === 'total') {
-                mantissa = 0;
-            }
+            const mantissa = bmChartData.value_calculation === 'total' ? 0 : 2;
             const value = bmChartData.convert_number_to_local(
                 bmChartData.get_value(key, series, bmChartData.value_calculation),
                 mantissa
             );
 
-            // Add unit in proper position
             const unit = bmChartData.unit[bmChartData.value_calculation];
+            const valueContent = [];
+
+            // Add unit in proper position
             if (bmChartData.value_calculation === 'absolute' && unit.length > 0) {
-                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
+                valueContent.push(BmUIUtils.createUnitTextNode(unit));
             }
 
-            value_div.appendChild(document.createTextNode(value));
+            valueContent.push(value);
 
             if (bmChartData.value_calculation === 'relative' && unit.length > 0) {
-                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
+                valueContent.push(BmUIUtils.createUnitTextNode(unit));
             }
-            row.appendChild(value_div);
 
-            container.appendChild(row);
-        }
-        // chart types without multiple series
-        if (bmChartData.data_type === 'races') {
-            const row = BmUIUtils.createDiv(
-                'bm-tooltip-row',
-                BmUIUtils.createDiv('bm-tooltip-key bm-bar-group-1', key)
+            rows.push(
+                BmUIUtils.createDiv('bm-tooltip-row', [
+                    BmUIUtils.createDiv(`bm-tooltip-key bm-bar-group-${index + 1}`, series),
+                    BmUIUtils.createDiv('bm-tooltip-value', valueContent),
+                ])
             );
+        }
 
-            // let value = bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation));
+        // Handle chart types without multiple series
+        if (bmChartData.data_type === 'races') {
             const value = bmChartData.convert_number_to_local(bmChartData.data[key]);
-            const value_div = BmUIUtils.createDiv('bm-tooltip-value', value);
+            const unit = bmChartData.unit[bmChartData.value_calculation];
+            const valueContent = [value];
 
             // Add unit if applicable
-            const unit = bmChartData.unit[bmChartData.value_calculation];
             if (unit.length > 0) {
-                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
+                valueContent.push(BmUIUtils.createUnitTextNode(unit));
             }
-            row.appendChild(value_div);
 
-            container.appendChild(row);
+            rows.push(
+                BmUIUtils.createDiv('bm-tooltip-row', [
+                    BmUIUtils.createDiv('bm-tooltip-key bm-bar-group-1', key),
+                    BmUIUtils.createDiv('bm-tooltip-value', valueContent),
+                ])
+            );
         } else if (['power_infusion', 'windfury_totem', 'trinket_compare'].indexOf(bmChartData.data_type) > -1) {
             const abbreviation = {
                 power_infusion: 'PI',
                 windfury_totem: 'WFT',
                 trinket_compare: 'Trinket',
             };
-            const row = BmUIUtils.createDiv(
-                'bm-tooltip-row',
-                BmUIUtils.createDiv(
-                    'bm-tooltip-key bm-bar-group-1',
-                    document.createTextNode(abbreviation[bmChartData.data_type])
-                )
-            );
 
-            let value = -1;
             const base_value = bmChartData.base_values[key] || bmChartData.data['{' + key + '}'];
+            let value;
 
             if (bmChartData.value_calculation === 'relative') {
                 value = bmChartData.convert_number_to_local(
@@ -2680,25 +2671,34 @@ class BmChartComponents {
                 value = bmChartData.convert_number_to_local(bmChartData.data[key] - base_value);
             }
 
-            // let value = bmChartData.convert_number_to_local(bmChartData.get_value(key, series, bmChartData.value_calculation));
-            const value_div = BmUIUtils.createDiv('bm-tooltip-value', value);
-            // Add unit if applicable
             const unit = bmChartData.unit[bmChartData.value_calculation];
-            if (unit.length > 0) {
-                value_div.appendChild(BmUIUtils.createUnitTextNode(unit));
-            }
-            row.appendChild(value_div);
+            const valueContent = [value];
 
-            container.appendChild(row);
+            // Add unit if applicable
+            if (unit.length > 0) {
+                valueContent.push(BmUIUtils.createUnitTextNode(unit));
+            }
+
+            rows.push(
+                BmUIUtils.createDiv('bm-tooltip-row', [
+                    BmUIUtils.createDiv(
+                        'bm-tooltip-key bm-bar-group-1',
+                        document.createTextNode(abbreviation[bmChartData.data_type])
+                    ),
+                    BmUIUtils.createDiv('bm-tooltip-value', valueContent),
+                ])
+            );
         }
 
-        const legend = BmUIUtils.createDiv('bm-tooltip-row', [
-            BmUIUtils.createDiv('bm-tooltip-key-title bm-tooltip-width-marker-top', bmChartData.legend_title),
-            BmUIUtils.createDiv('bm-tooltip-value-title bm-tooltip-width-marker-top', bmChartData.x_axis_title),
-        ]);
+        // Add legend
+        rows.push(
+            BmUIUtils.createDiv('bm-tooltip-row', [
+                BmUIUtils.createDiv('bm-tooltip-key-title bm-tooltip-width-marker-top', bmChartData.legend_title),
+                BmUIUtils.createDiv('bm-tooltip-value-title bm-tooltip-width-marker-top', bmChartData.x_axis_title),
+            ])
+        );
 
-        container.appendChild(legend);
-
+        const container = BmUIUtils.createDiv('bm-tooltip-container', rows);
         return container.outerHTML;
     }
 }
