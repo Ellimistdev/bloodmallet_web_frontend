@@ -23,7 +23,6 @@ const BmTooltipClass = {
 };
 
 const BmTooltipAttribute = {
-    ID: 'data-bm-tooltip-id',
     TEXT: 'data-bm-tooltip-text',
     PLACEMENT: 'data-bm-tooltip-placement',
 };
@@ -253,137 +252,6 @@ const sortData = (data) => {
     }
     return sortedData;
 };
-
-/**
- * Register all tooltip-events.
- * @param {Element} element
- */
-function bm_register_tooltip(element) {
-    if (element.hasAttribute(BmTooltipAttribute.ID)) {
-        // console.log(BmTooltipAttribute.ID + " found. Tooltip was already registered. Skipping registration of tooltip.");
-        return;
-    }
-
-    /**
-     * Generate a random int.
-     * Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
-     * @param {number} max
-     * @returns
-     */
-    function get_random_int(max) {
-        return Math.floor(Math.random() * max);
-    }
-
-    function get_unique_random_int() {
-        const max = 999999;
-        let random_id = get_random_int(max);
-        while (document.querySelectorAll(`[${BmTooltipAttribute.ID}='bm-tooltip-${random_id}']`).length !== 0) {
-            console.debug(`We won! Somehow ID ${random_id} was already in use. Regenerating a new ID.`);
-            random_id = get_random_int(max);
-        }
-        return random_id;
-    }
-
-    /**
-     * Remove tooltip-div
-     * @param {Element} element
-     */
-    function remove_tooltip_div(element) {
-        const id = element.getAttribute(BmTooltipAttribute.ID);
-        if (!document.getElementById(id)) {
-            return;
-        }
-        document.getElementById(id).remove();
-    }
-
-    // /**
-    //  * Create a tooltip-div
-    //  * @param {Event} event
-    //  * @param {Element} element
-    //  * @param {number} random_id
-    //  */
-    function injectTooltip(event, element) {
-        // console.log(event);
-        if (!element.hasAttribute(BmTooltipAttribute.TEXT)) {
-            console.warn(`${BmTooltipAttribute.TEXT} not found. Skipping tooltip.`);
-            return;
-        }
-
-        remove_tooltip_div(element); // Clear existing tooltip
-
-        const id = element.getAttribute(BmTooltipAttribute.ID);
-        const tooltipHTML = element.getAttribute(BmTooltipAttribute.TEXT);
-        const placementAttr = element.getAttribute(BmTooltipAttribute.PLACEMENT);
-
-        const placement = BmUIUtils.getTooltipPlacementClass(placementAttr);
-        const tooltipContent = BmUIUtils.htmlToElement(tooltipHTML);
-
-        const root = BmUIUtils.createDiv(
-            `${BmTooltipClass.TOOLTIP} ${placement}`,
-            [BmUIUtils.createDiv(BmTooltipClass.ARROW), BmUIUtils.createDiv(BmTooltipClass.INNER, tooltipContent)],
-            {
-                id: id,
-            }
-        );
-
-        document.body.appendChild(root);
-
-        const { x, y } = BmUIUtils.getTooltipPosition(element, root, placement);
-        root.style = `transform: translate(${x}px, ${y}px);`;
-    }
-
-    /**
-     *
-     * @param {Element} element
-     */
-    function set_tooltip_id(element) {
-        const random_id = get_unique_random_int();
-        const id = 'bm-tooltip-' + random_id.toString();
-        element.setAttribute(BmTooltipAttribute.ID, id);
-    }
-
-    BmUIUtils.addCSS(BmTooltipStyleId, BmTooltipStyleUrl);
-
-    set_tooltip_id(element);
-    element.addEventListener('mouseover', (event) => {
-        injectTooltip(event, element);
-    });
-
-    // remove tooltip again
-    element.addEventListener('mouseleave', (event) => {
-        remove_tooltip_div(element);
-    });
-}
-
-/**
- * Ensures environment is prepared for bm-tooltips then registers all
- * discovered tooltip targets.
- */
-function bm_register_tooltips() {
-    const tooltip_elements = document.querySelectorAll('[data-type=\'bm-tooltip\']');
-    for (const element of tooltip_elements) {
-        bm_register_tooltip(element);
-    }
-}
-
-/**
- * Add bloodmallet tooltip js to page and execute `bm_register_tooltips`.
- */
-function add_bm_tooltips_to_dom() {
-    BmUIUtils.addCSS(BmTooltipJsId, BmTooltipJsUrl);
-
-    try {
-        bm_register_tooltips();
-    } catch (e) {
-        const script = document.getElementById(BmTooltipJsId);
-        script.addEventListener('load', () => {
-            bm_register_tooltips();
-        });
-        script.addEventListener('error', (error) => {
-            console.error(error);
-        });
-    }
-}
 
 /**
  * Main chart data extractor and configuration class
@@ -1237,7 +1105,6 @@ class BmBarChart {
     constructor(chart_data = new BmChartData()) {
         this.verticalLine = undefined;
         this.bmChartData = chart_data;
-
         this.bmChartData.clean_up_root();
         this.create_chart();
 
@@ -1247,7 +1114,7 @@ class BmBarChart {
             console.error('Error refreshing WowheadPower links:', error);
         }
 
-        add_bm_tooltips_to_dom();
+        BmUIUtils.add_bm_tooltips_to_dom();
         BmUIUtils.addCSS(BmChartStyleId, BmChartStyleUrl);
 
         if (['bloodmallet.com', '127.0.0.1:8000'].includes(window.location.host)) {
@@ -1353,7 +1220,7 @@ class BmRadarChart {
             console.error('Error occured while trying to refresh WowheadPower links.');
             console.error(error);
         }
-        add_bm_tooltips_to_dom();
+        BmUIUtils.add_bm_tooltips_to_dom();
         BmUIUtils.addCSS(BmChartStyleId, BmChartStyleUrl);
 
         if (['bloodmallet.com', '127.0.0.1:8000'].includes(window.location.host)) {
@@ -2042,13 +1909,122 @@ class BmUIUtils {
             return;
         }
 
-        const styles = document.createElement('link');
-        styles.id = id;
-        styles.rel = 'stylesheet';
-        styles.type = 'text/css';
-        styles.href = url + '?now=' + Date.now();
-        styles.media = 'all';
-        document.getElementsByTagName('head')[0].appendChild(styles);
+        const styles = this.createElement('link', {
+            id,
+            rel: 'stylesheet',
+            type: 'text/css',
+            href: url + '?now=' + Date.now(),
+            media: 'all',
+        });
+
+        document.head.appendChild(styles);
+    }
+
+    /**
+     * Inject JS into the head of the document
+     *
+     * @param {string} id - ID for the script element
+     * @param {string} url - URL to the js file
+     */
+    static addJS(id, url) {
+        if (document.getElementById(id)) {
+            return;
+        }
+
+        const script = this.createElement('script', {
+            id,
+            src: `${url}?now=${Date.now()}`,
+        });
+
+        document.head.appendChild(script);
+    }
+
+    // /**
+    //  * Create a tooltip-div
+    //  * @param {Event} event
+    //  * @param {Element} element
+    //  * @param {number} random_id
+    //  */
+    static injectTooltip(event, element) {
+        // console.log(event);
+        if (!element.hasAttribute(BmTooltipAttribute.TEXT)) {
+            console.warn(`${BmTooltipAttribute.TEXT} not found. Skipping tooltip.`);
+            return;
+        }
+
+        // Clear existing tooltip using direct reference
+        element._activeTooltip?.remove();
+
+        const tooltipHTML = element.getAttribute(BmTooltipAttribute.TEXT);
+        const platementAttribute = element.getAttribute(BmTooltipAttribute.PLACEMENT);
+
+        const placement = this.getTooltipPlacementClass(platementAttribute);
+        const tooltipContent = this.htmlToElement(tooltipHTML);
+
+        const tooltip = this.createDiv(`${BmTooltipClass.TOOLTIP} ${placement}`, [
+            this.createDiv(BmTooltipClass.ARROW),
+            this.createDiv(BmTooltipClass.INNER, tooltipContent),
+        ]);
+
+        element._activeTooltip = tooltip;
+        document.body.appendChild(tooltip);
+
+        const { x, y } = this.getTooltipPosition(element, tooltip, placement);
+        tooltip.style = `transform: translate(${x}px, ${y}px);`;
+    }
+
+    /**
+     * Register all tooltip-events.
+     * @param {Element} element
+     */
+    static registerTooltip(element) {
+        // Prevent double registration
+        if (element._tooltipRegistered) {
+            return;
+        }
+
+        this.addCSS(BmTooltipStyleId, BmTooltipStyleUrl);
+
+        element.addEventListener('mouseover', (event) => {
+            this.injectTooltip(event, element);
+        });
+
+        element.addEventListener('mouseleave', (event) => {
+            element._activeTooltip?.remove();
+            element._activeTooltip = null; // Clean up the reference
+        });
+
+        element._tooltipRegistered = true;
+    }
+
+    /**
+     * Ensures environment is prepared for bm-tooltips then registers all
+     * discovered tooltip targets.
+     */
+    static registerTooltips() {
+        const tooltip_elements = document.querySelectorAll("[data-type='bm-tooltip']");
+        for (const element of tooltip_elements) {
+            this.registerTooltip(element);
+        }
+    }
+
+    /**
+     * Add bloodmallet tooltip js to page and execute `bm_register_tooltips`.
+     */
+    static add_bm_tooltips_to_dom() {
+        this.addJS(BmTooltipJsId, BmTooltipJsUrl);
+
+        try {
+            this.registerTooltips();
+        } catch (e) {
+            const script = document.getElementById(BmTooltipJsId);
+            script.addEventListener('load', () => {
+                this.registerTooltips();
+            });
+            script.addEventListener('error', (error) => {
+                console.error(error);
+            });
+        }
     }
 
     /**
@@ -2057,7 +2033,7 @@ class BmUIUtils {
      * @returns {HTMLSpanElement} A span element containing the unit
      */
     static createUnitTextNode(unit) {
-        return BmUIUtils.createSpan('bm-unit', unit);
+        return this.createSpan('bm-unit', unit);
     }
 
     /**
