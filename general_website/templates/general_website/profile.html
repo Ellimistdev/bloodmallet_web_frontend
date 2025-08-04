@@ -31,8 +31,8 @@
 <br />
 <h3>{% translate "Delete Account" %}</h3>
 <div class="container-fluid">
-    <button type="button" class="btn btn-danger" aria-describedby="deletionHelp" data-toggle="modal"
-        data-target="#deleteProfileModal">
+    <button type="button" class="btn btn-danger" aria-describedby="deletionHelp" data-bs-toggle="modal"
+        data-bs-target="#deleteProfileModal">
         {% translate "Delete" %}
     </button>
     <small id="deletionHelp" class="form-text text-muted">Deleting the account removes all data associated with the
@@ -45,8 +45,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Delete Account</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"></span>
                 </button>
             </div>
             <div class="modal-body">
@@ -61,7 +61,7 @@
                 {{ profile_delete_form|crispy }}
 
                 <button type="submit" class="btn btn-danger">{% translate "Delete" %}</button>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </form>
         </div>
     </div>

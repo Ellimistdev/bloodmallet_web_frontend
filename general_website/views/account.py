@@ -84,8 +84,18 @@ def signup(request):
         signup_form = SignUpForm(request.POST)
         if signup_form.is_valid():
             signup_form.save()
-            messages.success(request, _("Account created."))
-            return redirect("index")
+            messages.success(request, _("Account created. Welcome"))
+            username: str = request.POST["username"]
+            password: str = request.POST["password1"]
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                auth_login(request, user)
+                return redirect("index")
+            else:
+                messages.warning(
+                    request, _("Automated login failed. Please try again.")
+                )
+                return redirect("login")
         else:
             messages.warning(request, _("Account creation failed."))
     else:
