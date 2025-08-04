@@ -1114,12 +1114,12 @@ class BmBarChart {
             console.error('Error refreshing WowheadPower links:', error);
         }
 
-        BmUIUtils.add_bm_tooltips_to_dom();
+        BmUIUtils.addTooltipsToDom();
         BmUIUtils.addCSS(BmChartStyleId, BmChartStyleUrl);
 
         if (['bloodmallet.com', '127.0.0.1:8000'].includes(window.location.host)) {
             try {
-                provide_meta_data(this.bmChartData, this.bmChartData.loaded_data);
+                provide_meta_data?.(this.bmChartData, this.bmChartData.loaded_data);
             } catch (error) {
                 console.log('Failed to provide metadata to bloodmallet.com:', error);
             }
@@ -1220,11 +1220,15 @@ class BmRadarChart {
             console.error('Error occured while trying to refresh WowheadPower links.');
             console.error(error);
         }
-        BmUIUtils.add_bm_tooltips_to_dom();
+        BmUIUtils.addTooltipsToDom();
         BmUIUtils.addCSS(BmChartStyleId, BmChartStyleUrl);
 
         if (['bloodmallet.com', '127.0.0.1:8000'].includes(window.location.host)) {
-            provide_meta_data(this.bmChartData, this.bmChartData.loaded_data);
+            try {
+                provide_meta_data?.(this.bmChartData, this.bmChartData.loaded_data);
+            } catch (error) {
+                console.log('Failed to provide metadata to bloodmallet.com:', error);
+            }
         }
     }
 
@@ -2009,9 +2013,9 @@ class BmUIUtils {
     }
 
     /**
-     * Add bloodmallet tooltip js to page and execute `bm_register_tooltips`.
+     * Add bloodmallet tooltip js to page and execute `registerTooltips`.
      */
-    static add_bm_tooltips_to_dom() {
+    static addTooltipsToDom() {
         this.addJS(BmTooltipJsId, BmTooltipJsUrl);
 
         try {
