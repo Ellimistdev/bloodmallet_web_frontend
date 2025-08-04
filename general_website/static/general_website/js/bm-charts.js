@@ -12,20 +12,6 @@ const BmChartStyleUrl = '/static/general_website/css/bm-charts.css';
 const BmTooltipJsId = 'bm-tooltip-javascript';
 const BmTooltipJsUrl = '/static/general_website/js/bm-tooltips.js';
 
-const BmTooltipClass = {
-    TOOLTIP: 'bm-tooltip',
-    ARROW: 'bm-tooltip-arrow',
-    INNER: 'bm-tooltip-inner',
-    TOP: 'bm-tooltip-top',
-    BOTTOM: 'bm-tooltip-bottom',
-    LEFT: 'bm-tooltip-left',
-    RIGHT: 'bm-tooltip-right',
-};
-
-const BmTooltipAttribute = {
-    TEXT: 'data-bm-tooltip-text',
-    PLACEMENT: 'data-bm-tooltip-placement',
-};
 const BmTooltipStyleId = 'bm-tooltip-styles';
 const BmTooltipStyleUrl = '/static/general_website/css/bm-tooltips.css';
 
@@ -54,47 +40,68 @@ const loadTrinketDataCache = () => {
 /**
  * Get trinket comparison data for a specific item and level
  * @param {string} itemName - Trinket name
- * @param {string} itemLevel - Item level
  * @param {string} fightStyle - Fight style
  * @returns {Promise<Object>} - Processed trinket data
  */
-const getTrinketDataAsync = async (itemName, itemLevel, fightStyle) => {
-    console.debug(`getTrinketDataAsync called with: ${itemName}, ${itemLevel}, ${fightStyle}`);
-    let data;
-    let firstItemKey;
-    let itemData;
+const getTrinketDataAsync = async (itemName, fightStyle) => {
+    console.debug(`getTrinketDataAsync called with: ${itemName}, ${fightStyle}`);
+    let targetItemKey;
 
     try {
-        data = await fetchAndProcessDataAsync(fightStyle);
+        const processedData = await fetchAndProcessDataAsync(fightStyle);
+        const restructuredData = restructureTrinketCompareData(processedData);
 
         // Use provided itemName or get first available
-        firstItemKey = Object.keys(data.items).find((key) => key !== 'baseline');
-        itemData = data.items[itemName] || data.items[firstItemKey];
+        const availableItems = Object.keys(restructuredData.items);
+        if (itemName) {
+            // Try to find exact match or formatted match
+            targetItemKey = availableItems.find(
+                (key) =>
+                    key === itemName ||
+                    key === itemName.toLowerCase().replace(/ /g, '_') ||
+                    key.toLowerCase().replace(/_/g, ' ') === itemName.toLowerCase()
+            );
+        }
 
-        // Use provided itemLevel or get highest available
-        const availableLevels = Object.keys(itemData.itemLevels)
-            .map((level) => parseInt(level))
-            .sort((a, b) => b - a); // Sort descending
+        // If no match found or no itemName provided, use first available
+        if (!targetItemKey) {
+            targetItemKey = availableItems[0];
+        }
 
-        const firstItemLevelKey = availableLevels[0].toString();
-        const { sorted_data_keys, ...itemLevelData } =
-            itemData.itemLevels[itemLevel] || itemData.itemLevels[firstItemLevelKey];
+        if (!restructuredData.items[targetItemKey]) {
+            throw new Error(`Item ${itemName} not found in processed data`);
+        }
+
+        const itemData = restructuredData.items[targetItemKey];
+        // Extract the spec data (excluding metadata)
+        const { translations, baseline, sorted_data_keys, simulated_steps, ...specData } = itemData;
+
+        console.log(baseline);
+        const restructuredBaseline = {};
+        if (simulated_steps && simulated_steps.length > 0) {
+            for (const itemLevel of simulated_steps) {
+                // For trinket_compare, use the same baseline for all item levels
+                // The baseline represents "no trinket" DPS for each spec
+                restructuredBaseline[itemLevel] = baseline || {};
+            }
+        }
+        console.log(restructuredBaseline);
 
         return {
             data: {
-                ...itemLevelData,
-                baseline: itemData.baseline,
+                baseline: restructuredBaseline,
+                ...specData,
             },
             data_type: 'trinket_compare',
-            item_name: itemName in data.items ? itemName : firstItemKey,
-            item_level: itemLevel in itemData.itemLevels ? itemLevel : firstItemLevelKey,
-            item_levels: Object.keys(itemData.itemLevels),
-            metadata: data.metadata,
-            simc_settings: data.simcSettings,
+            item_name: itemName,
+            simulated_steps: simulated_steps,
             sorted_data_keys: sorted_data_keys,
-            subtitle: data.subtitle,
-            timestamp: data.timestamp,
-            translations: itemData.translations,
+            metadata: restructuredData.metadata,
+            simc_settings: restructuredData.simcSettings,
+            subtitle: restructuredData.subtitle,
+            timestamp: restructuredData.timestamp,
+            translations: translations,
+            original_baseline: baseline,
         };
     } catch (error) {
         console.error('Error in getTrinketDataAsync:', error);
@@ -251,6 +258,60 @@ const sortData = (data) => {
         }
     }
     return sortedData;
+};
+
+/**
+ * Process raw trinket data to restructure from itemLevels[level][spec] to [spec][itemLevel]
+ * Transforms from: items[itemName].itemLevels[level][spec] = dps
+ * To: items[itemName][spec][itemLevel] = dps (matching standard trinket format)
+ * @param {Object} processedData - Raw processed data from fetchAndProcessDataAsync
+ * @returns {Object} Restructured data with items[itemName][spec][itemLevel] format
+ */
+const restructureTrinketCompareData = (processedData) => {
+    const restructuredData = {
+        items: {},
+        metadata: processedData.metadata,
+        simcSettings: processedData.simcSettings,
+        subtitle: processedData.subtitle,
+        timestamp: processedData.timestamp,
+    };
+
+    // Transform each item's data structure
+    for (const [itemKey, itemData] of Object.entries(processedData.items)) {
+        if (itemKey === 'baseline') continue;
+
+        restructuredData.items[itemKey] = {
+            translations: itemData.translations,
+            baseline: itemData.baseline,
+        };
+
+        // Transform: itemLevels[level][spec] -> [spec][itemLevel]
+        for (const [itemLevel, specData] of Object.entries(itemData.itemLevels)) {
+            const { sorted_data_keys, ...specs } = specData;
+
+            for (const [specName, dpsValue] of Object.entries(specs)) {
+                if (!restructuredData.items[itemKey][specName]) {
+                    restructuredData.items[itemKey][specName] = {};
+                }
+                restructuredData.items[itemKey][specName][itemLevel] = dpsValue;
+            }
+        }
+
+        // Store sorted_data_keys from the highest item level (most representative)
+        const itemLevels = Object.keys(itemData.itemLevels)
+            .map((level) => parseInt(level))
+            .sort((a, b) => b - a);
+        const highestLevel = itemLevels[0].toString();
+        const highestLevelData = itemData.itemLevels[highestLevel];
+        restructuredData.items[itemKey].sorted_data_keys =
+            highestLevelData.sorted_data_keys ||
+            Object.keys(highestLevelData).filter((key) => key !== 'sorted_data_keys');
+
+        // Store available item levels
+        restructuredData.items[itemKey].simulated_steps = itemLevels;
+    }
+
+    return restructuredData;
 };
 
 /**
@@ -622,13 +683,13 @@ class BmChartData {
             // Set legend title based on chart type
             if (this.data_type === 'races') {
                 this.legend_title = 'Race';
-            } else if (['trinkets'].includes(this.data_type)) {
-                this.legend_title = 'Itemlevels';
+            } else if (['trinkets', 'trinket_compare'].includes(this.data_type)) {
+                this.legend_title = 'Item Levels';
             } else if (['phials', 'potions', 'weapon_enchantments'].includes(this.data_type)) {
                 this.legend_title = 'Ranks';
             } else if (this.data_type === 'talent_target_scaling') {
                 this.legend_title = 'Targets';
-            } else if (['windfury_totem', 'power_infusion', 'trinket_compare'].includes(this.data_type)) {
+            } else if (['windfury_totem', 'power_infusion'].includes(this.data_type)) {
                 this.legend_title = 'Effect';
             } else {
                 this.legend_title = 'legend_title not set';
@@ -704,6 +765,7 @@ class BmChartData {
                     this.data_type
                 );
             }
+            this._extract_data_from_loaded_data('original_baseline', ['original_baseline']);
 
             // Extract optional data
             this._extract_data_from_loaded_data('language_dict', ['translations']);
@@ -738,7 +800,7 @@ class BmChartData {
             // Calculate global max value based on chart type
             if (this.data_type === 'races') {
                 this.global_max_value = Math.max(...Object.values(this.data));
-            } else if (['power_infusion', 'windfury_totem', 'trinket_compare'].indexOf(this.data_type) > -1) {
+            } else if (['power_infusion', 'windfury_totem'].indexOf(this.data_type) > -1) {
                 let biggest_diff = 0;
                 let base_value = 0;
                 let local_diff = 0;
@@ -758,6 +820,21 @@ class BmChartData {
                 }
 
                 this.global_max_value = biggest_diff;
+            } else if (this.data_type === 'trinket_compare') {
+                // For trinket_compare, find max gain over baseline
+                let maxGain = 0;
+                for (const spec of this.sorted_data_keys) {
+                    if (this.data[spec] && typeof this.data[spec] === 'object') {
+                        const specBaseline = this.original_baseline ? this.original_baseline[spec] : 0;
+                        for (const itemLevel in this.data[spec]) {
+                            const gain = this.data[spec][itemLevel] - specBaseline;
+                            if (gain > maxGain) {
+                                maxGain = gain;
+                            }
+                        }
+                    }
+                }
+                this.global_max_value = maxGain;
             } else {
                 this.global_max_value = Math.max(
                     ...Object.values(this.data).map((element) => Math.max(...Object.values(element)))
@@ -949,6 +1026,20 @@ class BmChartData {
      * @returns {Number} Calculated value
      */
     get_value(key, series, value_calculation) {
+        if (this.data_type === 'trinket_compare') {
+            // For trinket_compare, calculate gain over baseline
+            const rawValue = this.data[key][series];
+            const specBaseline = this.original_baseline ? this.original_baseline[key] : 0;
+
+            if (value_calculation === 'total') {
+                return rawValue;
+            } else if (value_calculation === 'absolute') {
+                return rawValue - specBaseline; // Show the gain
+            } else if (value_calculation === 'relative') {
+                return this.get_relative_gain(rawValue, specBaseline);
+            }
+        }
+
         if (value_calculation === 'total') {
             return this.data[key][series];
         } else if (value_calculation === 'absolute') {
@@ -1044,6 +1135,18 @@ class BmChartData {
      * @returns {Number} Comparison result
      */
     static compareDPSValues(bmChartData, a, b) {
+        if (bmChartData.data_type === 'trinket_compare') {
+            // For trinket_compare, compare by highest gain over baseline
+            const aBaseline = bmChartData.original_baseline ? bmChartData.original_baseline[a] : 0;
+            const bBaseline = bmChartData.original_baseline ? bmChartData.original_baseline[b] : 0;
+
+            // Get max gain for each spec across all item levels
+            const aMaxGain = Math.max(...Object.values(bmChartData.data[a])) - aBaseline;
+            const bMaxGain = Math.max(...Object.values(bmChartData.data[b])) - bBaseline;
+
+            return bMaxGain - aMaxGain; // Sort by highest gain first
+        }
+
         const a_dps_object = structuredClone(bmChartData.data[a]);
         const b_dps_object = structuredClone(bmChartData.data[b]);
 
@@ -1576,23 +1679,15 @@ class BmRadarChart {
 
 async function bm_import_charts() {
     console.debug('bm_import_charts called');
-    // find bloodmallet_chart class elements
     const chart_anchors = document.querySelectorAll('div.bloodmallet_chart');
-    // console.log(chart_anchors);
     const domain = 'bloodmallet.com';
     const local = '127.0.0.1:8000';
     const endpoint = `https://${domain}/chart/get`;
 
     for (const chart_anchor of chart_anchors) {
-        // set language if language information is missing from chart and language cookie was set
-        if (
-            !chart_anchor.dataset.language &&
-            (location.hostname == domain || location.hostname == local) &&
-            ('; ' + document.cookie).indexOf('; django_language=') > -1
-        ) {
-            // https://stackoverflow.com/a/59603055/8002464
-            const language = ('; ' + document.cookie).split(`; django_language=`).pop().split(';')[0];
-            chart_anchor.dataset.language = language;
+        // set language if missing
+        if (!chart_anchor.dataset.language) {
+            chart_anchor.dataset.language = BmUIUtils.detectUserLanguage(this.root_element);
         }
 
         if (chart_anchor.dataset.loadedData) {
@@ -1617,7 +1712,6 @@ async function bm_import_charts() {
         let chart_type;
         let fight_style;
         let item_name;
-        let item_level;
 
         if (chart_anchor.dataset.hasOwnProperty('chartId')) {
             console.debug(`Chart has chartId:`, chart_anchor.dataset.chartId);
@@ -1641,16 +1735,15 @@ async function bm_import_charts() {
         } else if ('type' in chart_anchor.dataset && chart_anchor.dataset.type === 'trinket_compare') {
             // Handle trinket_compare
             item_name = chart_anchor.dataset.itemName;
-            item_level = chart_anchor.dataset.itemLevel;
             chart_type = chart_anchor.dataset.type;
             fight_style = chart_anchor.dataset.fightStyle || 'castingpatchwerk';
-            request_endpoint = [endpoint, chart_type, fight_style, item_name, item_level].join('/');
+            request_endpoint = [endpoint, chart_type, fight_style, item_name].join('/');
         }
         // console.log("bloodmallet.com: loading chart from", request_endpoint);
         try {
             let data;
             if (chart_type === 'trinket_compare') {
-                data = await getTrinketDataAsync(item_name, item_level, fight_style);
+                data = await getTrinketDataAsync(item_name, fight_style);
             } else {
                 const response = await fetch(request_endpoint);
                 if (!response.ok) {
@@ -1685,7 +1778,7 @@ async function updateTrinketChartAsync(state) {
     const chart_anchor = charts[0];
 
     try {
-        const data = await getTrinketDataAsync(state.item_name, state.item_level, state.fight_style);
+        const data = await getTrinketDataAsync(state.item_name, state.fight_style);
 
         chart_anchor.dataset.loadedData = JSON.stringify(data);
         const bm_data = new BmChartData(chart_anchor);
@@ -2429,11 +2522,10 @@ class BmChartComponents {
                     BmUIUtils.createDiv('bm-tooltip-value', valueContent),
                 ])
             );
-        } else if (['power_infusion', 'windfury_totem', 'trinket_compare'].indexOf(bmChartData.data_type) > -1) {
+        } else if (['power_infusion', 'windfury_totem'].indexOf(bmChartData.data_type) > -1) {
             const abbreviation = {
                 power_infusion: 'PI',
                 windfury_totem: 'WFT',
-                trinket_compare: 'Trinket',
             };
 
             const base_value = bmChartData.base_values[key] || bmChartData.data['{' + key + '}'];
@@ -2582,7 +2674,7 @@ class BmChartComponents {
         // bar types without multiple series
         if (bmChartData.data_type === 'races') {
             this.addRaceBarPart(bmChartData, key, steps, bar);
-        } else if (['power_infusion', 'windfury_totem', 'trinket_compare'].includes(bmChartData.data_type)) {
+        } else if (['power_infusion', 'windfury_totem'].includes(bmChartData.data_type)) {
             this.addSpecialBarPart(bmChartData, key, steps, bar);
         } else {
             // bars with multiple series
@@ -2663,9 +2755,17 @@ class BmChartComponents {
                 continue;
             }
 
-            const relativeValue =
-                ((bmChartData.data[key][series] - bmChartData.base_values[series]) * 100) /
-                (bmChartData.global_max_value - bmChartData.base_values[series]);
+            // For trinket_compare, calculate gain over baseline
+            let currentValue;
+            if (bmChartData.data_type === 'trinket_compare') {
+                const specBaseline = bmChartData.original_baseline ? bmChartData.original_baseline[key] : 0;
+                const rawValue = bmChartData.data[key][series];
+                currentValue = rawValue - specBaseline;
+            } else {
+                currentValue = bmChartData.data[key][series] - bmChartData.base_values[series];
+            }
+
+            const relativeValue = (currentValue * 100) / bmChartData.global_max_value;
 
             if (relativeValue - previousValue >= 0.0) {
                 steps.push(relativeValue - previousValue);
