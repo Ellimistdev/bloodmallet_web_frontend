@@ -7,8 +7,8 @@ pull requests.
 
 ## Data source
 
-- chart data is generated using SimulationCraft with standard profiles from SimulationCraft
-- custom charts are generated user input, SimulationCraft, and SimulatioNCraft standard profiles as fallback
+- Chart data is generated using SimulationCraft with standard profiles from SimulationCraft
+- Custom charts are generated user input, SimulationCraft, and SimulatioNCraft standard profiles as fallback
 - Dragonflight talent tree data (structure, names, spell_id) is kindly provided by raidbots.com
 
 ## Development setup
@@ -33,6 +33,29 @@ pull requests.
 8. Start local django development server
     - `(env) bloodmallet/$ python manage.py runserver`
 9. Open `http://127.0.0.1:8000` in your browser of choice. And code away! :tada:
+
+## JavaScript Development
+
+The project uses ESLint for JavaScript code quality. The chart system is built with modern vanilla JavaScript.
+
+### Linting
+
+```bash
+# Check for linting errors
+npm run lint
+
+# Auto-fix issues where possible
+npm run lint:fix
+```
+
+**Before committing JavaScript changes, always run `npm run lint` to ensure code quality.**
+
+Configuration is in `eslint.config.mjs`. Current files linted:
+
+- `bm-charts.js` - Core chart system
+- `navbar_trinket_menu.js` - Navigation components
+
+All new development should be added to this list and linted.
 
 ### Optional:
 
