@@ -1695,8 +1695,6 @@ async function updateTrinketChartAsync(state) {
     }
 }
 
-window.updateTrinketChartAsync = updateTrinketChartAsync;
-
 // Load data on document load
 document.addEventListener('DOMContentLoaded', function () {
     bm_import_charts();
@@ -2006,7 +2004,7 @@ class BmUIUtils {
      * discovered tooltip targets.
      */
     static registerTooltips() {
-        const tooltip_elements = document.querySelectorAll("[data-type='bm-tooltip']");
+        const tooltip_elements = document.querySelectorAll('[data-type="bm-tooltip"]');
         for (const element of tooltip_elements) {
             this.registerTooltip(element);
         }
@@ -2020,7 +2018,8 @@ class BmUIUtils {
 
         try {
             this.registerTooltips();
-        } catch (e) {
+        } catch (error) {
+            console.warn('Tooltips not ready, setting up load handler:', error);
             const script = document.getElementById(BmTooltipJsId);
             script.addEventListener('load', () => {
                 this.registerTooltips();
@@ -2726,3 +2725,6 @@ class BmChartComponents {
 // Export utils for use in other modules
 window.BmUIUtils = BmUIUtils;
 window.BmChartComponents = BmChartComponents;
+window.fetchAndProcessDataAsync = fetchAndProcessDataAsync;
+window.getTrinketDataAsync = getTrinketDataAsync;
+window.updateTrinketChartAsync = updateTrinketChartAsync;
