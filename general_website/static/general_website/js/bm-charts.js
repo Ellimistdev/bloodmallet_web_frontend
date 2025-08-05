@@ -44,7 +44,6 @@ const loadTrinketDataCache = () => {
  * @returns {Promise<Object>} - Processed trinket data
  */
 const getTrinketDataAsync = async (itemName, fightStyle) => {
-    console.debug(`getTrinketDataAsync called with: ${itemName}, ${fightStyle}`);
     let targetItemKey;
 
     try {
@@ -76,7 +75,6 @@ const getTrinketDataAsync = async (itemName, fightStyle) => {
         // Extract the spec data (excluding metadata)
         const { translations, baseline, sorted_data_keys, simulated_steps, ...specData } = itemData;
 
-        console.log(baseline);
         const restructuredBaseline = {};
         if (simulated_steps && simulated_steps.length > 0) {
             for (const itemLevel of simulated_steps) {
@@ -85,7 +83,6 @@ const getTrinketDataAsync = async (itemName, fightStyle) => {
                 restructuredBaseline[itemLevel] = baseline || {};
             }
         }
-        console.log(restructuredBaseline);
 
         return {
             data: {
@@ -1677,7 +1674,6 @@ class BmRadarChart {
 }
 
 async function bm_import_charts() {
-    console.debug('bm_import_charts called');
     const chart_anchors = document.querySelectorAll('div.bloodmallet_chart');
     const domain = 'bloodmallet.com';
     const local = '127.0.0.1:8000';
