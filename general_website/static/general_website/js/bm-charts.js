@@ -91,6 +91,7 @@ const getTrinketDataAsync = async (itemName, fightStyle) => {
             data: {
                 baseline: restructuredBaseline,
                 ...specData,
+                spec_baseline: baseline,
             },
             data_type: 'trinket_compare',
             item_name: itemName,
@@ -101,7 +102,6 @@ const getTrinketDataAsync = async (itemName, fightStyle) => {
             subtitle: restructuredData.subtitle,
             timestamp: restructuredData.timestamp,
             translations: translations,
-            original_baseline: baseline,
         };
     } catch (error) {
         console.error('Error in getTrinketDataAsync:', error);
@@ -765,7 +765,6 @@ class BmChartData {
                     this.data_type
                 );
             }
-            this._extract_data_from_loaded_data('original_baseline', ['original_baseline']);
 
             // Extract optional data
             this._extract_data_from_loaded_data('language_dict', ['translations']);
@@ -825,7 +824,7 @@ class BmChartData {
                 let maxGain = 0;
                 for (const spec of this.sorted_data_keys) {
                     if (this.data[spec] && typeof this.data[spec] === 'object') {
-                        const specBaseline = this.original_baseline ? this.original_baseline[spec] : 0;
+                        const specBaseline = this.data.spec_baseline ? this.data.spec_baseline[spec] : 0;
                         for (const itemLevel in this.data[spec]) {
                             const gain = this.data[spec][itemLevel] - specBaseline;
                             if (gain > maxGain) {
@@ -1029,12 +1028,12 @@ class BmChartData {
         if (this.data_type === 'trinket_compare') {
             // For trinket_compare, calculate gain over baseline
             const rawValue = this.data[key][series];
-            const specBaseline = this.original_baseline ? this.original_baseline[key] : 0;
+            const specBaseline = this.data.baseline[key] || 0;
 
             if (value_calculation === 'total') {
                 return rawValue;
             } else if (value_calculation === 'absolute') {
-                return rawValue - specBaseline; // Show the gain
+                return rawValue - specBaseline;
             } else if (value_calculation === 'relative') {
                 return this.get_relative_gain(rawValue, specBaseline);
             }
@@ -1137,8 +1136,8 @@ class BmChartData {
     static compareDPSValues(bmChartData, a, b) {
         if (bmChartData.data_type === 'trinket_compare') {
             // For trinket_compare, compare by highest gain over baseline
-            const aBaseline = bmChartData.original_baseline ? bmChartData.original_baseline[a] : 0;
-            const bBaseline = bmChartData.original_baseline ? bmChartData.original_baseline[b] : 0;
+            const aBaseline = bmChartData.data.spec_baseline ? bmChartData.data.spec_baseline[a] : 0;
+            const bBaseline = bmChartData.data.spec_baseline ? bmChartData.data.spec_baseline[b] : 0;
 
             // Get max gain for each spec across all item levels
             const aMaxGain = Math.max(...Object.values(bmChartData.data[a])) - aBaseline;
@@ -1171,7 +1170,7 @@ class BmChartData {
         }
 
         // Special sorting for certain chart types
-        if (['power_infusion', 'windfury_totem', 'trinket_compare'].includes(bmChartData.data_type)) {
+        if (['power_infusion', 'windfury_totem'].includes(bmChartData.data_type)) {
             a_dps = bmChartData.data[a] - (bmChartData.base_values[a] || bmChartData.data['{' + a + '}']);
             b_dps = bmChartData.data[b] - (bmChartData.base_values[b] || bmChartData.data['{' + b + '}']);
 
@@ -2755,17 +2754,18 @@ class BmChartComponents {
                 continue;
             }
 
-            // For trinket_compare, calculate gain over baseline
             let currentValue;
+            let relativeValue;
+            const rawValue = bmChartData.data[key][series];
+            // For trinket_compare, calculate gain over baseline
             if (bmChartData.data_type === 'trinket_compare') {
-                const specBaseline = bmChartData.original_baseline ? bmChartData.original_baseline[key] : 0;
-                const rawValue = bmChartData.data[key][series];
+                const specBaseline = bmChartData.data.spec_baseline[key] || 0;
                 currentValue = rawValue - specBaseline;
+                relativeValue = (currentValue * 100) / bmChartData.global_max_value;
             } else {
-                currentValue = bmChartData.data[key][series] - bmChartData.base_values[series];
+                currentValue = rawValue - bmChartData.base_values[series];
+                relativeValue = (currentValue * 100) / (bmChartData.global_max_value - bmChartData.base_values[series]);
             }
-
-            const relativeValue = (currentValue * 100) / bmChartData.global_max_value;
 
             if (relativeValue - previousValue >= 0.0) {
                 steps.push(relativeValue - previousValue);
