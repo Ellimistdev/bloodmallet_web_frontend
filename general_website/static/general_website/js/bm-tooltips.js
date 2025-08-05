@@ -1,21 +1,18 @@
 const BmTooltipClass = {
-    TOOLTIP: "bm-tooltip",
-    ARROW: "bm-tooltip-arrow",
-    INNER: "bm-tooltip-inner",
-    TOP: "bm-tooltip-top",
-    BOTTOM: "bm-tooltip-bottom",
-    LEFT: "bm-tooltip-left",
-    RIGHT: "bm-tooltip-right",
-}
+    TOOLTIP: 'bm-tooltip',
+    ARROW: 'bm-tooltip-arrow',
+    INNER: 'bm-tooltip-inner',
+    TOP: 'bm-tooltip-top',
+    BOTTOM: 'bm-tooltip-bottom',
+    LEFT: 'bm-tooltip-left',
+    RIGHT: 'bm-tooltip-right',
+};
 
 const BmTooltipAttribute = {
-    ID: "data-bm-tooltip-id",
-    TEXT: "data-bm-tooltip-text",
-    PLACEMENT: "data-bm-tooltip-placement"
-}
-
-const BmTooltipStyleId = "bm-tooltip-styles";
-const BmTooltipStyleUrl = "/static/general_website/css/bm-tooltips.css";
+    ID: 'data-bm-tooltip-id',
+    TEXT: 'data-bm-tooltip-text',
+    PLACEMENT: 'data-bm-tooltip-placement',
+};
 
 /**
  * Inject css into head
